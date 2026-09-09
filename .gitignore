@@ -1,0 +1,20 @@
+# Python / Django
+backend/.venv/
+backend/__pycache__/
+backend/**/*.pyc
+backend/.env
+
+# Flutter
+frontend/.dart_tool/
+frontend/build/
+frontend/.packages
+
+# VS Code
+.vscode/
+
+# IDE
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
