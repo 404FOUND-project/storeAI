@@ -18,17 +18,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
 
-from pathlib import Path
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
-BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@gsa&-f6-4ky=6*gr&h0sq!6)56q62h75h^$4lku)$3_h!bq)u'
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -45,9 +40,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # 공통 패키지
+    # Flutter와 통신할 REST API 구현을 위한 Django REST Framework
+    "rest_framework",  
+    # 프론트엔드와 백엔드 간 교차 출처 요청(CORS) 허용 설정
+    "corsheaders",     
+    # DRF API 명세를 OpenAPI/Swagger 문서로 자동 생성
+    "drf_spectacular", 
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -87,7 +92,10 @@ DATABASES = {
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_port', '3306'),
+        'PORT': os.getenv('DB_PORT', '3306'),
+        'OPTIONS':{
+            "charset" : "utf8mb4",
+        },
     }
 }
 
@@ -114,9 +122,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ko-kr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
@@ -137,3 +145,18 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# REST Framework 설정
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# Swagger / OpenAPI 문서 설정
+SPECTACULAR_SETTINGS = {
+    "TITLE": "StoreAI API",
+    "DESCRIPTION": "StoreAI Backend API Documentation",
+    "VERSION": "1.0.0",
+}
+
+# 개발 중 프론트엔드의 API 요청 테스트를 위해 모든 출처의 요청 허용
+CORS_ALLOW_ALL_ORIGINS = True
