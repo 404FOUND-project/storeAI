@@ -48,7 +48,14 @@ INSTALLED_APPS = [
     "corsheaders",     
     # DRF API 명세를 OpenAPI/Swagger 문서로 자동 생성
     "drf_spectacular", 
+
+    # 회원관리
+    "member",
+    # 가게 관리
+    "store",
 ]
+AUTH_USER_MODEL = 'member.User'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
