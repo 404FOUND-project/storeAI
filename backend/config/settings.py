@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     # 공통 패키지
     # Flutter와 통신할 REST API 구현을 위한 Django REST Framework
     "rest_framework",  
+    # 인증 토큰 모델 등록 (migrate 필요)
+    "rest_framework.authtoken",
     # 프론트엔드와 백엔드 간 교차 출처 요청(CORS) 허용 설정
     "corsheaders",     
     # DRF API 명세를 OpenAPI/Swagger 문서로 자동 생성
@@ -53,6 +55,16 @@ INSTALLED_APPS = [
     "member",
     # 가게 관리
     "store",
+    # 공지사항
+    "notices",
+    # 매출 관리
+    "sales",
+    # 리뷰 관리 
+    "review",
+    # 재고 관리
+    "inventory",
+    # AI 분석 결과
+    "analysis",
 ]
 AUTH_USER_MODEL = 'member.User'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
