@@ -1,37 +1,43 @@
+| 기능 | Method | URL | 인증 | 구현 상태 |
+|---|---|---|---|---|
+| 회원가입 | POST | /member/signup/ | X | 구현 |
+| 로그인 | POST | /member/login/ | X | 구현 |
+| 내 정보 조회 | GET | /member/me/ | Token | 구현 |
+| 로그아웃 | POST | /member/logout/ | Token | 구현 |
+
 # 회원 인증 API
 
-## 1. 공통 규칙
+기준: `backend/member/{models,serializers,views,urls}.py`, `backend/config/{settings,urls}.py` (2026-09-26).
 
-- 개발 기본 주소: `http://127.0.0.1:8000`
-- 기본 경로: `/member/`
-- 요청 본문: JSON, `Content-Type: application/json`
-- 인증 헤더: `Authorization: Token <로그인으로 발급된 토큰>`
-- URL 끝의 `/` 포함
-- 오류 메시지 문구는 Django/DRF 버전에 따라 달라질 수 있음
+JSON 요청은 `Content-Type: application/json`, 인증은 `Authorization: Token <token>`을 사용합니다. 끝 슬래시를 포함합니다. 가입·로그인은 인증 헤더를 검사하지 않습니다. 내 정보·로그아웃은 세션 쿠키만으로 인증되지 않습니다. 예시의 ID·토큰·시각은 설명용이며, 프레임워크 오류 문구는 설치 버전·번역에 따라 달라질 수 있습니다.
 
-| 기능 | 메서드 | 경로 | 인증 | 성공 코드 |
-| --- | --- | --- | --- | --- |
-| 회원가입 | POST | `/member/signup/` | 불필요 | 201 |
-| 로그인 | POST | `/member/login/` | 불필요 | 200 |
-| 내 정보 | GET | `/member/me/` | 토큰 필수 | 200 |
-| 로그아웃 | POST | `/member/logout/` | 토큰 필수 | 204 |
+## 실제 필드와 비밀번호 처리
 
-가입과 로그인은 인증 헤더를 검사하지 않습니다. 내 정보와 로그아웃은 토큰 인증을 사용하며, Django 관리자 화면의 세션 쿠키만으로는 호출할 수 없습니다.
+| serializer | 필드 | 입력·출력 규칙 |
+|---|---|---|
+| SignupSerializer | username | 필수, 최대 150자, 중복 불가, Unicode 사용자명 검증 |
+| SignupSerializer | password | 필수, 모델 기반 최대 128자, write_only=True, trim_whitespace=False |
+| SignupSerializer | nickname | 선택, 최대 30자, 생략 시 빈 문자열 |
+| SignupSerializer | phone | 선택, 최대 20자, 생략 시 빈 문자열, 별도 전화번호 형식 검증 없음 |
+| UserSerializer | id, username, nickname, phone | 모두 읽기 전용 |
+| LoginSerializer | username, password | 필수 문자열, password는 write_only=True, 공백 보존 |
 
-## 2. 회원가입
+`User`는 `AbstractUser`를 상속하며 `nickname`, `phone`을 추가합니다. 상속된 email, first_name, last_name, 권한·상태·로그인 시각 등의 모델 필드는 위 API에 노출되지 않습니다. 회원가입 응답에는 id도 없습니다. FK 입력은 없습니다.
 
-### 요청
+가입은 `validate_password()`로 유사성·최소 8자·흔한 비밀번호·숫자로만 구성된 비밀번호를 검증합니다. 유사성 검사용 User에 username과 nickname을 전달하지만 기본 유사성 검증기의 비교 속성에 nickname은 포함되지 않습니다. `create_user()`가 비밀번호를 해시 저장합니다. 로그인은 `authenticate()`로 검증하며 비활성 계정도 거부합니다. 비밀번호 원문과 해시는 모든 성공 응답에서 제외됩니다. 비밀번호 오류 응답의 키는 입력 필드를 지칭하며 비밀번호 값을 반환하지 않습니다.
 
-`POST /member/signup/`
+사용자당 토큰 하나를 재사용하며 자동 만료는 구현되어 있지 않습니다. 로그아웃은 해당 토큰을 삭제하므로 같은 토큰을 사용하는 모든 기기에 영향을 줍니다. 회원 정보 수정·탈퇴·비밀번호 변경/재설정은 미구현이며 URL도 정의되어 있지 않습니다.
 
-| 필드 | 타입 | 필수 | 규칙 |
-| --- | --- | --- | --- |
-| username | string | 예 | 최대 150자, 중복 불가, 문자·숫자 및 `@ . + - _` 허용 |
-| password | string | 예 | 최소 8자, 흔한 비밀번호·숫자 전용·사용자 정보와 유사한 비밀번호 거절 |
-| nickname | string | 아니요 | 최대 30자, 기본값 빈 문자열 |
-| phone | string | 아니요 | 최대 20자, 기본값 빈 문자열, 전화번호 형식 별도 검증 없음 |
+## 회원가입
 
-비밀번호의 앞뒤 공백은 보존합니다. 다른 문자열 필드는 앞뒤 공백을 제거합니다. 필수 필드는 빈 문자열을 허용하지 않습니다. 닉네임과 전화번호는 중복을 허용합니다. `is_staff`, `is_superuser` 등 선언하지 않은 필드는 무시하므로 가입 요청으로 관리자 권한을 얻을 수 없습니다.
+1. 기능명: 회원가입
+2. Method: `POST`
+3. URL: `/member/signup/`
+4. 기능 설명: 사용자를 생성합니다. 토큰은 발급하지 않습니다.
+5. 인증 필요 여부: X
+6. Path Parameter: 없음
+7. Query Parameter: 없음
+8. Request Body JSON 예시:
 
 ```json
 {
@@ -42,7 +48,7 @@
 }
 ```
 
-### 성공 응답 — 201 Created
+9. 성공 Response JSON 예시:
 
 ```json
 {
@@ -52,42 +58,50 @@
 }
 ```
 
-비밀번호는 해시로 저장하며 응답에서 제외합니다. 회원가입 시 토큰을 발급하지 않으므로 이후 로그인 API를 호출합니다.
-
-### 실패 응답 — 400 Bad Request
-
-필드별 오류 배열을 반환합니다. 예시:
-
-```json
-{"username": ["해당 사용자 이름은 이미 존재합니다."]}
-```
-
-```json
-{"password": ["비밀번호가 너무 짧습니다. 최소 8 문자를 포함해야 합니다."]}
-```
-
-필수 값 누락, 잘못된 아이디 형식, 길이 제한 위반도 해당 필드에 오류를 반환합니다.
-
-## 3. 로그인
-
-### 요청
-
-`POST /member/login/`
-
-| 필드 | 타입 | 필수 | 설명 |
-| --- | --- | --- | --- |
-| username | string | 예 | 가입한 아이디 |
-| password | string | 예 | 가입한 비밀번호, 앞뒤 공백 보존 |
-
-```json
-{"username": "storeowner", "password": "River!Cedar72Moon"}
-```
-
-### 성공 응답 — 200 OK
+10. 성공 Status Code: 201 Created
+11. 주요 실패 Response 예시:
 
 ```json
 {
-  "token": "발급된 토큰",
+  "username": [
+    "해당 사용자 이름은 이미 존재합니다."
+  ]
+}
+```
+
+```json
+{
+  "password": [
+    "비밀번호가 너무 짧습니다. 최소 8 문자를 포함해야 합니다."
+  ]
+}
+```
+
+12. 실패 Status Code: 400: 필수값 누락·중복·길이/형식·비밀번호 검증 실패 또는 JSON 파싱 오류. 405: 미지원 메서드. 415: 파싱 시 미지원 미디어 타입.
+
+## 로그인
+
+1. 기능명: 로그인
+2. Method: `POST`
+3. URL: `/member/login/`
+4. 기능 설명: 인증 후 기존 토큰을 재사용하거나 새 토큰을 생성합니다.
+5. 인증 필요 여부: X
+6. Path Parameter: 없음
+7. Query Parameter: 없음
+8. Request Body JSON 예시:
+
+```json
+{
+  "username": "storeowner",
+  "password": "River!Cedar72Moon"
+}
+```
+
+9. 성공 Response JSON 예시:
+
+```json
+{
+  "token": "<발급된 토큰>",
   "user": {
     "id": 1,
     "username": "storeowner",
@@ -97,37 +111,35 @@
 }
 ```
 
-| 필드 | 타입 | 설명 |
-| --- | --- | --- |
-| token | string | 후속 요청의 인증 헤더에 전달할 토큰 |
-| user.id | integer | 사용자 DB 식별자 |
-| user.username | string | 로그인 아이디 |
-| user.nickname | string | 닉네임 |
-| user.phone | string | 전화번호 |
-
-### 실패 응답 — 400 Bad Request
-
-존재하지 않는 아이디, 잘못된 비밀번호, 비활성 계정은 동일한 오류를 반환합니다.
+10. 성공 Status Code: 200 OK
+11. 주요 실패 Response 예시:
 
 ```json
-{"non_field_errors": ["아이디 또는 비밀번호가 올바르지 않습니다."]}
+{
+  "non_field_errors": [
+    "아이디 또는 비밀번호가 올바르지 않습니다."
+  ]
+}
 ```
 
-필수 값 누락은 `username`, `password` 필드별 오류 배열을 반환합니다.
+필수값 누락은 해당 필드의 오류 배열입니다.
 
-## 4. 내 정보
+12. 실패 Status Code: 400: 누락·인증 실패·비활성 계정·JSON 파싱 오류. 405: 미지원 메서드. 415: 파싱 시 미지원 미디어 타입.
 
-### 요청
+## 내 정보 조회
 
-`GET /member/me/`
+1. 기능명: 내 정보 조회
+2. Method: `GET`
+3. URL: `/member/me/`
+4. 기능 설명: 토큰에 연결된 본인 정보만 반환합니다.
+5. 인증 필요 여부: 필수: Token
+6. Path Parameter: 없음 (사용자 ID를 받지 않음)
+7. Query Parameter: 없음
+8. Request Body JSON 예시:
 
-```http
-Authorization: Token <발급된 토큰>
-```
+없음 (본문을 보내지 않음)
 
-요청 본문과 사용자 ID는 필요 없습니다. 토큰에 연결된 사용자만 조회합니다.
-
-### 성공 응답 — 200 OK
+9. 성공 Response JSON 예시:
 
 ```json
 {
@@ -138,60 +150,45 @@ Authorization: Token <발급된 토큰>
 }
 ```
 
-### 실패 응답 — 401 Unauthorized
-
-토큰 누락, 잘못된 토큰, 삭제된 토큰, 비활성 사용자 토큰으로 요청한 경우입니다. 응답 형태:
+10. 성공 Status Code: 200 OK
+11. 주요 실패 Response 예시:
 
 ```json
-{"detail": "인증 자격 증명이 제공되지 않았습니다."}
+{
+  "detail": "인증 자격 증명이 제공되지 않았습니다."
+}
 ```
 
-`detail` 문구는 실패 사유에 따라 달라집니다.
+유효하지 않은 토큰·비활성 사용자도 detail 오류입니다.
 
-## 5. 로그아웃
+12. 실패 Status Code: 401: 토큰 누락·무효·비활성 사용자. 405: 미지원 메서드.
 
-### 요청
+## 로그아웃
 
-`POST /member/logout/`
+1. 기능명: 로그아웃
+2. Method: `POST`
+3. URL: `/member/logout/`
+4. 기능 설명: 인증에 사용된 토큰을 삭제합니다.
+5. 인증 필요 여부: 필수: Token
+6. Path Parameter: 없음
+7. Query Parameter: 없음
+8. Request Body JSON 예시:
 
-```http
-Authorization: Token <발급된 토큰>
+없음 (본문을 보내지 않음)
+
+9. 성공 Response JSON 예시:
+
+없음. 204 응답은 JSON 객체나 null 없이 본문이 비어 있습니다.
+
+10. 성공 Status Code: 204 No Content
+11. 주요 실패 Response 예시:
+
+```json
+{
+  "detail": "인증 자격 증명이 제공되지 않았습니다."
+}
 ```
 
-요청 본문은 필요 없습니다.
+유효하지 않은 토큰·비활성 사용자도 detail 오류입니다.
 
-### 성공 응답 — 204 No Content
-
-응답 본문 없이 인증 토큰을 삭제합니다. 클라이언트에서도 보관한 토큰을 제거합니다.
-
-### 실패 응답 — 401 Unauthorized
-
-내 정보 API와 동일한 인증 실패 조건입니다. 로그아웃한 토큰으로 다시 로그아웃을 요청해도 401입니다.
-
-## 6. 토큰 동작 및 공통 오류
-
-- 사용자당 하나의 토큰 유지, 반복 로그인 시 기존 토큰 재사용
-- 자동 만료 없음, 로그아웃 후 로그인 시 새 토큰 발급
-- 로그아웃 시 동일 토큰을 사용하는 모든 기기의 인증 해제
-- 운영 환경에서 HTTPS 사용 및 클라이언트 토큰 안전 보관
-- 잘못된 JSON: 400, 지원하지 않는 메서드: 405, 지원하지 않는 본문 형식: 415
-- 일반 오류 응답: `{"detail": "오류 설명"}`
-
-## 7. 실행 및 검증
-
-환경 변수와 MySQL 연결을 설정한 후 `backend`에서 실행합니다.
-
-```powershell
-.venv\Scripts\python.exe manage.py migrate
-.venv\Scripts\python.exe manage.py runserver
-```
-
-마이그레이션은 인증 토큰 테이블과 설치된 앱의 미적용 테이블을 생성합니다. 현재 가상환경의 Python 실행 경로가 유효해야 합니다.
-
-MySQL에 접근하지 않는 테스트:
-
-```powershell
-.venv\Scripts\python.exe manage.py test member --settings=config.test_settings
-```
-
-다음 단계: [공지사항 API](notices-api.md)
+12. 실패 Status Code: 401: 토큰 누락·무효·비활성 사용자·이미 로그아웃한 토큰. 405: 미지원 메서드.

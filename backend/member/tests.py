@@ -4,6 +4,7 @@ from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from .models import User
+from store.models import Store
 
 
 # 회원가입·인증 API 검증
@@ -127,3 +128,98 @@ class AuthenticationTests(APITestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(self.login(password=password).status_code, 200)
         self.assertEqual(self.login(password=password.strip()).status_code, 400)
+
+
+class MemberManagementTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(username='admin', is_staff=True)
+        self.owner = User.objects.create_user(username='owner')
+        self.other = User.objects.create_user(username='other')
+        self.store = Store.objects.create(owner=self.owner, name='Original')
+        self.detail_url = reverse('admin-member-detail', args=[self.owner.pk])
+        self.store_url = reverse('admin-member-store-detail',
+                                 args=[self.owner.pk, self.store.pk])
+
+    def authenticate(self, user):
+        token, _ = Token.objects.get_or_create(user=user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+
+    def test_admin_endpoints_require_staff(self):
+        requests = [('get', reverse('admin-member-list'), {}),
+                    ('patch', self.detail_url, {'nickname': 'changed'}),
+                    ('delete', self.detail_url, {}),
+                    ('patch', self.store_url, {'name': 'changed'})]
+        for user, expected in [(None, 401), (self.owner, 403)]:
+            if user:
+                self.authenticate(user)
+            for method, url, data in requests:
+                with self.subTest(user=user, method=method):
+                    response = getattr(self.client, method)(url, data)
+                    self.assertEqual(response.status_code, expected)
+        self.owner.refresh_from_db()
+        self.store.refresh_from_db()
+        self.assertEqual(self.owner.nickname, '')
+        self.assertEqual(self.store.name, 'Original')
+
+    def test_admin_lists_and_updates_member(self):
+        self.authenticate(self.admin)
+        response = self.client.get(reverse('admin-member-list'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 3)
+        member = next(item for item in response.data['results']
+                      if item['id'] == self.owner.pk)
+        self.assertNotIn('password', member)
+        self.assertEqual(member['stores'][0]['id'], self.store.pk)
+        response = self.client.patch(self.detail_url, {
+            'nickname': 'Updated', 'email': 'owner@example.com',
+            'is_staff': True, 'is_superuser': True,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.owner.refresh_from_db()
+        self.assertEqual(self.owner.nickname, 'Updated')
+        self.assertEqual(self.owner.email, 'owner@example.com')
+        self.assertFalse(self.owner.is_staff)
+        self.assertFalse(self.owner.is_superuser)
+        self.assertEqual(self.client.patch(self.detail_url,
+                                         {'username': 'other'}).status_code, 400)
+
+    def test_delete_cascades_store_and_token(self):
+        token = Token.objects.create(user=self.owner)
+        self.authenticate(self.admin)
+        self.assertEqual(self.client.delete(self.detail_url).status_code, 204)
+        self.assertFalse(User.objects.filter(pk=self.owner.pk).exists())
+        self.assertFalse(Store.objects.filter(pk=self.store.pk).exists())
+        self.assertFalse(Token.objects.filter(key=token.key).exists())
+
+    def test_store_registration_binds_authenticated_owner(self):
+        url = reverse('member-store-register')
+        self.assertEqual(self.client.post(url, {'name': 'New'}).status_code, 401)
+        self.authenticate(self.owner)
+        response = self.client.post(url, {'name': 'New', 'owner': self.other.pk})
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(Store.objects.get(pk=response.data['id']).owner, self.owner)
+        for data in ({}, {'name': ''}, {'name': 'New', 'latitude': '91'},
+                     {'name': 'New', 'longitude': '-181'}):
+            self.assertEqual(self.client.post(url, data).status_code, 400)
+
+    def test_admin_store_update_checks_member_ownership(self):
+        self.authenticate(self.admin)
+        response = self.client.patch(self.store_url,
+                                     {'name': 'Updated', 'owner': self.other.pk})
+        self.assertEqual(response.status_code, 200)
+        self.store.refresh_from_db()
+        self.assertEqual(self.store.name, 'Updated')
+        self.assertEqual(self.store.owner, self.owner)
+        wrong_url = reverse('admin-member-store-detail',
+                            args=[self.other.pk, self.store.pk])
+        self.assertEqual(self.client.patch(wrong_url, {'name': 'Wrong'}).status_code, 404)
+        self.assertEqual(self.client.get(reverse('admin-member-detail',
+                                                args=[99999])).status_code, 404)
+
+    def test_admin_can_deactivate_member(self):
+        self.authenticate(self.owner)
+        self.authenticate(self.admin)
+        self.assertEqual(self.client.patch(self.detail_url,
+                                         {'is_active': False}).status_code, 200)
+        self.authenticate(self.owner)
+        self.assertEqual(self.client.get(reverse('me')).status_code, 401)

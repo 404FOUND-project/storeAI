@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from .models import User
+from store.models import Store
 
 
 # 회원가입 검증 및 사용자 생성
@@ -59,3 +60,30 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError('아이디 또는 비밀번호가 올바르지 않습니다.')
         attrs['user'] = user
         return attrs
+
+
+class StoreSerializer(serializers.ModelSerializer):
+    latitude = serializers.DecimalField(
+        max_digits=10, decimal_places=7, min_value=-90, max_value=90,
+        required=False, allow_null=True,
+    )
+    longitude = serializers.DecimalField(
+        max_digits=10, decimal_places=7, min_value=-180, max_value=180,
+        required=False, allow_null=True,
+    )
+
+    class Meta:
+        model = Store
+        fields = ['id', 'owner', 'name', 'address', 'phone',
+                  'business_number', 'latitude', 'longitude', 'created_at']
+        read_only_fields = ['id', 'owner', 'created_at']
+
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    stores = StoreSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name',
+                  'nickname', 'phone', 'is_active', 'date_joined', 'stores']
+        read_only_fields = ['id', 'date_joined', 'stores']

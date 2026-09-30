@@ -3,8 +3,12 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import get_object_or_404
+from store.models import Store
 from .models import User
 from .serializers import LoginSerializer, SignupSerializer, UserSerializer
+from .serializers import AdminUserSerializer, StoreSerializer
 
 # 회원가입 처리 (201)
 class SignupView(generics.CreateAPIView):
@@ -53,3 +57,41 @@ class LogoutView(APIView):
         request.auth.delete()
         # 본문 없는 성공 응답 (204)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MemberPagination(PageNumberPagination):
+    page_size = 20
+
+
+class AdminMemberListView(generics.ListAPIView):
+    queryset = User.objects.prefetch_related('stores').order_by('id')
+    serializer_class = AdminUserSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAdminUser]
+    pagination_class = MemberPagination
+
+
+class AdminMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = User.objects.prefetch_related('stores')
+    serializer_class = AdminUserSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAdminUser]
+
+
+class StoreRegistrationView(generics.CreateAPIView):
+    serializer_class = StoreSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+
+class AdminMemberStoreView(generics.RetrieveUpdateAPIView):
+    serializer_class = StoreSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAdminUser]
+
+    def get_queryset(self):
+        member = get_object_or_404(User, pk=self.kwargs['member_pk'])
+        return Store.objects.filter(owner=member)
