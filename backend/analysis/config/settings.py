@@ -1,0 +1,149 @@
+
+"""
+Django settings for config project.
+"""
+
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# backend 폴더 경로
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# backend/.env 파일 불러오기
+load_dotenv(BASE_DIR / ".env")
+
+
+# Security
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+DEBUG = True
+ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+
+
+# Application definition
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
+    "drf_spectacular",
+
+    "member",
+    "store",
+    "notices",
+    "sales",
+    "review",
+    "inventory",
+    "analysis",
+]
+
+AUTH_USER_MODEL = "member.User"
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Middleware
+MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+]
+
+
+# URL / WSGI 설정
+ROOT_URLCONF = "analysis.config.urls"
+WSGI_APPLICATION = "analysis.config.wsgi.application"
+
+
+# Templates
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]
+
+
+# Database: Aiven MySQL
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("DB_NAME"),
+        "USER": os.getenv("DB_USER"),
+        "PASSWORD": os.getenv("DB_PASSWORD"),
+        "HOST": os.getenv("DB_HOST"),
+        "PORT": os.getenv("DB_PORT", "3306"),
+        "OPTIONS": {
+            "charset": "utf8mb4",
+            "ssl": {},
+        },
+    }
+}
+
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
+
+# Internationalization
+LANGUAGE_CODE = "ko-kr"
+TIME_ZONE = "Asia/Seoul"
+USE_I18N = True
+USE_TZ = True
+
+
+# Static files
+STATIC_URL = "static/"
+
+
+# Email
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+
+# Django REST Framework
+REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+
+# Swagger / OpenAPI
+SPECTACULAR_SETTINGS = {
+    "TITLE": "StoreAI API",
+    "DESCRIPTION": "StoreAI Backend API Documentation",
+    "VERSION": "1.0.0",
+}
+
+
+# CORS (개발용)
+CORS_ALLOW_ALL_ORIGINS = True

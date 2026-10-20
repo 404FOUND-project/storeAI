@@ -1,15 +1,19 @@
 
-from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from .models import User
+from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 
-@admin.register(User)
-class CustomUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (
-        ("추가 정보", {"fields": ("nickname", "phone")}),
+class User(AbstractUser):
+    nickname = models.CharField(
+        max_length=50,
+        blank=True,
+        verbose_name="닉네임"
+    )
+    phone = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="전화번호"
     )
 
-    add_fieldsets = UserAdmin.add_fieldsets + (
-        ("추가 정보", {"fields": ("nickname", "phone")}),
-    )
+    def __str__(self):
+        return self.username
