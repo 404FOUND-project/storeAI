@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # backend/.env 파일 불러오기
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
 
 # Security
