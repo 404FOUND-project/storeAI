@@ -4,7 +4,7 @@
 "최근 N일 판매량으로 계산한 하루 평균 사용량" 대비 "남은 일수"로 판단한다.
 """
 import math
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.db import connection
@@ -33,6 +33,8 @@ def _recipe_usage(store, window):
         last = c.fetchone()[0]
         if last is None:
             return {}
+        if isinstance(last, str):  # SQLite는 문자열로 돌려줌
+            last = datetime.fromisoformat(last)
         since = last - timedelta(days=window)
         c.execute(
             """SELECT i.menu_id, COALESCE(i.serving_temperature,'STANDARD'), SUM(i.quantity)
@@ -53,7 +55,7 @@ def _recipe_usage(store, window):
         for ing, per in items.get(rid, []):
             inv = inv_of.get(ing)
             if inv:
-                usage[inv] = usage.get(inv, Decimal(0)) + Decimal(qty) * Decimal(per) / Decimal(y or 1) / window
+                usage[inv] = usage.get(inv, Decimal(0)) + Decimal(str(qty)) * Decimal(str(per)) / Decimal(str(y or 1)) / window
     return usage
 
 
