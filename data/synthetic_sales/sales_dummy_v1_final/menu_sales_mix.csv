@@ -1,0 +1,28 @@
+﻿menu_id,menu_name,category,unit_price,temperature_class,quantity,quantity_share_pct,sales_amount,revenue_share_pct,basis
+M001,아몬드크리미라떼,커피,5500,BOTH,2933,6.058,16131500,5.2412,synthetic_only
+M002,아메리카노,커피,5000,BOTH,4943,10.2096,24715000,8.03,synthetic_only
+M003,아메리카노 디카페인,커피,5800,BOTH,1841,3.8025,10677800,3.4693,synthetic_only
+M004,카페 라떼,커피,5500,BOTH,3559,7.351,19574500,6.3598,synthetic_only
+M005,플랫 화이트,커피,5500,BOTH,1582,3.2676,8701000,2.827,synthetic_only
+M006,바닐라 라떼,커피,6000,BOTH,2936,6.0642,17616000,5.7235,synthetic_only
+M007,귀리 라떼,커피,6300,BOTH,1577,3.2573,9935100,3.228,synthetic_only
+M008,아인슈페너,커피,6000,BOTH,1936,3.9988,11616000,3.7741,synthetic_only
+M009,아이스티 샷 추가,음료,6300,ICE,1212,2.5034,7635600,2.4808,synthetic_only
+M010,황매실 에이드/아이스티,음료,6000,ICE,1578,3.2593,9468000,3.0762,synthetic_only
+M011,복숭아 살구 아이스티,음료,5500,ICE,2158,4.4573,11869000,3.8563,synthetic_only
+M012,패션후르츠 에이드,음료,6500,ICE,1453,3.0011,9444500,3.0686,synthetic_only
+M013,그린티 자몽,음료,6500,BOTH,1201,2.4806,7806500,2.5364,synthetic_only
+M014,아쿠아로사,음료,6500,ICE,1220,2.5199,7930000,2.5765,synthetic_only
+M015,발로나 초코라떼,음료,6500,BOTH,2135,4.4098,13877500,4.5089,synthetic_only
+M016,레몬 에이드,음료,6500,ICE,1651,3.4101,10731500,3.4867,synthetic_only
+M017,블랙티 밀크티,음료,6500,BOTH,1887,3.8976,12265500,3.9851,synthetic_only
+M018,오렌지 감귤 착즙 주스,음료,7500,ICE,1229,2.5385,9217500,2.9948,synthetic_only
+M019,마스카포네 티라미수,디저트,7500,NEUTRAL,1132,2.3381,8490000,2.7584,synthetic_only
+M020,밀크티 바스크,디저트,8000,NEUTRAL,1259,2.6004,10072000,3.2724,synthetic_only
+M021,레몬 생크림 케이크,디저트,8800,NEUTRAL,1214,2.5075,10683200,3.471,synthetic_only
+M022,바스크 치즈 케이크,디저트,7500,NEUTRAL,1439,2.9722,10792500,3.5065,synthetic_only
+M023,초코 바나나 케이크,디저트,9800,NEUTRAL,996,2.0572,9760800,3.1713,synthetic_only
+M024,찐고구마 케이크,디저트,9300,NEUTRAL,1157,2.3898,10760100,3.496,synthetic_only
+M025,커스터드 푸딩,디저트,6000,NEUTRAL,1907,3.9389,11442000,3.7176,synthetic_only
+M026,빅토리아 케이크,디저트,8500,NEUTRAL,1058,2.1853,8993000,2.9219,synthetic_only
+M027,블루베리 판나코타,디저트,6200,NEUTRAL,1222,2.524,7576400,2.4616,synthetic_only

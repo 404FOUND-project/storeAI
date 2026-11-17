@@ -1,0 +1,9 @@
+﻿temperature_group,class,days_n,class_quantity,all_quantity,share_pct
+low_temp_q1,HOT,167,0,11470,0.0
+low_temp_q1,COLD,167,1404,11470,12.2406
+low_temp_q1,NEUTRAL,167,3200,11470,27.8989
+low_temp_q1,UNKNOWN,167,6866,11470,59.8605
+high_temp_q4,HOT,167,0,12492,0.0
+high_temp_q4,COLD,167,2637,12492,21.1095
+high_temp_q4,NEUTRAL,167,3096,12492,24.7839
+high_temp_q4,UNKNOWN,167,6759,12492,54.1066

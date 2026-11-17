@@ -1,0 +1,28 @@
+﻿menu_id,menu_name,availability_type,total_quantity,hot_quantity,ice_quantity,unknown_quantity,temperature_sum_quantity,quantity_reconciles,price_and_line_amount_valid
+M013,그린티 자몽,HOT_ICE,1431,726,705,0,1431,True,True
+M017,블랙티 밀크티,HOT_ICE,1970,1017,953,0,1970,True,True
+M011,복숭아 살구 아이스티,ICE_ONLY,2068,0,2068,0,2068,True,True
+M019,마스카포네 티라미수,UNKNOWN,1316,0,0,1316,1316,True,True
+M025,커스터드 푸딩,UNKNOWN,1973,0,0,1973,1973,True,True
+M001,아몬드크리미라떼,HOT_ICE,2799,1428,1371,0,2799,True,True
+M026,빅토리아 케이크,UNKNOWN,1216,0,0,1216,1216,True,True
+M002,아메리카노,HOT_ICE,4005,2048,1957,0,4005,True,True
+M007,귀리 라떼,HOT_ICE,1681,862,819,0,1681,True,True
+M015,발로나 초코라떼,HOT_ICE,2075,1019,1056,0,2075,True,True
+M020,밀크티 바스크,UNKNOWN,1335,0,0,1335,1335,True,True
+M003,아메리카노 디카페인,HOT_ICE,1886,966,920,0,1886,True,True
+M006,바닐라 라떼,HOT_ICE,2789,1379,1410,0,2789,True,True
+M012,패션후르츠 에이드,ICE_ONLY,1604,0,1604,0,1604,True,True
+M005,플랫 화이트,HOT_ICE,1700,871,829,0,1700,True,True
+M016,레몬 에이드,ICE_ONLY,1720,0,1720,0,1720,True,True
+M023,초코 바나나 케이크,UNKNOWN,1257,0,0,1257,1257,True,True
+M004,카페 라떼,HOT_ICE,3086,1571,1515,0,3086,True,True
+M027,블루베리 판나코타,UNKNOWN,1341,0,0,1341,1341,True,True
+M018,오렌지 감귤 착즙 주스,ICE_ONLY,1288,0,1288,0,1288,True,True
+M021,레몬 생크림 케이크,UNKNOWN,1327,0,0,1327,1327,True,True
+M014,아쿠아로사,ICE_ONLY,1290,0,1290,0,1290,True,True
+M009,아이스티 샷 추가,ICE_ONLY,1332,0,1332,0,1332,True,True
+M022,바스크 치즈 케이크,UNKNOWN,1615,0,0,1615,1615,True,True
+M008,아인슈페너,HOT_ICE,1920,985,935,0,1920,True,True
+M024,찐고구마 케이크,UNKNOWN,1377,0,0,1377,1377,True,True
+M010,황매실 에이드/아이스티,ICE_ONLY,1615,0,1615,0,1615,True,True

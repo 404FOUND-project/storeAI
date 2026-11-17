@@ -1,0 +1,75 @@
+﻿{
+    "passed":  false,
+    "status":  "draft_validation_incomplete",
+    "checks":  {
+                   "669_days_and_date_span":  true,
+                   "orders_unchanged_from_revision":  true,
+                   "menu_count_27":  true,
+                   "dual_menu_count_11":  true,
+                   "ice_only_count_7":  true,
+                   "unknown_dessert_count_9":  true,
+                   "low_temp_hot_share_higher":  true,
+                   "high_temp_ice_share_higher":  true,
+                   "all_menu_qty_reconciles":  true,
+                   "price_and_line_amounts_match":  true,
+                   "order_detail_sum_equals_order":  true,
+                   "daily_sales_unchanged":  true,
+                   "reviews_excluded":  true,
+                   "rain_missing_preserved_396":  true,
+                   "xlsx_xml_rows_match_csv":  true,
+                   "business_orders_unchanged_from_revision":  true,
+                   "daily_sales_unchanged_from_revision":  true,
+                   "xlsx_csv_aggregate_crosschecks":  true,
+                   "existing_v1_and_revision_immutable":  true,
+                   "revision2_version_tags_consistent":  true
+               },
+    "counts":  {
+                   "orders":  31753,
+                   "order_details":  47166,
+                   "daily_sales":  669,
+                   "daily_menu_sales":  18063,
+                   "menus":  27
+               },
+    "total_sales":  316179200,
+    "order_detail_quantity":  49016,
+    "hot_ice_choice_group":  {
+                                 "low_temp_days":  167,
+                                 "high_temp_days":  167,
+                                 "low_temp_hot_share_pct":  93.754,
+                                 "high_temp_hot_share_pct":  11.6737,
+                                 "low_temp_ice_share_pct":  6.246,
+                                 "high_temp_ice_share_pct":  88.3263
+                             },
+    "limitations":  [
+                        "Temperature weights are synthetic scenario settings, not observed causal effects.",
+                        "Serving temperature was not represented in the original menu catalog; per-order choice is simulated.",
+                        "Django integer Menu PK map remains incomplete; DB not accessed."
+                    ],
+    "v1_revision_preserved":  true,
+    "unresolved":  [
+                       "Temperature probability curve is a synthetic assumption and remains subject to review."
+                   ],
+    "xlsx_csv_crosschecks":  {
+                                 "daily_rows":  true,
+                                 "daily_sales":  true,
+                                 "daily_menu_rows":  true,
+                                 "daily_menu_quantity":  true,
+                                 "orders_rows":  true,
+                                 "orders_sales":  true,
+                                 "detail_rows":  true,
+                                 "detail_qty":  true,
+                                 "detail_total":  true,
+                                 "temperature_mix_rows":  true
+                             },
+    "preservation":  {
+                         "sales_dummy_v1_hash_and_mtime_unchanged":  true,
+                         "sales_dummy_v1_revision_hashes_unchanged":  true
+                     },
+    "order_detail_quantity_by_temperature":  {
+                                                 "HOT":  12872,
+                                                 "ICE":  23387,
+                                                 "UNKNOWN":  12757
+                                             },
+    "orders_business_values_unchanged":  true,
+    "daily_sales_values_unchanged":  true
+}

@@ -1,0 +1,233 @@
+{
+  "version": "sales_dummy_nov2026_v1",
+  "draft_status": "draft_validation_passed",
+  "synthetic": true,
+  "store": "404다방",
+  "store_id": 1,
+  "period": [
+    "2026-11-01",
+    "2026-11-30"
+  ],
+  "days": 30,
+  "menu_count": 27,
+  "menu_catalog_source": "docs/source/404dabang_dummy_sales_data_menu_id_fixed.xlsx / menu sheet",
+  "seed": 40420261110,
+  "seed_streams": {
+    "order_count": 40420261110,
+    "order_detail_generation": 40420261111,
+    "temperature_scenario": 40420261112
+  },
+  "baseline_method": "revision3 669-day weekday-specific baseline_order_count mean; no 2025-Nov date-specific counts copied",
+  "weekday_baselines": {
+    "월": 44.63157894736842,
+    "화": 45.27368421052632,
+    "수": 51.364583333333336,
+    "목": 47.020833333333336,
+    "금": 55.895833333333336,
+    "토": 44.302083333333336,
+    "일": 29.610526315789475
+  },
+  "residual_method": "weekday residual bootstrap with replacement independently per date; clipped to empirical 5th/95th percentiles then recentered to zero mean",
+  "residual_clipping_summary": {
+    "월": {
+      "n": 95,
+      "raw_sd": 5.89996868289371,
+      "clipped_centered_sd": 5.271386344953323,
+      "raw_cv": 0.13219269454596758,
+      "clipped_cv": 0.11810889216286928,
+      "q05": -7.9315789473684175,
+      "q95": 9.368421052631582,
+      "sd_reduction_pct": 10.653994482426487
+    },
+    "화": {
+      "n": 95,
+      "raw_sd": 5.485846596282066,
+      "clipped_centered_sd": 5.1051924470692125,
+      "raw_cv": 0.12117075718363084,
+      "clipped_cv": 0.11276291152559292,
+      "q05": -9.27368421052632,
+      "q95": 10.026315789473678,
+      "sd_reduction_pct": 6.938840569673143
+    },
+    "수": {
+      "n": 96,
+      "raw_sd": 6.679299981705721,
+      "clipped_centered_sd": 5.949872266615064,
+      "raw_cv": 0.13003707123174796,
+      "clipped_cv": 0.11583608549889396,
+      "q05": -8.364583333333336,
+      "q95": 11.885416666666664,
+      "sd_reduction_pct": 10.920720990051702
+    },
+    "목": {
+      "n": 96,
+      "raw_sd": 5.743608194133658,
+      "clipped_centered_sd": 5.432803224597131,
+      "raw_cv": 0.12215028503252794,
+      "clipped_cv": 0.11554034327898195,
+      "q05": -10.020833333333336,
+      "q95": 7.979166666666664,
+      "sd_reduction_pct": 5.411319140013293
+    },
+    "금": {
+      "n": 96,
+      "raw_sd": 6.999968671609093,
+      "clipped_centered_sd": 6.368959448977463,
+      "raw_cv": 0.1252323877142141,
+      "clipped_cv": 0.11394336695897063,
+      "q05": -10.395833333333336,
+      "q95": 12.354166666666664,
+      "sd_reduction_pct": 9.01445781023159
+    },
+    "토": {
+      "n": 96,
+      "raw_sd": 6.162910781298526,
+      "clipped_centered_sd": 5.721683110817484,
+      "raw_cv": 0.13911108276620232,
+      "clipped_cv": 0.12915155857946822,
+      "q05": -8.302083333333336,
+      "q95": 10.947916666666664,
+      "sd_reduction_pct": 7.159403829436517
+    },
+    "일": {
+      "n": 95,
+      "raw_sd": 3.60936941755554,
+      "clipped_centered_sd": 3.168539357075248,
+      "raw_cv": 0.12189480791602428,
+      "clipped_cv": 0.107007194782136,
+      "q05": -4.610526315789475,
+      "q95": 5.389473684210525,
+      "sd_reduction_pct": 12.213492427130001
+    }
+  },
+  "seasonal_profile_blend": {
+    "november_2025_weight": 0.7,
+    "revision3_all_days_weight": 0.3,
+    "used_for": [
+      "menu share",
+      "cart line count",
+      "hour distribution"
+    ],
+    "interpretation": "synthetic assumption"
+  },
+  "exam_events": [
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2026-10-27",
+      "end": "2026-11-02",
+      "source_type": "official_website",
+      "verified_status": "verified",
+      "source_file": "docs/source/storeAI_school_calendar_sources.md",
+      "source_url": "",
+      "confidence": "verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-10-20",
+      "end": "2026-10-26",
+      "source_type": "user_confirmed",
+      "verified_status": "user_confirmed",
+      "source_file": "docs/source/storeAI_school_calendar_sources.md",
+      "source_url": "",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-12-08",
+      "end": "2026-12-14",
+      "source_type": "user_confirmed",
+      "verified_status": "user_confirmed",
+      "source_file": "docs/source/storeAI_school_calendar_sources.md",
+      "source_url": "",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 사범대학 부속고등학교(한대부고)",
+      "key": "highschool",
+      "start": "2026-11-30",
+      "end": "2026-12-04",
+      "source_type": "official_pdf",
+      "verified_status": "verified",
+      "source_file": "docs/source/academic_calendar.pdf",
+      "source_url": "",
+      "confidence": "verified",
+      "strength": 0.12
+    }
+  ],
+  "exam_method": "14-day linear lead ramp; 12% during exam; 14-day linear taper; same-school maximum; cross-school maximum plus 25% of other effects; cap 22%",
+  "exam_overlap_limit": "weekday baseline may retain prior exam residual; requested 2026 effect applied once without weakening; overlap risk remains a limitation",
+  "weather": {
+    "actual_2026_observations_used": false,
+    "reason": "supplied daily inputs end 2026-10-31",
+    "temperature_scenario": "independent resampling with replacement from 30 observed 2025-Nov ASOS station 108 average temperatures; labeled synthetic",
+    "precipitation": "unknown/blank, not treated as no rain",
+    "weather_order_effect": 0
+  },
+  "holidays": {
+    "2026-November official dates present in supplied holiday file": false,
+    "status": "unknown",
+    "holiday_order_effect": 0,
+    "weekend_effect": "weekday baseline only; no separate weekend multiplier"
+  },
+  "serving_temperature": {
+    "dual_menu_ids": [
+      "M001",
+      "M002",
+      "M003",
+      "M004",
+      "M005",
+      "M006",
+      "M007",
+      "M008",
+      "M013",
+      "M015",
+      "M017"
+    ],
+    "ice_only_menu_ids": [
+      "M009",
+      "M010",
+      "M011",
+      "M012",
+      "M014",
+      "M016",
+      "M018"
+    ],
+    "unknown_menu_ids": [
+      "M019",
+      "M020",
+      "M021",
+      "M022",
+      "M023",
+      "M024",
+      "M025",
+      "M026",
+      "M027"
+    ],
+    "dual_rule": "p(HOT)=clip(1/(1+exp((avg_temp_c-16)/5)),0.10,0.95); synthetic scenario, not causal fact"
+  },
+  "discounts": 0,
+  "costs_or_margins_created": false,
+  "reviews_included": false,
+  "db_written": false,
+  "django_menu_pk_mapping": "not inferred",
+  "outputs": [
+    "orders.csv",
+    "order_details.csv",
+    "daily_sales.csv",
+    "daily_menu_sales.csv",
+    "hourly_sales.csv",
+    "daily_exam_effects.csv",
+    "daily_generation_inputs.csv",
+    "generation_rules.json",
+    "validation_report.json",
+    "generation_report.md",
+    "404dabang_sales_dummy_nov2026_v1.xlsx"
+  ],
+  "integrated_699_day_file_created": false
+}

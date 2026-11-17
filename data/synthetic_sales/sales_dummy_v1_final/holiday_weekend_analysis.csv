@@ -1,0 +1,15 @@
+﻿group_type,group,n_days,avg_orders_per_day,avg_sales_per_day,configured_factor_mean,realized_factor,status
+day_type,weekday_월_normal,80,46.7125,460933.75,0.98,0.9814,OK
+day_type,weekday_화_normal,84,47.2738,464488.0952,1.0,0.9984,OK
+day_type,weekday_수_normal,89,53.0225,523973.0337,1.13,1.1226,OK
+day_type,weekday_목_normal,84,49.2738,482259.5238,1.03,1.0359,OK
+day_type,weekday_금_normal,79,58.557,574006.3291,1.23,1.2327,OK
+day_type,weekday_토_normal,80,45.95,454210,0.97,0.9742,OK
+day_type,weekday_일_normal,80,31.0125,305657.5,0.65,0.6502,OK
+day_type,public_holiday,7,45.5714,470257.1429,0.8991,0.9474,LOW_N
+day_type,weekend,160,38.4813,379933.75,0.81,0.8122,OK
+day_type,long_holiday,56,37.375,363123.2143,0.7901,0.7969,OK
+day_type,pre_long_holiday,15,55.2,544380,1.1891,1.1744,OK
+day_type,post_long_holiday,15,48.0667,454606.6667,1.0023,1.0227,OK
+day_type,public_holiday_on_weekday,32,40.875,397796.875,0.8513,0.8713,OK
+day_type,public_holiday_on_weekend,8,39.375,404362.5,0.7629,0.8083,LOW_N

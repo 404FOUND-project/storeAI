@@ -1,0 +1,36 @@
+{
+  "version": "sales_dummy_v1",
+  "store": "404??",
+  "store_id": 1,
+  "period": [
+    "2025-01-01",
+    "2026-10-31"
+  ],
+  "days": 669,
+  "seed": 40420261109,
+  "synthetic": true,
+  "reviews_included": false,
+  "counts": {
+    "orders": 31254,
+    "order_details": 46374,
+    "daily_sales": 669,
+    "daily_menu_sales": 18063,
+    "hourly_sales": 8339,
+    "menus": 27
+  },
+  "total_sales": 306876700,
+  "precipitation_missing_days": 396,
+  "sources": [
+    "docs/source/404dabang_dummy_sales_data_menu_id_fixed.xlsx: 180-day synthetic baseline; not merged",
+    "data/processed/404dabang_daily_features.csv: weather/holiday/school calendar features"
+  ],
+  "assumptions": [
+    "Weekday, basket, hour and menu popularity derived from 180-day dummy baseline; source rows not mixed.",
+    "Exam lift starts 14 days before and is capped; estimated flags downweighted.",
+    "Weekend, holiday and weather factors are weak seeded scenarios, not observed effects.",
+    "Missing rain is excluded from rain effect.",
+    "Only explicit hot/cold names get temperature mix changes; others UNKNOWN.",
+    "No review, cost, margin, or real sales used."
+  ],
+  "compatibility": "Source menu codes M001-M027 retained; Django Menu PK is integer and DB was not accessed, so FK map is unverified."
+}

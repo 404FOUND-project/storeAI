@@ -1,0 +1,276 @@
+{
+  "version": "sales_dummy_v1_revision2",
+  "draft_status": "draft_validation_incomplete",
+  "store": "404??",
+  "store_id": 1,
+  "period": [
+    "2025-01-01",
+    "2026-10-31"
+  ],
+  "days": 669,
+  "random_seed": 40420261112,
+  "synthetic": true,
+  "reviews_included": false,
+  "counts": {
+    "orders": 31753,
+    "order_details": 47166,
+    "daily_sales": 669,
+    "daily_menu_sales": 18063,
+    "menus": 27
+  },
+  "total_sales": 316179200,
+  "inherited_exam_events": [
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-04-22",
+      "end": "2025-04-28",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-06-17",
+      "end": "2025-06-23",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-10-27",
+      "end": "2025-10-31",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-12-15",
+      "end": "2025-12-19",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-04-14",
+      "end": "2026-04-20",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-06-09",
+      "end": "2026-06-15",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-10-20",
+      "end": "2026-10-26",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-04-22",
+      "end": "2025-04-28",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-06-17",
+      "end": "2025-06-23",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-10-27",
+      "end": "2025-10-31",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-12-15",
+      "end": "2025-12-19",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2026-04-21",
+      "end": "2026-04-27",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2026-06-16",
+      "end": "2026-06-22",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2026-10-27",
+      "end": "2026-10-31",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-04-28",
+      "end": "2025-05-01",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-07-02",
+      "end": "2025-07-04",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-07-07",
+      "end": "2025-07-08",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-09-18",
+      "end": "2025-09-19",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-09-22",
+      "end": "2025-09-24",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-12-01",
+      "end": "2025-12-05",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-04-24",
+      "end": "2026-04-24",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-04-27",
+      "end": "2026-04-30",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-07-01",
+      "end": "2026-07-03",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-07-06",
+      "end": "2026-07-07",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-09-17",
+      "end": "2026-09-18",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-09-21",
+      "end": "2026-09-23",
+      "confidence": "official_verified",
+      "strength": 0.12
+    }
+  ],
+  "menu_availability": {
+    "M013": "HOT_ICE",
+    "M017": "HOT_ICE",
+    "M011": "ICE_ONLY",
+    "M019": "UNKNOWN",
+    "M025": "UNKNOWN",
+    "M001": "HOT_ICE",
+    "M026": "UNKNOWN",
+    "M002": "HOT_ICE",
+    "M007": "HOT_ICE",
+    "M015": "HOT_ICE",
+    "M020": "UNKNOWN",
+    "M003": "HOT_ICE",
+    "M006": "HOT_ICE",
+    "M012": "ICE_ONLY",
+    "M005": "HOT_ICE",
+    "M016": "ICE_ONLY",
+    "M023": "UNKNOWN",
+    "M004": "HOT_ICE",
+    "M027": "UNKNOWN",
+    "M018": "ICE_ONLY",
+    "M021": "UNKNOWN",
+    "M014": "ICE_ONLY",
+    "M009": "ICE_ONLY",
+    "M022": "UNKNOWN",
+    "M008": "HOT_ICE",
+    "M024": "UNKNOWN",
+    "M010": "ICE_ONLY"
+  },
+  "temperature_assumption": {
+    "rule": "p(HOT)=clip(1/(1+exp((avg_temp_c-16)/5)),0.10,0.95) for HOT/ICE menus; ICE-only always ICE; desserts UNKNOWN.",
+    "interpretation": "Synthetic scenario weighting, not observed causal effect."
+  },
+  "sources": [
+    "sales_dummy_v1_revision generated orders and daily demand profile",
+    "user-confirmed menu temperature availability list",
+    "data/processed/404dabang_daily_features.csv for daily average temperature"
+  ],
+  "constraints": [
+    "Menu IDs, prices, quantities, order counts and total sales are inherited; serving_temperature is added at order-detail level.",
+    "No DB, Django models, migrations, or Prophet files changed.",
+    "Django integer menu PK mapping remains incomplete.",
+    "No reviews, costs, or margins included."
+  ]
+}
