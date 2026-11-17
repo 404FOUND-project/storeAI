@@ -1,10 +1,14 @@
 
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import render
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('member/', include('member.urls')),
     path('notices/', include('notices.urls')),
+    path('store/<int:store_id>/inventory/', include('inventory.urls')),
+    path('store/', include('store.urls')),
     path('api/chatbot/', include('analysis.urls')),
+    path('chat/', lambda request: render(request, 'analysis/chatbot.html')),
 ]

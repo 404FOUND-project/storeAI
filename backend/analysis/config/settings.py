@@ -17,7 +17,7 @@ load_dotenv(BASE_DIR.parent / ".env")
 # Security
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
 DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = ["127.0.0.1", "localhost", "10.0.2.2"]
 
 
 # Application definition
@@ -148,3 +148,8 @@ SPECTACULAR_SETTINGS = {
 
 # CORS (개발용)
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+# 개인 테스트용: .env에 USE_LOCAL_DB=1 이면 공유 DB 대신 내 PC의 SQLite 파일 사용
+if os.environ.get("USE_LOCAL_DB") == "1":
+    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "local_dummy.sqlite3"}}

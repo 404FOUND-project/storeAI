@@ -173,3 +173,26 @@ class SalesItem(models.Model):
     def __str__(self):
         return f"{self.menu.name} - {self.quantity}"
 # Create your models here.
+
+
+class SalesForecast(models.Model):
+    """A의 메뉴별 판매 예측 결과 (발주 추천이 읽음). 같은 base_date의 여러 target_date를 한 번에 저장."""
+
+    menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name="forecasts")
+    base_date = models.DateField()      # 예측 기준일
+    target_date = models.DateField()    # 예측 대상 날짜
+    predicted_quantity_hot = models.PositiveIntegerField(default=0)
+    predicted_quantity_ice = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "sales_forecast"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["menu", "base_date", "target_date"], name="uniq_forecast_menu_base_target"
+            )
+        ]
+        indexes = [models.Index(fields=["base_date"])]
+
+    def __str__(self):
+        return f"{self.menu_id} {self.base_date}->{self.target_date}"
