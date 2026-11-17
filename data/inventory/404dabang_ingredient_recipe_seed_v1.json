@@ -1,0 +1,372 @@
+{
+  "dataset": "404dabang_ingredient_recipe_seed_v1",
+  "classification": "development_assumption_not_verified_store_recipe",
+  "store_label": "404다방",
+  "status": "prepared_not_registered",
+  "menu_link_key": "Menu.pos_code",
+  "serving_temperature_policy": "Do not modify Menu.serving_temperature; verify and preserve the existing value during registration.",
+  "registration_requirements": [
+    "Resolve the target Store primary key.",
+    "The current Aiven Menu mapping was verified read-only; re-resolve by store and pos_code at registration and do not assume menu_code is a Django primary key.",
+    "Recipe.valid_from is set to 2025-01-01 under the project assumption that these recipes apply throughout the 669-day sales period.",
+    "Preserve the currently verified Menu.serving_temperature values without modification.",
+    "Shelf-life days are retained as source metadata; the current Ingredient model has no shelf-life-days field."
+  ],
+  "purchase_data": {
+    "status": "not_supplied",
+    "purchase_specs": [],
+    "purchase_prices": []
+  },
+  "ingredients": [
+    {"name": "원두", "base_unit": "g", "shelf_life_days": null, "shelf_life_status": "not_set"},
+    {"name": "디카페인원두", "base_unit": "g", "shelf_life_days": null, "shelf_life_status": "not_set"},
+    {"name": "우유", "base_unit": "ml", "shelf_life_days": 3, "shelf_life_status": "provided"},
+    {"name": "귀리음료", "base_unit": "ml", "shelf_life_days": 25, "shelf_life_status": "provided"},
+    {"name": "아몬드시럽", "base_unit": "ml", "shelf_life_days": 120, "shelf_life_status": "provided"},
+    {"name": "바닐라시럽", "base_unit": "ml", "shelf_life_days": 90, "shelf_life_status": "provided"},
+    {"name": "생크림", "base_unit": "ml", "shelf_life_days": 4, "shelf_life_status": "provided"},
+    {"name": "초코소스", "base_unit": "g", "shelf_life_days": 60, "shelf_life_status": "provided"},
+    {"name": "아이스티용 티베이스", "base_unit": "ml", "shelf_life_days": 60, "shelf_life_status": "provided_existing_tea_base_standard"},
+    {"name": "녹차 베이스", "base_unit": "ml", "shelf_life_days": 60, "shelf_life_status": "provided_existing_tea_base_standard"},
+    {"name": "홍차 베이스", "base_unit": "ml", "shelf_life_days": 60, "shelf_life_status": "provided_existing_tea_base_standard"},
+    {"name": "황매실청", "base_unit": "ml", "shelf_life_days": 40, "shelf_life_status": "provided_existing_fruit_preserve_standard"},
+    {"name": "복숭아·살구청", "base_unit": "ml", "shelf_life_days": 40, "shelf_life_status": "provided_existing_fruit_preserve_standard"},
+    {"name": "패션후르츠청", "base_unit": "ml", "shelf_life_days": 40, "shelf_life_status": "provided_existing_fruit_preserve_standard"},
+    {"name": "자몽청", "base_unit": "ml", "shelf_life_days": 40, "shelf_life_status": "provided_existing_fruit_preserve_standard"},
+    {"name": "아쿠아로사 과일 베이스", "base_unit": "ml", "shelf_life_days": 40, "shelf_life_status": "provided_existing_fruit_preserve_standard"},
+    {"name": "레몬청", "base_unit": "ml", "shelf_life_days": 40, "shelf_life_status": "provided_existing_fruit_preserve_standard"},
+    {"name": "탄산수", "base_unit": "ml", "shelf_life_days": 120, "shelf_life_status": "provided"},
+    {"name": "오렌지주스원액", "base_unit": "ml", "shelf_life_days": 5, "shelf_life_status": "provided"},
+    {"name": "케이크시트", "base_unit": "ea", "shelf_life_days": 7, "shelf_life_status": "provided"},
+    {"name": "크림치즈", "base_unit": "g", "shelf_life_days": 10, "shelf_life_status": "provided"},
+    {"name": "푸딩믹스", "base_unit": "g", "shelf_life_days": 30, "shelf_life_status": "provided"},
+    {"name": "고구마페이스트", "base_unit": "g", "shelf_life_days": 6, "shelf_life_status": "provided"},
+    {"name": "마스카포네 치즈", "base_unit": "g", "shelf_life_days": null, "shelf_life_status": "unconfirmed_new_ingredient"},
+    {"name": "레몬 커드", "base_unit": "g", "shelf_life_days": null, "shelf_life_status": "unconfirmed_new_ingredient"},
+    {"name": "바나나", "base_unit": "g", "shelf_life_days": null, "shelf_life_status": "unconfirmed_new_ingredient"},
+    {"name": "블루베리 퓨레", "base_unit": "g", "shelf_life_days": null, "shelf_life_status": "unconfirmed_new_ingredient"}
+  ],
+  "recipes": [
+    {
+      "menu_code": "M001",
+      "menu_name": "아몬드크리미라떼",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "원두", "quantity_base": 18, "unit": "g"},
+        {"ingredient": "우유", "quantity_base": 180, "unit": "ml"},
+        {"ingredient": "아몬드시럽", "quantity_base": 20, "unit": "ml"},
+        {"ingredient": "생크림", "quantity_base": 30, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M002",
+      "menu_name": "아메리카노",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [{"ingredient": "원두", "quantity_base": 18, "unit": "g"}]
+    },
+    {
+      "menu_code": "M003",
+      "menu_name": "아메리카노 디카페인",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [{"ingredient": "디카페인원두", "quantity_base": 18, "unit": "g"}]
+    },
+    {
+      "menu_code": "M004",
+      "menu_name": "카페 라떼",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "원두", "quantity_base": 18, "unit": "g"},
+        {"ingredient": "우유", "quantity_base": 200, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M005",
+      "menu_name": "플랫 화이트",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "원두", "quantity_base": 18, "unit": "g"},
+        {"ingredient": "우유", "quantity_base": 150, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M006",
+      "menu_name": "바닐라 라떼",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "원두", "quantity_base": 18, "unit": "g"},
+        {"ingredient": "우유", "quantity_base": 180, "unit": "ml"},
+        {"ingredient": "바닐라시럽", "quantity_base": 20, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M007",
+      "menu_name": "귀리 라떼",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "원두", "quantity_base": 18, "unit": "g"},
+        {"ingredient": "귀리음료", "quantity_base": 200, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M008",
+      "menu_name": "아인슈페너",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "원두", "quantity_base": 18, "unit": "g"},
+        {"ingredient": "생크림", "quantity_base": 40, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M009",
+      "menu_name": "아이스티 샷 추가",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "아이스티용 티베이스", "quantity_base": 150, "unit": "ml"},
+        {"ingredient": "원두", "quantity_base": 9, "unit": "g"}
+      ]
+    },
+    {
+      "menu_code": "M010",
+      "menu_name": "황매실 에이드/아이스티",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "황매실청", "quantity_base": 40, "unit": "ml"},
+        {"ingredient": "탄산수", "quantity_base": 150, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M011",
+      "menu_name": "복숭아 살구 아이스티",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "아이스티용 티베이스", "quantity_base": 120, "unit": "ml"},
+        {"ingredient": "복숭아·살구청", "quantity_base": 40, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M012",
+      "menu_name": "패션후르츠 에이드",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "패션후르츠청", "quantity_base": 50, "unit": "ml"},
+        {"ingredient": "탄산수", "quantity_base": 150, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M013",
+      "menu_name": "그린티 자몽",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "녹차 베이스", "quantity_base": 120, "unit": "ml"},
+        {"ingredient": "자몽청", "quantity_base": 40, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M014",
+      "menu_name": "아쿠아로사",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "아쿠아로사 과일 베이스", "quantity_base": 40, "unit": "ml"},
+        {"ingredient": "탄산수", "quantity_base": 150, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M015",
+      "menu_name": "발로나 초코라떼",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "초코소스", "quantity_base": 40, "unit": "g"},
+        {"ingredient": "우유", "quantity_base": 200, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M016",
+      "menu_name": "레몬 에이드",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "레몬청", "quantity_base": 45, "unit": "ml"},
+        {"ingredient": "탄산수", "quantity_base": 150, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M017",
+      "menu_name": "블랙티 밀크티",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "홍차 베이스", "quantity_base": 120, "unit": "ml"},
+        {"ingredient": "우유", "quantity_base": 120, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M018",
+      "menu_name": "오렌지 감귤 착즙 주스",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [{"ingredient": "오렌지주스원액", "quantity_base": 250, "unit": "ml"}]
+    },
+    {
+      "menu_code": "M019",
+      "menu_name": "마스카포네 티라미수",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "케이크시트", "quantity_base": 1, "unit": "ea"},
+        {"ingredient": "생크림", "quantity_base": 60, "unit": "ml"},
+        {"ingredient": "원두", "quantity_base": 6, "unit": "g"},
+        {"ingredient": "마스카포네 치즈", "quantity_base": 40, "unit": "g"}
+      ]
+    },
+    {
+      "menu_code": "M020",
+      "menu_name": "밀크티 바스크",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "크림치즈", "quantity_base": 100, "unit": "g"},
+        {"ingredient": "홍차 베이스", "quantity_base": 20, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M021",
+      "menu_name": "레몬 생크림 케이크",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "케이크시트", "quantity_base": 1, "unit": "ea"},
+        {"ingredient": "생크림", "quantity_base": 70, "unit": "ml"},
+        {"ingredient": "레몬 커드", "quantity_base": 20, "unit": "g"}
+      ]
+    },
+    {
+      "menu_code": "M022",
+      "menu_name": "바스크 치즈 케이크",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [{"ingredient": "크림치즈", "quantity_base": 120, "unit": "g"}]
+    },
+    {
+      "menu_code": "M023",
+      "menu_name": "초코 바나나 케이크",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "케이크시트", "quantity_base": 1, "unit": "ea"},
+        {"ingredient": "초코소스", "quantity_base": 30, "unit": "g"},
+        {"ingredient": "생크림", "quantity_base": 40, "unit": "ml"},
+        {"ingredient": "바나나", "quantity_base": 60, "unit": "g"}
+      ]
+    },
+    {
+      "menu_code": "M024",
+      "menu_name": "찐고구마 케이크",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "케이크시트", "quantity_base": 1, "unit": "ea"},
+        {"ingredient": "고구마페이스트", "quantity_base": 80, "unit": "g"}
+      ]
+    },
+    {
+      "menu_code": "M025",
+      "menu_name": "커스터드 푸딩",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "푸딩믹스", "quantity_base": 60, "unit": "g"},
+        {"ingredient": "우유", "quantity_base": 80, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M026",
+      "menu_name": "빅토리아 케이크",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "케이크시트", "quantity_base": 1, "unit": "ea"},
+        {"ingredient": "생크림", "quantity_base": 60, "unit": "ml"}
+      ]
+    },
+    {
+      "menu_code": "M027",
+      "menu_name": "블루베리 판나코타",
+      "variant": "STANDARD",
+      "version": 1,
+      "valid_from": "2025-01-01",
+      "yield_quantity": 1,
+      "items": [
+        {"ingredient": "푸딩믹스", "quantity_base": 50, "unit": "g"},
+        {"ingredient": "생크림", "quantity_base": 60, "unit": "ml"},
+        {"ingredient": "블루베리 퓨레", "quantity_base": 30, "unit": "g"}
+      ]
+    }
+  ]
+}

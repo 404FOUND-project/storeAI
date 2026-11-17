@@ -1,0 +1,48 @@
+{
+  "source": "KMA ASOS Daily Data API (station 108)",
+  "api_endpoint": "https://apis.data.go.kr/1360000/AsosDalyInfoService/getWthrDataList",
+  "station_id": 108,
+  "requested_period": {
+    "start_date": "2025-01-01",
+    "end_date": "2026-10-31"
+  },
+  "expected_calendar_days": 669,
+  "request_strategy": "calendar-month windows; numOfRows=100; up to 3 attempts with exponential backoff",
+  "successful_request_windows": 22,
+  "failed_request_windows": [],
+  "api_result_code_counts": {
+    "00": 22
+  },
+  "http_attempt_count": 22,
+  "retry_count": 0,
+  "received_observation_rows": 669,
+  "duplicate_observation_rows": 0,
+  "missing_dates": [],
+  "missing_date_count": 0,
+  "missing_measurement_counts_on_received_observations": {
+    "avg_temp_c": 0,
+    "max_temp_c": 0,
+    "min_temp_c": 0,
+    "precipitation_mm": 396
+  },
+  "missing_measurement_counts_across_all_calendar_days": {
+    "avg_temp_c": 0,
+    "max_temp_c": 0,
+    "min_temp_c": 0,
+    "precipitation_mm": 396
+  },
+  "is_rain_missing_count_on_received_observations": 396,
+  "csv_rows": 669,
+  "full_period_observations_received": true,
+  "pre_collection_probe": {
+    "purpose": "diagnostic only; excluded from final collection totals",
+    "rejected_num_of_rows": 1000,
+    "rejected_month_windows": 22,
+    "failed_http_attempts": 67,
+    "retries_during_rejected_collection": 44,
+    "api_result_code": "99",
+    "api_result_message": "데이터요청은 한번에 최대 1,000건을 넘을 수 없습니다.",
+    "corrected_num_of_rows": 100,
+    "corrected_single_month_test": "success (2025-01, 31 rows)"
+  }
+}

@@ -1,0 +1,413 @@
+{
+  "passed": true,
+  "status": "draft_validation_passed",
+  "checks": {
+    "exact_30_day_span": true,
+    "daily_order_counts_equal_orders_rows": true,
+    "daily_sales_equal_orders_and_details": true,
+    "order_detail_sums_equal_order_net_sales": true,
+    "daily_menu_qty_and_sales_equal_details": true,
+    "hourly_orders_and_sales_equal_orders": true,
+    "menu_prices_and_line_amounts_valid": true,
+    "no_negative_quantities_or_amounts": true,
+    "valid_order_and_menu_foreign_keys": true,
+    "serving_temperature_rules_valid": true,
+    "exam_effects_match_event_schedule": true,
+    "no_date_level_2025_orders_copied": true,
+    "source_669_day_dates_do_not_overlap_new_period": true,
+    "seed_and_rules_replay_deterministic": true,
+    "xlsx_zip_and_xml_open": true,
+    "xlsx_contains_all_data_sheets": true,
+    "csv_readback_counts_match": true,
+    "csv_readback_revenue_matches": true,
+    "previous_versions_hash_size_mtime_unchanged": true
+  },
+  "counts": {
+    "days": 30,
+    "orders": 1441,
+    "order_details": 2165,
+    "daily_menu_sales_rows": 810,
+    "hourly_sales_rows": 379,
+    "menus": 27
+  },
+  "totals": {
+    "sales": 14471200,
+    "daily_average_orders": 48.03333333333333,
+    "daily_average_sales": 482373.3333333333,
+    "min_daily_orders": 28,
+    "max_daily_orders": 72,
+    "min_daily_sales": 282900,
+    "max_daily_sales": 703000
+  },
+  "weekday_order_summary": {
+    "월": {
+      "n": 5,
+      "mean": 45.0
+    },
+    "화": {
+      "n": 4,
+      "mean": 46.75
+    },
+    "수": {
+      "n": 4,
+      "mean": 56.75
+    },
+    "목": {
+      "n": 4,
+      "mean": 45.25
+    },
+    "금": {
+      "n": 4,
+      "mean": 64.25
+    },
+    "토": {
+      "n": 4,
+      "mean": 49.25
+    },
+    "일": {
+      "n": 5,
+      "mean": 33.4
+    }
+  },
+  "menu_sales": [
+    {
+      "menu_id": "M001",
+      "menu_name": "아몬드크리미라떼",
+      "category": "커피",
+      "unit_price": 5500,
+      "quantity": 118,
+      "sales_amount": 649000,
+      "hot_quantity": 89,
+      "ice_quantity": 29,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M002",
+      "menu_name": "아메리카노",
+      "category": "커피",
+      "unit_price": 5000,
+      "quantity": 189,
+      "sales_amount": 945000,
+      "hot_quantity": 145,
+      "ice_quantity": 44,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M003",
+      "menu_name": "아메리카노 디카페인",
+      "category": "커피",
+      "unit_price": 5800,
+      "quantity": 93,
+      "sales_amount": 539400,
+      "hot_quantity": 70,
+      "ice_quantity": 23,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M004",
+      "menu_name": "카페 라떼",
+      "category": "커피",
+      "unit_price": 5500,
+      "quantity": 127,
+      "sales_amount": 698500,
+      "hot_quantity": 103,
+      "ice_quantity": 24,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M005",
+      "menu_name": "플랫 화이트",
+      "category": "커피",
+      "unit_price": 5500,
+      "quantity": 64,
+      "sales_amount": 352000,
+      "hot_quantity": 47,
+      "ice_quantity": 17,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M006",
+      "menu_name": "바닐라 라떼",
+      "category": "커피",
+      "unit_price": 6000,
+      "quantity": 121,
+      "sales_amount": 726000,
+      "hot_quantity": 97,
+      "ice_quantity": 24,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M007",
+      "menu_name": "귀리 라떼",
+      "category": "커피",
+      "unit_price": 6300,
+      "quantity": 74,
+      "sales_amount": 466200,
+      "hot_quantity": 55,
+      "ice_quantity": 19,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M008",
+      "menu_name": "아인슈페너",
+      "category": "커피",
+      "unit_price": 6000,
+      "quantity": 108,
+      "sales_amount": 648000,
+      "hot_quantity": 84,
+      "ice_quantity": 24,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M009",
+      "menu_name": "아이스티 샷 추가",
+      "category": "음료",
+      "unit_price": 6300,
+      "quantity": 71,
+      "sales_amount": 447300,
+      "hot_quantity": 0,
+      "ice_quantity": 71,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M010",
+      "menu_name": "황매실 에이드/아이스티",
+      "category": "음료",
+      "unit_price": 6000,
+      "quantity": 45,
+      "sales_amount": 270000,
+      "hot_quantity": 0,
+      "ice_quantity": 45,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M011",
+      "menu_name": "복숭아 살구 아이스티",
+      "category": "음료",
+      "unit_price": 5500,
+      "quantity": 98,
+      "sales_amount": 539000,
+      "hot_quantity": 0,
+      "ice_quantity": 98,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M012",
+      "menu_name": "패션후르츠 에이드",
+      "category": "음료",
+      "unit_price": 6500,
+      "quantity": 83,
+      "sales_amount": 539500,
+      "hot_quantity": 0,
+      "ice_quantity": 83,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M013",
+      "menu_name": "그린티 자몽",
+      "category": "음료",
+      "unit_price": 6500,
+      "quantity": 60,
+      "sales_amount": 390000,
+      "hot_quantity": 41,
+      "ice_quantity": 19,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M014",
+      "menu_name": "아쿠아로사",
+      "category": "음료",
+      "unit_price": 6500,
+      "quantity": 60,
+      "sales_amount": 390000,
+      "hot_quantity": 0,
+      "ice_quantity": 60,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M015",
+      "menu_name": "발로나 초코라떼",
+      "category": "음료",
+      "unit_price": 6500,
+      "quantity": 90,
+      "sales_amount": 585000,
+      "hot_quantity": 76,
+      "ice_quantity": 14,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M016",
+      "menu_name": "레몬 에이드",
+      "category": "음료",
+      "unit_price": 6500,
+      "quantity": 70,
+      "sales_amount": 455000,
+      "hot_quantity": 0,
+      "ice_quantity": 70,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M017",
+      "menu_name": "블랙티 밀크티",
+      "category": "음료",
+      "unit_price": 6500,
+      "quantity": 106,
+      "sales_amount": 689000,
+      "hot_quantity": 79,
+      "ice_quantity": 27,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M018",
+      "menu_name": "오렌지 감귤 착즙 주스",
+      "category": "음료",
+      "unit_price": 7500,
+      "quantity": 66,
+      "sales_amount": 495000,
+      "hot_quantity": 0,
+      "ice_quantity": 66,
+      "unknown_quantity": 0
+    },
+    {
+      "menu_id": "M019",
+      "menu_name": "마스카포네 티라미수",
+      "category": "디저트",
+      "unit_price": 7500,
+      "quantity": 52,
+      "sales_amount": 390000,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 52
+    },
+    {
+      "menu_id": "M020",
+      "menu_name": "밀크티 바스크",
+      "category": "디저트",
+      "unit_price": 8000,
+      "quantity": 52,
+      "sales_amount": 416000,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 52
+    },
+    {
+      "menu_id": "M021",
+      "menu_name": "레몬 생크림 케이크",
+      "category": "디저트",
+      "unit_price": 8800,
+      "quantity": 77,
+      "sales_amount": 677600,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 77
+    },
+    {
+      "menu_id": "M022",
+      "menu_name": "바스크 치즈 케이크",
+      "category": "디저트",
+      "unit_price": 7500,
+      "quantity": 75,
+      "sales_amount": 562500,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 75
+    },
+    {
+      "menu_id": "M023",
+      "menu_name": "초코 바나나 케이크",
+      "category": "디저트",
+      "unit_price": 9800,
+      "quantity": 58,
+      "sales_amount": 568400,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 58
+    },
+    {
+      "menu_id": "M024",
+      "menu_name": "찐고구마 케이크",
+      "category": "디저트",
+      "unit_price": 9300,
+      "quantity": 66,
+      "sales_amount": 613800,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 66
+    },
+    {
+      "menu_id": "M025",
+      "menu_name": "커스터드 푸딩",
+      "category": "디저트",
+      "unit_price": 6000,
+      "quantity": 106,
+      "sales_amount": 636000,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 106
+    },
+    {
+      "menu_id": "M026",
+      "menu_name": "빅토리아 케이크",
+      "category": "디저트",
+      "unit_price": 8500,
+      "quantity": 52,
+      "sales_amount": 442000,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 52
+    },
+    {
+      "menu_id": "M027",
+      "menu_name": "블루베리 판나코타",
+      "category": "디저트",
+      "unit_price": 6200,
+      "quantity": 55,
+      "sales_amount": 341000,
+      "hot_quantity": 0,
+      "ice_quantity": 0,
+      "unknown_quantity": 55
+    }
+  ],
+  "temperature_quantity_distribution": {
+    "HOT": 886,
+    "UNKNOWN": 593,
+    "ICE": 757
+  },
+  "hourly_order_distribution": {
+    "8": 13,
+    "9": 34,
+    "10": 89,
+    "11": 133,
+    "12": 171,
+    "13": 179,
+    "14": 143,
+    "15": 137,
+    "16": 138,
+    "17": 137,
+    "18": 92,
+    "19": 67,
+    "20": 77,
+    "21": 31
+  },
+  "xlsx_sheets": [
+    "daily_sales",
+    "daily_menu_sales",
+    "orders",
+    "order_details",
+    "hourly_sales",
+    "daily_exam_effects",
+    "daily_generation_inputs",
+    "menu_sales_summary"
+  ],
+  "source_preservation": {
+    "protected_versions_unchanged": true,
+    "protected_file_count": 59
+  },
+  "limitations": [
+    "Synthetic demand assumptions are not observed sales facts.",
+    "Historical exam uplift may remain in weekday baseline and could overlap with new scheduled effects.",
+    "2026-Nov daily weather observations unavailable in supplied files; temperatures are synthetic resamples from Nov-2025 distribution.",
+    "Precipitation and holiday status are unknown; no dry-weather or holiday effect was assumed.",
+    "No Django integer Menu PK mapping was inferred."
+  ]
+}

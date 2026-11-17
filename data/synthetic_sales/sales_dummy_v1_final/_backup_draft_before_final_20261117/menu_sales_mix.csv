@@ -1,0 +1,28 @@
+﻿menu_id,menu_name,category,unit_price,quantity,sales_amount,revenue_share_pct,temperature_class,basis
+M001,아몬드크리미라떼,커피,5500,2796,15378000,4.871,UNKNOWN,synthetic_only
+M002,아메리카노,커피,5000,3993,19965000,6.3239,UNKNOWN,synthetic_only
+M003,아메리카노 디카페인,커피,5800,1888,10950400,3.4685,UNKNOWN,synthetic_only
+M004,카페 라떼,커피,5500,3086,16973000,5.3762,UNKNOWN,synthetic_only
+M005,플랫 화이트,커피,5500,1684,9262000,2.9337,UNKNOWN,synthetic_only
+M006,바닐라 라떼,커피,6000,2809,16854000,5.3385,UNKNOWN,synthetic_only
+M007,귀리 라떼,커피,6300,1654,10420200,3.3006,UNKNOWN,synthetic_only
+M008,아인슈페너,커피,6000,1934,11604000,3.6756,UNKNOWN,synthetic_only
+M009,아이스티 샷 추가,음료,6300,1328,8366400,2.6501,COLD,synthetic_only
+M010,황매실 에이드/아이스티,음료,6000,1618,9708000,3.075,COLD,synthetic_only
+M011,복숭아 살구 아이스티,음료,5500,2056,11308000,3.5818,COLD,synthetic_only
+M012,패션후르츠 에이드,음료,6500,1603,10419500,3.3004,COLD,synthetic_only
+M013,그린티 자몽,음료,6500,1425,9262500,2.9339,UNKNOWN,synthetic_only
+M014,아쿠아로사,음료,6500,1270,8255000,2.6148,UNKNOWN,synthetic_only
+M015,발로나 초코라떼,음료,6500,2090,13585000,4.3031,UNKNOWN,synthetic_only
+M016,레몬 에이드,음료,6500,1713,11134500,3.5269,COLD,synthetic_only
+M017,블랙티 밀크티,음료,6500,1984,12896000,4.0848,UNKNOWN,synthetic_only
+M018,오렌지 감귤 착즙 주스,음료,7500,1279,9592500,3.0384,UNKNOWN,synthetic_only
+M019,마스카포네 티라미수,디저트,7500,1306,9795000,3.1026,NEUTRAL,synthetic_only
+M020,밀크티 바스크,디저트,8000,1344,10752000,3.4057,NEUTRAL,synthetic_only
+M021,레몬 생크림 케이크,디저트,8800,1327,11677600,3.6989,NEUTRAL,synthetic_only
+M022,바스크 치즈 케이크,디저트,7500,1605,12037500,3.8129,NEUTRAL,synthetic_only
+M023,초코 바나나 케이크,디저트,9800,1261,12357800,3.9143,NEUTRAL,synthetic_only
+M024,찐고구마 케이크,디저트,9300,1369,12731700,4.0328,NEUTRAL,synthetic_only
+M025,커스터드 푸딩,디저트,6000,1974,11844000,3.7516,NEUTRAL,synthetic_only
+M026,빅토리아 케이크,디저트,8500,1211,10293500,3.2605,NEUTRAL,synthetic_only
+M027,블루베리 판나코타,디저트,6200,1336,8283200,2.6237,NEUTRAL,synthetic_only

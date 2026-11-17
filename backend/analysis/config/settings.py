@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     "review",
     "inventory",
     "analysis",
+    "weatherdata",
 ]
 
 AUTH_USER_MODEL = "member.User"

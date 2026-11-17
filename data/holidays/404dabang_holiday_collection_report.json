@@ -1,0 +1,453 @@
+{
+  "source": "KASI Special Day Information API (getRestDeInfo)",
+  "api_endpoint": "https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo",
+  "requested_period": {
+    "start_date": "2025-01-01",
+    "end_date": "2026-10-31"
+  },
+  "months_requested": 22,
+  "monthly_results": [
+    {
+      "year": 2025,
+      "month": "01",
+      "status": "complete",
+      "totalCount": 5,
+      "pages_fetched": 1,
+      "rows_received": 5
+    },
+    {
+      "year": 2025,
+      "month": "02",
+      "status": "complete",
+      "totalCount": 0,
+      "pages_fetched": 1,
+      "rows_received": 0
+    },
+    {
+      "year": 2025,
+      "month": "03",
+      "status": "complete",
+      "totalCount": 2,
+      "pages_fetched": 1,
+      "rows_received": 2
+    },
+    {
+      "year": 2025,
+      "month": "04",
+      "status": "complete",
+      "totalCount": 0,
+      "pages_fetched": 1,
+      "rows_received": 0
+    },
+    {
+      "year": 2025,
+      "month": "05",
+      "status": "complete",
+      "totalCount": 3,
+      "pages_fetched": 1,
+      "rows_received": 3
+    },
+    {
+      "year": 2025,
+      "month": "06",
+      "status": "complete",
+      "totalCount": 2,
+      "pages_fetched": 1,
+      "rows_received": 2
+    },
+    {
+      "year": 2025,
+      "month": "07",
+      "status": "complete",
+      "totalCount": 0,
+      "pages_fetched": 1,
+      "rows_received": 0
+    },
+    {
+      "year": 2025,
+      "month": "08",
+      "status": "complete",
+      "totalCount": 1,
+      "pages_fetched": 1,
+      "rows_received": 1
+    },
+    {
+      "year": 2025,
+      "month": "09",
+      "status": "complete",
+      "totalCount": 0,
+      "pages_fetched": 1,
+      "rows_received": 0
+    },
+    {
+      "year": 2025,
+      "month": "10",
+      "status": "complete",
+      "totalCount": 6,
+      "pages_fetched": 1,
+      "rows_received": 6
+    },
+    {
+      "year": 2025,
+      "month": "11",
+      "status": "complete",
+      "totalCount": 0,
+      "pages_fetched": 1,
+      "rows_received": 0
+    },
+    {
+      "year": 2025,
+      "month": "12",
+      "status": "complete",
+      "totalCount": 1,
+      "pages_fetched": 1,
+      "rows_received": 1
+    },
+    {
+      "year": 2026,
+      "month": "01",
+      "status": "complete",
+      "totalCount": 1,
+      "pages_fetched": 1,
+      "rows_received": 1
+    },
+    {
+      "year": 2026,
+      "month": "02",
+      "status": "complete",
+      "totalCount": 3,
+      "pages_fetched": 1,
+      "rows_received": 3
+    },
+    {
+      "year": 2026,
+      "month": "03",
+      "status": "complete",
+      "totalCount": 2,
+      "pages_fetched": 1,
+      "rows_received": 2
+    },
+    {
+      "year": 2026,
+      "month": "04",
+      "status": "complete",
+      "totalCount": 0,
+      "pages_fetched": 1,
+      "rows_received": 0
+    },
+    {
+      "year": 2026,
+      "month": "05",
+      "status": "complete",
+      "totalCount": 4,
+      "pages_fetched": 1,
+      "rows_received": 4
+    },
+    {
+      "year": 2026,
+      "month": "06",
+      "status": "complete",
+      "totalCount": 2,
+      "pages_fetched": 1,
+      "rows_received": 2
+    },
+    {
+      "year": 2026,
+      "month": "07",
+      "status": "complete",
+      "totalCount": 1,
+      "pages_fetched": 1,
+      "rows_received": 1
+    },
+    {
+      "year": 2026,
+      "month": "08",
+      "status": "complete",
+      "totalCount": 2,
+      "pages_fetched": 1,
+      "rows_received": 2
+    },
+    {
+      "year": 2026,
+      "month": "09",
+      "status": "complete",
+      "totalCount": 3,
+      "pages_fetched": 1,
+      "rows_received": 3
+    },
+    {
+      "year": 2026,
+      "month": "10",
+      "status": "complete",
+      "totalCount": 3,
+      "pages_fetched": 1,
+      "rows_received": 3
+    }
+  ],
+  "successful_months": 22,
+  "incomplete_months": [],
+  "failed_pages": [],
+  "page_size": 100,
+  "api_result_code_counts": {
+    "00": 22
+  },
+  "http_attempt_count": 22,
+  "retry_count": 0,
+  "raw_rows_received": 41,
+  "unique_items_saved": 41,
+  "exact_duplicate_items_removed": 0,
+  "dates_with_multiple_distinct_items": {
+    "20250505": [
+      "부처님오신날",
+      "어린이날"
+    ]
+  },
+  "public_holiday_count": 41,
+  "public_holidays": [
+    {
+      "locdate": "20250101",
+      "dateName": "1월1일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250127",
+      "dateName": "임시공휴일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250128",
+      "dateName": "설날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250129",
+      "dateName": "설날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250130",
+      "dateName": "설날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250301",
+      "dateName": "삼일절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250303",
+      "dateName": "대체공휴일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250505",
+      "dateName": "부처님오신날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250505",
+      "dateName": "어린이날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250506",
+      "dateName": "대체공휴일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250603",
+      "dateName": "임시공휴일(제21대 대통령 선거)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250606",
+      "dateName": "현충일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250815",
+      "dateName": "광복절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251003",
+      "dateName": "개천절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251005",
+      "dateName": "추석",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251006",
+      "dateName": "추석",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251007",
+      "dateName": "추석",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251008",
+      "dateName": "대체공휴일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251009",
+      "dateName": "한글날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251225",
+      "dateName": "기독탄신일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260101",
+      "dateName": "1월1일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260216",
+      "dateName": "설날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260217",
+      "dateName": "설날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260218",
+      "dateName": "설날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260301",
+      "dateName": "삼일절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260302",
+      "dateName": "대체공휴일(삼일절)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260501",
+      "dateName": "노동절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260505",
+      "dateName": "어린이날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260524",
+      "dateName": "부처님오신날",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260525",
+      "dateName": "대체공휴일(부처님오신날)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260603",
+      "dateName": "전국동시지방선거",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260606",
+      "dateName": "현충일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260717",
+      "dateName": "제헌절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260815",
+      "dateName": "광복절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260817",
+      "dateName": "대체공휴일(광복절)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260924",
+      "dateName": "추석",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260925",
+      "dateName": "추석",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260926",
+      "dateName": "추석",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20261003",
+      "dateName": "개천절",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20261005",
+      "dateName": "대체공휴일(개천절)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20261009",
+      "dateName": "한글날",
+      "dateKind": "01"
+    }
+  ],
+  "substitute_holiday_count": 7,
+  "substitute_holidays": [
+    {
+      "locdate": "20250303",
+      "dateName": "대체공휴일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20250506",
+      "dateName": "대체공휴일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20251008",
+      "dateName": "대체공휴일",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260302",
+      "dateName": "대체공휴일(삼일절)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260525",
+      "dateName": "대체공휴일(부처님오신날)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20260817",
+      "dateName": "대체공휴일(광복절)",
+      "dateKind": "01"
+    },
+    {
+      "locdate": "20261005",
+      "dateName": "대체공휴일(개천절)",
+      "dateKind": "01"
+    }
+  ],
+  "non_public_holiday_items": 0,
+  "complete_collection": true
+}

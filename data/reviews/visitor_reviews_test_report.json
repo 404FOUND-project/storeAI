@@ -1,0 +1,51 @@
+{
+  "test_status": "stopped_before_review_collection",
+  "target": {
+    "place_id": "1800066032",
+    "expected_store_name": "404다방",
+    "expected_address": "서울 성동구 마조로 15-11",
+    "user_provided_visitor_review_count": 323,
+    "user_provided_blog_review_count": 1009
+  },
+  "place_identity_check": {
+    "place_home_accessible": true,
+    "actual_store_name": "갈십리",
+    "actual_displayed_address": "서울 성동구 마조로 15-11 1층 갈십리",
+    "street_address_matches": true,
+    "store_name_matches": false,
+    "target_confirmed": false,
+    "decision": "Stopped immediately because this Place ID identifies a different store."
+  },
+  "review_access": {
+    "review_page_opened": false,
+    "automated_review_access_attempted": false,
+    "robots_txt": {
+      "url": "https://m.place.naver.com/robots.txt",
+      "rule": "User-agent: *; Disallow: /"
+    },
+    "naver_policy_url": "https://policy.naver.com/policy/service_group.html",
+    "policy_finding": "Naver's operating policy prohibits using automated means such as bots, spiders, or scrapers without prior permission to collect user IDs or posts."
+  },
+  "collection": {
+    "visitor_reviews_collected": 0,
+    "review_text_field_tested": false,
+    "review_date_field_tested": false,
+    "rating_field_tested": false,
+    "menu_field_tested": false,
+    "duplicate_count": null,
+    "empty_body_count": null,
+    "load_more_or_scroll_tested": false,
+    "all_323_reviews_collection_assessment": "Not permitted or assessed: identity mismatch and robots/policy restrictions."
+  },
+  "output_files": {
+    "csv": "data/reviews/visitor_reviews_test.csv",
+    "csv_data_rows": 0,
+    "report": "data/reviews/visitor_reviews_test_report.json"
+  },
+  "errors_and_limitations": [
+    "The supplied Place ID resolves to 갈십리, not 404다방; the page was not navigated to its review tab.",
+    "The m.place.naver.com robots.txt disallows all paths.",
+    "Naver's operating policy requires prior permission for automated collection of posts/reviews.",
+    "No review content, author identifiers, or profile information was collected."
+  ]
+}

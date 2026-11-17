@@ -1,0 +1,261 @@
+{
+  "requested_period": {
+    "start_date": "2025-01-01",
+    "end_date": "2026-10-31"
+  },
+  "expected_calendar_days": 669,
+  "join_method": "date-keyed left joins onto a complete daily calendar",
+  "inputs": {
+    "weather": {
+      "path": "data/weather/404dabang_asos_daily_weather.csv",
+      "source_rows": 669,
+      "rows_in_period": 669,
+      "duplicate_date_rows": 0,
+      "rows_outside_period": 0,
+      "source_report_path": "data/weather/404dabang_asos_collection_report.json"
+    },
+    "holidays": {
+      "path": "data/holidays/404dabang_holidays.csv",
+      "source_rows": 41,
+      "rows_in_period_after_exact_deduplication": 41,
+      "distinct_holiday_dates": 40,
+      "exact_duplicate_rows": 0,
+      "rows_outside_period": 0,
+      "source_report_path": "data/holidays/404dabang_holiday_collection_report.json",
+      "source_months_complete": true
+    },
+    "academic_daily": {
+      "path": "docs/source/daily_academic_features.csv",
+      "source_rows": 669,
+      "rows_in_period": 669,
+      "duplicate_date_rows": 0,
+      "rows_outside_period": 0
+    },
+    "academic_source_events": {
+      "path": "docs/source/school_academic_calendar.csv",
+      "source_rows": 65,
+      "event_applications_in_period": 592,
+      "event_rows_not_overlapping_period": 11,
+      "rows_by_school_source_and_status": {
+        "한양여자대학교|official_website|verified": 12,
+        "한양대학교 서울캠퍼스|official_website|verified": 16,
+        "한양대학교 서울캠퍼스|user_confirmed|user_confirmed": 8,
+        "한양대학교 사범대학 부속고등학교(한대부고)|estimated_from_2026_pattern|estimated": 14,
+        "한양대학교 사범대학 부속고등학교(한대부고)|official_pdf|verified": 15
+      }
+    }
+  },
+  "outputs": {
+    "csv_path": "data/processed/404dabang_daily_features.csv",
+    "rows": 669,
+    "columns": 59
+  },
+  "validation": {
+    "exact_expected_row_count": true,
+    "date_sequence_complete_and_ordered": true,
+    "duplicate_output_dates": 0,
+    "weather_date_join_misses": 0,
+    "academic_daily_date_join_misses": 0,
+    "academic_raw_event_count_mismatch_days": [],
+    "holiday_same_date_multiple_items": {
+      "2025-05-05": [
+        "부처님오신날",
+        "어린이날"
+      ]
+    },
+    "weather_metric_missing_counts": {
+      "avg_temp_c": 0,
+      "max_temp_c": 0,
+      "min_temp_c": 0,
+      "precipitation_mm": 396,
+      "is_rain": 396
+    },
+    "academic_empty_value_counts": {
+      "hanyang_exam": 0,
+      "hanyang_exam_known": 0,
+      "hanyang_exam_estimated": 0,
+      "hanyang_vacation": 463,
+      "hanyang_vacation_known": 0,
+      "hanyang_vacation_estimated": 0,
+      "hanyang_semester": 273,
+      "hanyang_semester_known": 0,
+      "hanyang_semester_estimated": 0,
+      "hywoman_exam": 0,
+      "hywoman_exam_known": 0,
+      "hywoman_exam_estimated": 0,
+      "hywoman_vacation": 529,
+      "hywoman_vacation_known": 0,
+      "hywoman_vacation_estimated": 0,
+      "hywoman_semester": 669,
+      "hywoman_semester_known": 0,
+      "hywoman_semester_estimated": 0,
+      "highschool_exam": 405,
+      "highschool_exam_known": 0,
+      "highschool_exam_estimated": 0,
+      "highschool_vacation": 373,
+      "highschool_vacation_known": 0,
+      "highschool_vacation_estimated": 0,
+      "highschool_semester": 135,
+      "highschool_semester_known": 0,
+      "highschool_semester_estimated": 0,
+      "exam_period_any": 382,
+      "exam_period_any_known": 0,
+      "exam_period_any_estimated": 0,
+      "vacation_any": 460,
+      "vacation_any_known": 0,
+      "vacation_any_estimated": 0,
+      "school_event_count": 0,
+      "school_event_count_complete": 0,
+      "highschool_data_status": 59,
+      "semester_derivation_rule": 0
+    },
+    "academic_false_known_or_incomplete_counts": {
+      "hanyang_exam_known": 0,
+      "hanyang_vacation_known": 463,
+      "hanyang_semester_known": 273,
+      "hywoman_exam_known": 0,
+      "hywoman_vacation_known": 529,
+      "hywoman_semester_known": 669,
+      "highschool_exam_known": 424,
+      "highschool_vacation_known": 424,
+      "highschool_semester_known": 424,
+      "exam_period_any_known": 400,
+      "vacation_any_known": 460,
+      "school_event_count_complete": 669
+    }
+  },
+  "holiday_summary": {
+    "public_holiday_dates": 40,
+    "public_holiday_names_by_date": {
+      "2025-01-01": [
+        "1월1일"
+      ],
+      "2025-01-27": [
+        "임시공휴일"
+      ],
+      "2025-01-28": [
+        "설날"
+      ],
+      "2025-01-29": [
+        "설날"
+      ],
+      "2025-01-30": [
+        "설날"
+      ],
+      "2025-03-01": [
+        "삼일절"
+      ],
+      "2025-03-03": [
+        "대체공휴일"
+      ],
+      "2025-05-05": [
+        "부처님오신날",
+        "어린이날"
+      ],
+      "2025-05-06": [
+        "대체공휴일"
+      ],
+      "2025-06-03": [
+        "임시공휴일(제21대 대통령 선거)"
+      ],
+      "2025-06-06": [
+        "현충일"
+      ],
+      "2025-08-15": [
+        "광복절"
+      ],
+      "2025-10-03": [
+        "개천절"
+      ],
+      "2025-10-05": [
+        "추석"
+      ],
+      "2025-10-06": [
+        "추석"
+      ],
+      "2025-10-07": [
+        "추석"
+      ],
+      "2025-10-08": [
+        "대체공휴일"
+      ],
+      "2025-10-09": [
+        "한글날"
+      ],
+      "2025-12-25": [
+        "기독탄신일"
+      ],
+      "2026-01-01": [
+        "1월1일"
+      ],
+      "2026-02-16": [
+        "설날"
+      ],
+      "2026-02-17": [
+        "설날"
+      ],
+      "2026-02-18": [
+        "설날"
+      ],
+      "2026-03-01": [
+        "삼일절"
+      ],
+      "2026-03-02": [
+        "대체공휴일(삼일절)"
+      ],
+      "2026-05-01": [
+        "노동절"
+      ],
+      "2026-05-05": [
+        "어린이날"
+      ],
+      "2026-05-24": [
+        "부처님오신날"
+      ],
+      "2026-05-25": [
+        "대체공휴일(부처님오신날)"
+      ],
+      "2026-06-03": [
+        "전국동시지방선거"
+      ],
+      "2026-06-06": [
+        "현충일"
+      ],
+      "2026-07-17": [
+        "제헌절"
+      ],
+      "2026-08-15": [
+        "광복절"
+      ],
+      "2026-08-17": [
+        "대체공휴일(광복절)"
+      ],
+      "2026-09-24": [
+        "추석"
+      ],
+      "2026-09-25": [
+        "추석"
+      ],
+      "2026-09-26": [
+        "추석"
+      ],
+      "2026-10-03": [
+        "개천절"
+      ],
+      "2026-10-05": [
+        "대체공휴일(개천절)"
+      ],
+      "2026-10-09": [
+        "한글날"
+      ]
+    }
+  },
+  "notes": [
+    "Weather precipitation and is_rain blanks are preserved; blank is not treated as zero/no rain.",
+    "Academic feature values, *_known and *_estimated fields are copied unchanged from daily_academic_features.csv.",
+    "school_event_count_complete remains false where the source says collection is incomplete.",
+    "academic_events_json retains applicable raw event IDs, names, source types, verification states, file locators, and estimate methods.",
+    "Holiday names on the same date are retained as JSON arrays; public-holiday status is known only because the monthly KASI collection report confirms complete coverage.",
+    "No source files, DB data, sales data, or model code were modified."
+  ]
+}

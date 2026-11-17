@@ -1,0 +1,493 @@
+{
+  "version": "sales_dummy_v1_final",
+  "seed": 40420261117,
+  "synthetic": true,
+  "period": [
+    "2025-01-01",
+    "2026-10-31"
+  ],
+  "days": 669,
+  "notice": "모든 효과·계수는 시뮬레이션 가정이며 실제 관측값 또는 인과관계가 아니다. 학사일정/날씨/공휴일 입력만 외부 확인 데이터다.",
+  "counts": {
+    "orders": 31310,
+    "order_details": 46235,
+    "daily_sales": 669,
+    "daily_menu_sales": 18063,
+    "hourly_sales": 8410,
+    "menus": 27
+  },
+  "total_sales": 307782500,
+  "id_scheme": {
+    "order_id": "F1-0000001",
+    "order_detail_id": "F1-D00000001",
+    "menu_id": "M001-M027 (원본 유지)"
+  },
+  "confirmed_inputs": {
+    "weather": "data/processed/404dabang_daily_features.csv (KMA ASOS 관측; 기온 669일, 강수량 273일 관측/396일 결측)",
+    "holidays": "같은 파일의 is_public_holiday (KASI 특일 정보)",
+    "school_calendar": "docs/source/school_academic_calendar.csv 중 verified/user_confirmed 행만 사용",
+    "menu_catalog": "27개 메뉴 원본 xlsx (메뉴 ID/이름/카테고리/가격 유지)",
+    "menu_temperature": "revision2 generation_rules.json 의 사용자 확인 목록(HOT_ICE->BOTH, ICE_ONLY->ICE), 디저트 카테고리->NEUTRAL, 그 외 UNKNOWN"
+  },
+  "exam_periods_used": {
+    "한양대학교 서울캠퍼스": [
+      {
+        "start": "2025-04-22",
+        "end": "2025-04-28",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      },
+      {
+        "start": "2025-06-17",
+        "end": "2025-06-23",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      },
+      {
+        "start": "2025-10-27",
+        "end": "2025-10-31",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      },
+      {
+        "start": "2025-12-15",
+        "end": "2025-12-19",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-04-14",
+        "end": "2026-04-20",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-06-09",
+        "end": "2026-06-15",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-10-20",
+        "end": "2026-10-26",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-12-08",
+        "end": "2026-12-14",
+        "source_status": "user_confirmed",
+        "merged_segments": 1
+      }
+    ],
+    "한양여자대학교": [
+      {
+        "start": "2025-04-22",
+        "end": "2025-04-28",
+        "source_status": "verified",
+        "merged_segments": 1
+      },
+      {
+        "start": "2025-06-17",
+        "end": "2025-06-23",
+        "source_status": "verified",
+        "merged_segments": 1
+      },
+      {
+        "start": "2025-10-27",
+        "end": "2025-10-31",
+        "source_status": "verified",
+        "merged_segments": 1
+      },
+      {
+        "start": "2025-12-15",
+        "end": "2025-12-19",
+        "source_status": "verified",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-04-21",
+        "end": "2026-04-27",
+        "source_status": "verified",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-06-16",
+        "end": "2026-06-22",
+        "source_status": "verified",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-10-27",
+        "end": "2026-11-02",
+        "source_status": "verified",
+        "merged_segments": 1
+      },
+      {
+        "start": "2026-12-15",
+        "end": "2026-12-21",
+        "source_status": "verified",
+        "merged_segments": 1
+      }
+    ],
+    "한대부고": [
+      {
+        "start": "2026-04-24",
+        "end": "2026-04-30",
+        "source_status": "verified",
+        "merged_segments": 2
+      },
+      {
+        "start": "2026-07-01",
+        "end": "2026-07-07",
+        "source_status": "verified",
+        "merged_segments": 2
+      },
+      {
+        "start": "2026-09-17",
+        "end": "2026-09-23",
+        "source_status": "verified",
+        "merged_segments": 2
+      },
+      {
+        "start": "2026-11-30",
+        "end": "2026-12-04",
+        "source_status": "verified",
+        "merged_segments": 1
+      }
+    ]
+  },
+  "vacation_ranges_used": {
+    "한양대학교 서울캠퍼스": [
+      {
+        "start": "2025-06-24",
+        "end": "2025-08-30",
+        "name": "하계방학",
+        "source_status": "verified"
+      },
+      {
+        "start": "2025-12-22",
+        "end": "2026-02-28",
+        "name": "동계방학",
+        "source_status": "verified"
+      },
+      {
+        "start": "2026-06-24",
+        "end": "2026-08-31",
+        "name": "하계방학",
+        "source_status": "verified"
+      },
+      {
+        "start": "2026-12-23",
+        "end": "2027-02-28",
+        "name": "동계방학",
+        "source_status": "verified"
+      }
+    ],
+    "한양여자대학교": [
+      {
+        "start": "2025-06-24",
+        "end": "2025-08-31",
+        "name": "하계방학",
+        "source_status": "verified"
+      },
+      {
+        "start": "2026-06-23",
+        "end": "2026-08-31",
+        "name": "하계방학",
+        "source_status": "verified"
+      }
+    ],
+    "한대부고": [
+      {
+        "start": "2026-07-25",
+        "end": "2026-08-05",
+        "name": "여름방학(달력 음영)",
+        "source_status": "verified"
+      },
+      {
+        "start": "2026-12-24",
+        "end": "2027-01-31",
+        "name": "겨울방학(달력 음영)",
+        "source_status": "verified"
+      }
+    ]
+  },
+  "semester_starts_used": {
+    "한양대학교 서울캠퍼스": [
+      "2025-03-04",
+      "2025-09-01",
+      "2026-03-03",
+      "2026-09-01"
+    ],
+    "한양여자대학교": [],
+    "한대부고": [
+      "2026-03-03",
+      "2026-08-06",
+      "2027-02-01"
+    ]
+  },
+  "excluded_unconfirmed_events": [
+    {
+      "school": "한대부고",
+      "event_type": "semester_start",
+      "event_name": "개학일/입학식(1)",
+      "start": "2025-03-04",
+      "end": "2025-03-04",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "exam",
+      "event_name": "중간고사",
+      "start": "2025-04-28",
+      "end": "2025-05-01",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "exam",
+      "event_name": "기말고사",
+      "start": "2025-07-02",
+      "end": "2025-07-04",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "exam",
+      "event_name": "기말고사",
+      "start": "2025-07-07",
+      "end": "2025-07-08",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "vacation",
+      "event_name": "여름방학(달력 음영)",
+      "start": "2025-07-26",
+      "end": "2025-08-06",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "semester_start",
+      "event_name": "개학식",
+      "start": "2025-08-07",
+      "end": "2025-08-07",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "exam",
+      "event_name": "중간고사",
+      "start": "2025-09-18",
+      "end": "2025-09-19",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "exam",
+      "event_name": "중간고사",
+      "start": "2025-09-22",
+      "end": "2025-09-24",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "exam",
+      "event_name": "기말고사",
+      "start": "2025-12-01",
+      "end": "2025-12-05",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "vacation",
+      "event_name": "겨울방학(달력 음영)",
+      "start": "2025-12-25",
+      "end": "2026-02-01",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    },
+    {
+      "school": "한대부고",
+      "event_type": "semester_start",
+      "event_name": "개학식",
+      "start": "2026-02-02",
+      "end": "2026-02-02",
+      "status": "estimated",
+      "reason": "확인되지 않은(estimated) 일정은 효과 적용·검증에서 제외"
+    }
+  ],
+  "coefficients": {
+    "basis_for_all": "simulation_assumption",
+    "baseline_level": {
+      "mean_orders_per_day_target": 46.717,
+      "level_scale": 48.9607,
+      "basis": "v1 일평균 주문 수에 맞춰 보정(v1 는 합성 데이터이므로 실제 관측 아님)"
+    },
+    "noise": {
+      "lognormal_sigma": 0.06
+    },
+    "weekday_factor": {
+      "월": 0.98,
+      "화": 1.0,
+      "수": 1.13,
+      "목": 1.03,
+      "금": 1.23,
+      "토": 0.97,
+      "일": 0.65
+    },
+    "weekday_factor_basis": "v1 합성 일별 주문의 요일 평균 비율을 참고한 가정. 일요일 감소/금요일 증가는 주거지 중심 상권 가정이며 실제 요일 효과가 아님",
+    "public_holiday": {
+      "weekday_adjust": 0.85,
+      "weekend_adjust": 0.95
+    },
+    "long_holiday(연휴, 비근무 연속 3일+)": {
+      "3-4일": 0.94,
+      "5일+": 0.9,
+      "day_before": 1.04,
+      "day_after": 0.97,
+      "basis": "주거지 인근 매장: 연휴 중 거주자 이동 감소, 연휴 직전 소폭 증가 가정(근거 데이터 없음)"
+    },
+    "calendar_factor_bounds": [
+      0.5,
+      1.3
+    ],
+    "exam": {
+      "strength": {
+        "hanyang": 0.12,
+        "hywoman": 0.1,
+        "highschool": 0.06
+      },
+      "pre_days": 14,
+      "pre_shape": "14~8일 전 0->35% 선형, 7~1일 전 35->100% (시험일 가까울수록 급증)",
+      "in_exam_shape": "첫날 100% -> 마지막날 75% 선형 감소(진행 따라 조정)",
+      "post_shape": "종료 다음날부터 10일 선형 감소하여 0(마지막 시험일 수준에서 이어짐)",
+      "overlap": {
+        "rule": "max + rest_weight*합(나머지)",
+        "rest_weight": 0.25,
+        "cap": 0.2
+      },
+      "basis": "학교 규모·고객 비중 가정(한대부고는 확인된 2026 일정만, 낮은 강도)"
+    },
+    "vacation": {
+      "strength": {
+        "hanyang": 0.14,
+        "hywoman": 0.1,
+        "highschool": 0.06
+      },
+      "overlap": {
+        "rest_weight": 0.35,
+        "cap": 0.2
+      },
+      "applies_only_to": "확인된 vacation 구간(verified)"
+    },
+    "semester_start_week": {
+      "strength": {
+        "hanyang": 0.05,
+        "hywoman": 0.0,
+        "highschool": 0.03
+      },
+      "days": 7,
+      "overlap": {
+        "rest_weight": 0.5,
+        "cap": 0.06
+      },
+      "note": "한양여대는 개강일 미확인 -> 효과 0"
+    },
+    "school_total_factor_bounds": [
+      0.78,
+      1.25
+    ],
+    "temperature_orders": {
+      "formula": "1 + 0.0035*clip(T-20,0,13) - 0.005*clip(5-T,0,15)",
+      "range": "약 -7.5% ~ +4.5%"
+    },
+    "rain_orders": {
+      "formula": "1 - min(0.10, 0.004*mm) (강수량 >=0.1mm 이고 관측값이 있는 날만)",
+      "missing_precipitation": "효과 미적용(무강수로 취급 안 함)"
+    },
+    "weather_total_bounds": [
+      0.88,
+      1.08
+    ],
+    "menu_weights": {
+      "base": "v1 메뉴별 판매 수량 비례",
+      "ice_only_menu_temp": "exp(0.03*(T-15)) clip (0.55, 1.7)",
+      "seasonal": {
+        "M024 찐고구마 케이크": "11~2월 x1.25, 6~8월 x0.8",
+        "M021 레몬 생크림 케이크/M027 블루베리 판나코타": "5~9월 x1.15, 12~2월 x0.9"
+      }
+    },
+    "hot_ice_choice": {
+      "applies_to": "BOTH 메뉴(수량 단위로 고객이 HOT/ICE 선택, 상세행 분리)",
+      "p_hot": "clip(sigmoid((15.0-T)/6.0 + 메뉴 offset + 강수 관측일 0.3), (0.05, 0.95))",
+      "menu_logit_offsets": {
+        "M002": -0.4,
+        "M003": -0.4,
+        "M008": -0.3,
+        "M006": -0.1,
+        "M001": 0.0,
+        "M004": 0.2,
+        "M005": 0.5,
+        "M007": 0.1,
+        "M013": -0.6,
+        "M015": 0.3,
+        "M017": 0.1
+      },
+      "basis": "메뉴별 기본 HOT/ICE 성향과 기온 조정 계수는 모두 시뮬레이션 가정"
+    }
+  },
+  "temperature_class_by_menu": {
+    "M001": "BOTH",
+    "M002": "BOTH",
+    "M003": "BOTH",
+    "M004": "BOTH",
+    "M005": "BOTH",
+    "M006": "BOTH",
+    "M007": "BOTH",
+    "M008": "BOTH",
+    "M009": "ICE",
+    "M010": "ICE",
+    "M011": "ICE",
+    "M012": "ICE",
+    "M013": "BOTH",
+    "M014": "ICE",
+    "M015": "BOTH",
+    "M016": "ICE",
+    "M017": "BOTH",
+    "M018": "ICE",
+    "M019": "NEUTRAL",
+    "M020": "NEUTRAL",
+    "M021": "NEUTRAL",
+    "M022": "NEUTRAL",
+    "M023": "NEUTRAL",
+    "M024": "NEUTRAL",
+    "M025": "NEUTRAL",
+    "M026": "NEUTRAL",
+    "M027": "NEUTRAL"
+  },
+  "validation_summary": {
+    "overall": "PASS_WITH_NOT_VERIFIABLE",
+    "PASS": 44,
+    "NOT_VERIFIABLE": 10
+  },
+  "known_limitations": [
+    "일정·날씨·공휴일 입력 이외의 모든 수요 효과 크기는 가정이며 실제 판매로 검증되지 않음",
+    "강수량 결측 396일은 강수 효과 미적용",
+    "시험 종료일이 데이터 종료일(2026-10-31) 이후인 한양여대 2026-10-27~11-02 시험은 종료 후 효과 생성·검증 불가",
+    "한양대 2026-10-20~26 시험은 종료 후 5/10일만 데이터 존재",
+    "한대부고 2025 일정은 estimated 이므로 효과 미적용",
+    "Django 메뉴 정수 PK 매핑은 이 데이터에 포함하지 않음(DB 미접근)"
+  ]
+}

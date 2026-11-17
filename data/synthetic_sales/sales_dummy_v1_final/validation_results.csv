@@ -1,0 +1,55 @@
+﻿id,category,status,evidence
+A01_669_days,integrity,PASS,"daily_sales 669행, 2025-01-01~2026-10-31 연속·중복 없음 검사"
+A02_menu_rows,integrity,PASS,daily_menu_sales 18063행 = 669×27
+A03_detail_qty_eq_daily_menu_qty,integrity,PASS,"불일치 (일,메뉴) 0건 / 18063"
+A04_menu_qty_sum_eq_daily_total_qty,integrity,PASS,"상세 합계 vs 일 전체수량 불일치 0일, 메뉴표 합계 vs 일 전체수량 불일치 0일"
+A05_line_total_eq_qty_x_price,integrity,PASS,"모든 상세 line_total = quantity×unit_price, 할인 0"
+A06_detail_amount_eq_order_sales,integrity,PASS,주문별 상세 금액합 ≠ 주문 매출 0건 / 31310
+A07_order_sales_eq_daily_sales,integrity,PASS,"불일치 0일; 총매출 307,782,500원"
+A08_order_count_and_avg_ticket,integrity,PASS,주문 수/객단가 불일치 0일
+A09_menu_sales_eq_daily_sales,integrity,PASS,메뉴별 매출합 ≠ 일 매출 0일
+A10_hourly_eq_daily,integrity,PASS,시간별 매출/주문합 ≠ 일 합계 0일
+A11_menu_id_name_price_match_source,integrity,PASS,"원본 메뉴 27개와 대조: 상세 불일치 0건, 메뉴표 불일치 0건"
+A12_hot_plus_ice_eq_selectable_qty,integrity,PASS,"(일,메뉴) 불일치 0건. HOT 13,438 + ICE 23,593 = 37,031 = 선택 가능 메뉴 수량 37,031"
+A13_temperature_column_rules,integrity,PASS,"규칙 위반 0건; (주문,메뉴,온도) 중복 상세행 없음; NEUTRAL/UNKNOWN 은 temperature 공란"
+A14_hot_ice_split_rows_in_same_order,integrity,PASS,한 주문에서 동일 메뉴 HOT/ICE 동시 판매 507건이 온도별 별도 상세행으로 분리됨
+A15_no_negative_or_zero_days,anomaly,PASS,"음수/0 없음. 일 주문 최소 24, 최대 76"
+A16_unknown_menu_not_assumed,integrity,PASS,"확인된 온도(revision2 목록) 유지: BOTH 11, ICE 7, HOT 0, NEUTRAL(디저트 카테고리) 9, UNKNOWN 0"
+B01_no_abnormal_daily_spike_drop,anomaly,PASS,같은 요일 ±3주 중앙값 대비 비율이 >2.2 또는 <0.4 인 날: 없음
+B02_noise_bounded_vs_expected,anomaly,PASS,"실현/기대 주문 비율 min 0.807, max 1.200"
+B03_combined_effect_caps,anomaly,PASS,"시험 합산 최대 0.145(상한 0.2), 방학 합산 최대 0.196(상한 0.2), 학교 효과 총계 0.804~1.145(범위 (0.78, 1.25))"
+C01_only_confirmed_schedule_applied,schedule,PASS,확인(verified/user_confirmed)되지 않은 날짜에 적용된 효과 0건; 제외된 estimated 일정 11건(한대부고 2025 추정 일정 등)
+C02_exam_end_taken_from_each_school_period,schedule,PASS,학교별 시험 시작일·종료일을 각각 사용(시험 종료일 임의 산정 없음); 한양대학교 서울캠퍼스 8개 기간; 한양여자대학교 8개 기간; 한대부고 4개 기간
+C03_exam_component_shape,exam,PASS,"모든 확인된 시험기간: 14일 전 단조증가(시험일 가까울수록 커짐), 시험기간 중 일정 진행에 따라 변화(일률 증가 아님), 종료 다음날부터 10일에 걸쳐 단조감소 후 0 복귀(하루 급락 없음). 위반 없음"
+D_exam_hanyang,exam,PASS,"한양대학교 서울캠퍼스 시험 8개 기간, 한계효과 조정비율(평균, n일)={'pre14_early(-14~-8)': (1.016, 49), 'pre7_late(-7~-1)': (1.0414, 49), 'exam_period': (1.0431, 45), 'post_1_3': (1.0438, 21), 'post_4_10(복귀)': (1.0176, 44), 'post_11_14(복귀후)': (1.0099, 24)}; pre7_late > pre14_early: PASS(diff=0.0254 z=1.88 n=(49,49), 설정 차이 3.4%p); exam_period > pre14_early: PASS(diff=0.0271 z=2.03 n=(45,49), 설정 차이 3.2%p); exam_period > post_1_3: NOT_VERIFIABLE(diff=-0.0006 z=-0.04 n=(45,21), 설정 차이 2.2%p); post_1_3 > post_4_10: NOT_VERIFIABLE(설정상 한계효과 차이 1.3%p (타 학교 일정과 겹쳐 분리 불가)); exam_period > normal: PASS(diff=0.0431 z=4.50 n=(45,60), 설정 한계효과 4.4%)"
+D_exam_hywoman,exam,NOT_VERIFIABLE,"한양여자대학교 시험 8개 기간, 한계효과 조정비율(평균, n일)={'pre14_early(-14~-8)': (1.0093, 49), 'pre7_late(-7~-1)': (1.0059, 49), 'exam_period': (1.0538, 43), 'post_1_3': (1.0277, 18), 'post_4_10(복귀)': (1.0178, 42), 'post_11_14(복귀후)': (1.0238, 24)}; pre7_late > pre14_early: NOT_VERIFIABLE(설정상 한계효과 차이 1.2%p (타 학교 일정과 겹쳐 분리 불가)); exam_period > pre14_early: PASS(diff=0.0445 z=3.26 n=(43,49), 설정 차이 2.6%p); exam_period > post_1_3: NOT_VERIFIABLE(설정상 한계효과 차이 0.9%p (타 학교 일정과 겹쳐 분리 불가)); post_1_3 > post_4_10: NOT_VERIFIABLE(설정상 한계효과 차이 1.5%p (타 학교 일정과 겹쳐 분리 불가)); exam_period > normal: PASS(diff=0.0538 z=5.18 n=(43,60), 설정 한계효과 2.9%) -> 일부 비교는 일정 중첩/표본 부족으로 학교 단독 관측 검증 불가(구현은 daily_generation_inputs 의 학교별 성분으로 확인)"
+D_exam_highschool,exam,NOT_VERIFIABLE,"한대부고 시험 4개 기간, 한계효과 조정비율(평균, n일)={'pre14_early(-14~-8)': (0.9836, 21), 'pre7_late(-7~-1)': (1.0366, 21), 'exam_period': (1.0806, 21), 'post_1_3': (1.0116, 9), 'post_4_10(복귀)': (1.0114, 21), 'post_11_14(복귀후)': (0.9804, 12)}; pre7_late > pre14_early: NOT_VERIFIABLE(설정상 한계효과 차이 1.9%p (타 학교 일정과 겹쳐 분리 불가)); exam_period > pre14_early: PASS(diff=0.0969 z=4.59 n=(21,21), 설정 차이 3.4%p); exam_period > post_1_3: NOT_VERIFIABLE(설정상 한계효과 차이 1.2%p (타 학교 일정과 겹쳐 분리 불가)); post_1_3 > post_4_10: NOT_VERIFIABLE(설정상 한계효과 차이 1.5%p (타 학교 일정과 겹쳐 분리 불가)); exam_period > normal: PASS(diff=0.0806 z=4.84 n=(21,60), 설정 한계효과 3.9%) -> 일부 비교는 일정 중첩/표본 부족으로 학교 단독 관측 검증 불가(구현은 daily_generation_inputs 의 학교별 성분으로 확인)"
+D_exam_all_schools_pooled,exam,PASS,"학교 통합(지배 학교 단계 기준) 시험 효과 조정비율 평균(n일, 설정 합산효과 평균): pre14_early(-14~-8) 1.018(n=48, 설정 0.022), pre7_late(-7~-1) 1.090(n=63, 설정 0.086), exam_period 1.122(n=75, 설정 0.108), post_1_3 1.071(n=25, 설정 0.069), post_4_10(복귀) 1.032(n=45, 설정 0.030); pre7_late > pre14_early: PASS(diff=0.0715 z=5.07 n=(63,48)); exam_period > pre14_early: PASS(diff=0.1041 z=7.86 n=(75,48)); exam_period > post_1_3: PASS(diff=0.0516 z=2.72 n=(75,25)); post_1_3 > post_4_10: PASS(diff=0.0390 z=1.86 n=(25,45))"
+D_exam_demand_up_orders_and_sales,exam,PASS,"시험기간 주문 조정비율 1.122>1 (diff=0.1223 z=14.70 n=(75,60)); 시험 효과(>5%)일 일평균 매출 535,005원, 학교 효과 없는 날 463,100원 (요일·날씨 구성 차이 포함, 참고)"
+D_exam_post_decline_to_normal,exam,PASS,"종료 후 감소·복귀: 시험기간 1.122 > 종료 후 4~10일 1.032 (diff=0.0905 z=6.10 n=(75,45))"
+D_post_exam_data_end_limits,exam,NOT_VERIFIABLE,한양대학교 서울캠퍼스 2026-10-20~2026-10-26: 종료 후 5/10일만 데이터 존재(복귀 완료 구간 검증 불가) | 한양대학교 서울캠퍼스 2026-12-08~2026-12-14: 시험 종료일이 데이터 종료일(2026-10-31) 이후 -> 종료 후 효과 생성·검증 불가 | 한양여자대학교 2026-10-27~2026-11-02: 시험 종료일이 데이터 종료일(2026-10-31) 이후 -> 종료 후 효과 생성·검증 불가 | 한양여자대학교 2026-12-15~2026-12-21: 시험 종료일이 데이터 종료일(2026-10-31) 이후 -> 종료 후 효과 생성·검증 불가 | 한대부고 2026-11-30~2026-12-04: 시험 종료일이 데이터 종료일(2026-10-31) 이후 -> 종료 후 효과 생성·검증 불가
+D_highschool_2025_estimated_exams,exam,NOT_VERIFIABLE,한대부고 2025년 시험·방학 일정은 2026 패턴 역산 추정(estimated)이므로 효과를 적용하지 않았고 관측 검증도 하지 않음
+E_vacation_component_hanyang,vacation,PASS,한양대학교 서울캠퍼스 확인된 방학 206일에만 감소 성분(0.14) 적용
+E_vacation_observed_hanyang,vacation,PASS,"한양대학교 서울캠퍼스 단독 방학일 62일 평균 비율 0.8631 vs 학교효과 없는 221일 1.0000 (diff=0.1369 z=18.93 n=(221,62))"
+E_vacation_component_hywoman,vacation,PASS,한양여자대학교 확인된 방학 139일에만 감소 성분(0.1) 적용
+E_vacation_observed_hywoman,vacation,NOT_VERIFIABLE,"한양여자대학교 방학이 타 학교 방학과 겹쳐 단독 비교 가능한 날 1일뿐 -> 독립 관측 검증 불가. 참고: 방학 전체일 139일 평균 비율 0.8354 (다른 학교 방학 효과 포함, diff=0.1646 z=27.40 n=(221,139))"
+E_vacation_component_highschool,vacation,PASS,한대부고 확인된 방학 12일에만 감소 성분(0.06) 적용
+E_vacation_observed_highschool,vacation,NOT_VERIFIABLE,"한대부고 방학이 타 학교 방학과 겹쳐 단독 비교 가능한 날 0일뿐 -> 독립 관측 검증 불가. 참고: 방학 전체일 12일 평균 비율 0.8036 (다른 학교 방학 효과 포함, diff=0.1964 z=17.47 n=(221,12))"
+E_vacation_pooled_orders_decrease,vacation,PASS,"방학 중 주문(시험 효과 없는 161일) 평균 비율 0.8417 vs 평상시 1.0000: diff=0.1583 z=28.53 n=(221,161)"
+E_vacation_overlap_not_cumulative,vacation,PASS,"세 학교 방학 동시 시 합산 0.196 (단순합 0.30, 상한 0.2)"
+E_semester_start_week_effect,semester,NOT_VERIFIABLE,"개강 후 7일(확인된 개강일만, 효과 최대 5%) 24일 평균 비율 1.0156 vs 평상시 1.0000 (diff=0.0156 z=1.02 n=(24,221)); 소효과라 표본 부족 시 NOT_VERIFIABLE"
+F01_weekday_pattern,calendar,PASS,"요일 실현값/설정값: 월 0.981/0.98, 화 0.998/1.00, 수 1.123/1.13, 목 1.036/1.03, 금 1.233/1.23, 토 0.974/0.97, 일 0.650/0.65. 가정: 주거지 인근 카페이므로 토요일은 평일 수준, 일요일은 감소(주말=무조건 증가 아님)"
+F02_weekday_public_holiday_effect,calendar,PASS,"평일 공휴일 6일 평균 보정비 0.897 vs 평일 평상시 1.000 (diff=0.1031 z=4.52 n=(416,6)); 설정 0.85"
+F03_long_holiday_effect,calendar,PASS,"연휴(비근무 3일 이상) 56일: 연휴 효과만 분리한 실현비 0.936 (설정 0.90~0.94; 1.0 미만 여부 검정 diff=0.0636 z=7.90 n=(30,56))"
+F04_pre_long_holiday_effect,calendar,NOT_VERIFIABLE,"연휴 전날 15일 보정비 1.028 vs 평일 평상시 1.000 (diff=0.0275 z=1.58 n=(15,416)); 설정 1.04"
+F05_weekend_holiday_not_always_up,calendar,PASS,"일요일(0.65) < 월요일(0.98), 토요일(0.97) < 수요일(1.12): 주말·공휴일이 일률적으로 증가하지 않음"
+G01_temperature_total_orders,weather,PASS,"온도별 날씨 실현비(관측/기온 효과 제외 기대): 고온(≥25C) 1.023(n=143) > 온화(10~20C) 0.995(n=167) > 저온(≤5C) 0.975(n=155); 고온-온화 diff=0.0282 z=3.70 n=(143,167); 온화-저온 diff=0.0201 z=2.92 n=(167,155)"
+G02_ice_share_rises_with_temperature,weather,PASS,평균기온 사분위(저→고) ICE 비중(선택 가능 메뉴 수량): 28.17% < 54.55% < 79.41% < 92.03%; HOT 비중 71.83% > 45.45% > 20.59% > 7.97%
+G03_both_menu_ice_choice_by_temperature,weather,PASS,BOTH 메뉴의 ICE 선택 비율(사분위 저→고): 9.86% < 38.40% < 70.44% < 87.44%
+G04_menu_mix_shifts_with_temperature,weather,PASS,"ICE 전용 메뉴 판매 구성비(사분위 저→고): 15.21%, 19.84%, 23.41%, 28.63%"
+G05_rain_effect_only_on_observed_days,weather,PASS,강수량 결측 396일 중 효과 적용 0일; 효과 적용일 194일은 모두 강수량 관측일. 결측을 무강수로 취급하지 않음
+G06_rain_observed_effect_direction,weather,PASS,"강수 관측일: 10mm 이상 70일 평균 0.937 vs 무강수 관측일 79일 0.999 (diff=0.0624 z=5.72 n=(79,70)); 설정 최대 -10%"
+G07_weather_effects_capped,weather,PASS,"기온×강수 합산 효과 0.900~1.046 (제한 (0.88, 1.08))"
+G08_weather_observed_data_gaps,weather,NOT_VERIFIABLE,강수량 결측 396일(2025년 상당 구간)은 강수 효과를 적용하지 않았으므로 해당 일자의 강수 효과는 검증 불가; 기온은 669일 전부 관측값
+H01_unverified_schedules_listed,schedule,NOT_VERIFIABLE,"미확인 일정(효과 미적용): 한양여대 2025 동계방학 종료일·학기 개시/종료일 미제공, 한양대 2026 12월 기말 이후 범위 밖, 한대부고 2025·2026-01~03 estimated 일정, 한양여대 2026-10-27~11-02 시험 종료일(11-02)이 데이터 범위 밖"
+X01_excel_matches_csv,integrity,PASS,"Excel 14개 시트(분석·검증·가정 포함) 중 CSV 원본 13개를 전 셀 비교, 불일치 없음; 시트: orders, order_details, daily_sales, daily_menu_sales, hourly_sales, menu_sales_mix, hot_ice_analysis, weather_analysis, school_schedule_analysis, holiday_analysis, daily_generation_inputs, monthly_summary, validation_results, assumptions"

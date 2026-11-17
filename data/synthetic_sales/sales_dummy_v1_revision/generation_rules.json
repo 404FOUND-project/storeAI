@@ -1,0 +1,270 @@
+{
+  "version": "sales_dummy_v1_revision",
+  "draft_status": "draft_validation_incomplete",
+  "seed": 40420261110,
+  "synthetic": true,
+  "reviews_included": false,
+  "events": [
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-04-22",
+      "end": "2025-04-28",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-06-17",
+      "end": "2025-06-23",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-10-27",
+      "end": "2025-10-31",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2025-12-15",
+      "end": "2025-12-19",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-04-14",
+      "end": "2026-04-20",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-06-09",
+      "end": "2026-06-15",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양대학교 서울캠퍼스",
+      "key": "hanyang",
+      "start": "2026-10-20",
+      "end": "2026-10-26",
+      "confidence": "user_confirmed",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-04-22",
+      "end": "2025-04-28",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-06-17",
+      "end": "2025-06-23",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-10-27",
+      "end": "2025-10-31",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2025-12-15",
+      "end": "2025-12-19",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2026-04-21",
+      "end": "2026-04-27",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2026-06-16",
+      "end": "2026-06-22",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한양여자대학교",
+      "key": "hywoman",
+      "start": "2026-10-27",
+      "end": "2026-10-31",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-04-28",
+      "end": "2025-05-01",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-07-02",
+      "end": "2025-07-04",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-07-07",
+      "end": "2025-07-08",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-09-18",
+      "end": "2025-09-19",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-09-22",
+      "end": "2025-09-24",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2025-12-01",
+      "end": "2025-12-05",
+      "confidence": "estimated_low",
+      "strength": 0.035
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-04-24",
+      "end": "2026-04-24",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-04-27",
+      "end": "2026-04-30",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-07-01",
+      "end": "2026-07-03",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-07-06",
+      "end": "2026-07-07",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-09-17",
+      "end": "2026-09-18",
+      "confidence": "official_verified",
+      "strength": 0.12
+    },
+    {
+      "school": "한대부고",
+      "key": "highschool",
+      "start": "2026-09-21",
+      "end": "2026-09-23",
+      "confidence": "official_verified",
+      "strength": 0.12
+    }
+  ],
+  "counts": {
+    "orders": 31753,
+    "order_details": 47166,
+    "daily_sales": 669,
+    "daily_menu_sales": 18063,
+    "hourly_sales": 8428,
+    "menus": 27
+  },
+  "total_sales": 316179200,
+  "sources": [
+    "v1 draft daily profile only (not 180-day rows merged)",
+    "menu catalog from 404dabang_dummy_sales_data_menu_id_fixed.xlsx",
+    "daily weather/holiday/academic features from existing prepared CSV"
+  ],
+  "assumptions": [
+    "Approximate inverse of v1 exam uplift used to estimate baseline; this is a synthetic control, not observed demand.",
+    "Per-school 14-day lead ramp, flat exam effect, 14-day linear decay; overlap strongest plus 25% of remaining, capped 22%.",
+    "High-school estimated dates have reduced effect and estimated_low source state.",
+    "Only explicit HOT/COLD wording classified; desserts/bakery NEUTRAL; ambiguous drinks UNKNOWN.",
+    "Weather mix coefficients are synthetic scenario assumptions, not causal facts.",
+    "Rain-missing days do not receive rain effect. No costs, margins, reviews, or DB identifiers were fabricated.",
+    "Dessert category has a weak +3% winter preference scenario in Nov-Feb; this is synthetic, not observed."
+  ],
+  "temperature_types": {
+    "M001": "UNKNOWN",
+    "M002": "UNKNOWN",
+    "M003": "UNKNOWN",
+    "M004": "UNKNOWN",
+    "M005": "UNKNOWN",
+    "M006": "UNKNOWN",
+    "M007": "UNKNOWN",
+    "M008": "UNKNOWN",
+    "M009": "COLD",
+    "M010": "COLD",
+    "M011": "COLD",
+    "M012": "COLD",
+    "M013": "UNKNOWN",
+    "M014": "UNKNOWN",
+    "M015": "UNKNOWN",
+    "M016": "COLD",
+    "M017": "UNKNOWN",
+    "M018": "UNKNOWN",
+    "M019": "NEUTRAL",
+    "M020": "NEUTRAL",
+    "M021": "NEUTRAL",
+    "M022": "NEUTRAL",
+    "M023": "NEUTRAL",
+    "M024": "NEUTRAL",
+    "M025": "NEUTRAL",
+    "M026": "NEUTRAL",
+    "M027": "NEUTRAL"
+  },
+  "django_menu_mapping": "Source M001-M027 differ from Django integer PK; DB not accessed; mapping incomplete."
+}

@@ -1,0 +1,27 @@
+{
+  "passed": true,
+  "checks": {
+    "669_dates": true,
+    "continuous_unique_dates": true,
+    "daily_sales_matches_orders": true,
+    "orders_match_details": true,
+    "menu_qty_matches_details": true,
+    "27_menus": true,
+    "source_price_match": true,
+    "nonnegative": true,
+    "rain_missing_preserved": true,
+    "reviews_excluded": true
+  },
+  "counts": {
+    "orders": 31254,
+    "order_details": 46374,
+    "daily_sales": 669,
+    "daily_menu_sales": 18063,
+    "hourly_sales": 8339,
+    "menus": 27
+  },
+  "limitations": [
+    "Live DB store/menu ID mapping not checked.",
+    "Demand response is synthetic."
+  ]
+}
