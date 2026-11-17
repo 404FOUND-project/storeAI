@@ -18,11 +18,87 @@ class CafeOnApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
-          scaffoldBackgroundColor: bg,
+          scaffoldBackgroundColor: const Color(0xFF1E232A),
           colorScheme: ColorScheme.fromSeed(seedColor: blue),
         ),
-        home: const CafeHome(),
+        home: const PhoneFrameScreen(),
       );
+}
+
+class PhoneFrameScreen extends StatelessWidget {
+  const PhoneFrameScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF181C24),
+      body: Center(
+        child: Container(
+          width: 390,
+          height: 800,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(40),
+            border: Border.all(color: const Color(0xFF3A4252), width: 10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Stack(
+              children: [
+                // 휴대폰 프레임 내부에서 화면을 전환하도록 중첩 Navigator 사용
+                Navigator(
+                  onGenerateRoute: (settings) => MaterialPageRoute<void>(
+                    settings: settings,
+                    builder: (_) => const CafeHome(),
+                  ),
+                ),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 30,
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        width: 110,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(14),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF111418),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class CafeHome extends StatefulWidget {
@@ -37,6 +113,10 @@ class _CafeHomeState extends State<CafeHome> {
   bool showNotifications = false;
   bool notificationsRead = false;
   final Set<int> readNotifications = {};
+  
+  // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
+  Offset chatbotOffset = const Offset(20, 80);
+
   final labels = ['홈', '매출 분석', 'AI 분석', '세트 추천', '마이'];
   final icons = [
     Icons.home_rounded,
@@ -60,58 +140,78 @@ class _CafeHomeState extends State<CafeHome> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        floatingActionButton: FloatingActionButton(
-          onPressed: openChatbot,
-          backgroundColor: blue,
-          foregroundColor: Colors.white,
-          elevation: 5,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.chat_bubble_outline_rounded, size: 25),
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: Column(
-                children: [
-                  header(),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(18, 8, 18, 24),
-                      
-                      child: showNotifications
-                        ? notificationPage()
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: bg,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              children: [
+                // 기본 앱 화면 레이아웃
+                Column(
+                  children: [
+                    const SizedBox(height: 15),
+                    header(),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(18, 4, 18, 28),
+                        child: showNotifications
+                            ? notificationPage()
                             : (tab == 0 ? home() : otherPage()),
+                      ),
+                    ),
+                    bottomNav(),
+                  ],
+                ),
 
+                // 드래그 가능한 챗봇 플로팅 버튼
+                Positioned(
+                  right: chatbotOffset.dx,
+                  bottom: chatbotOffset.dy,
+                  child: GestureDetector(
+                    onPanUpdate: (details) {
+                      setState(() {
+                        chatbotOffset = Offset(
+                          (chatbotOffset.dx - details.delta.dx)
+                              .clamp(10.0, constraints.maxWidth - 70.0),
+                          (chatbotOffset.dy - details.delta.dy)
+                              .clamp(10.0, constraints.maxHeight - 140.0),
+                        );
+                      });
+                    },
+                    child: FloatingActionButton(
+                      onPressed: openChatbot,
+                      backgroundColor: blue,
+                      foregroundColor: Colors.white,
+                      elevation: 5,
+                      shape: const CircleBorder(),
+                      child: const Icon(
+                        Icons.chat_bubble_outline_rounded,
+                        size: 25,
+                      ),
                     ),
                   ),
-                  bottomNav(),
-                ],
-              ),
-            ),
-          ),
+                ),
+              ],
+            );
+          },
         ),
-      );
-
+      ),
+    );
+  }
 
   Widget header() => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
         child: Row(
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
-                ),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Icon(
-                Icons.coffee_rounded,
-                color: Colors.white,
-                size: 24,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset(
+                'assets/icon.png',
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
               ),
             ),
             const SizedBox(width: 10),
@@ -148,6 +248,7 @@ class _CafeHomeState extends State<CafeHome> {
                 backgroundColor: Colors.white,
               ),
             ),
+            const SizedBox(width: 6),
             const CircleAvatar(
               backgroundColor: Color(0xFFE3EEFF),
               child: Icon(Icons.person_rounded, color: blue),
@@ -155,8 +256,6 @@ class _CafeHomeState extends State<CafeHome> {
           ],
         ),
       );
-
-
 
   Widget home() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,7 +375,13 @@ class _CafeHomeState extends State<CafeHome> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton.icon(
-              onPressed: () => message('AI 리포트 상세 화면은 추후 연결할 예정이에요.'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ReportScreen(),
+                  ),
+                );
+              },
               style: TextButton.styleFrom(
                   foregroundColor: Colors.white,
                   backgroundColor: Colors.white.withValues(alpha: 0.18)),
@@ -440,32 +545,12 @@ class _CafeHomeState extends State<CafeHome> {
     );
   }
 
-  Widget quick(IconData icon, String label, int destination) => InkWell(
-        onTap: () => setState(() => tab = destination),
-        borderRadius: BorderRadius.circular(17),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 17, horizontal: 5),
-          decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(17),
-              border: Border.all(color: line)),
-          child: Column(children: [
-            Icon(icon, color: blue, size: 23),
-            const SizedBox(height: 7),
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 11, fontWeight: FontWeight.w700, color: ink)),
-          ]),
-        ),
-      );
-
   Widget otherPage() {
     if (tab == 1) return salesPage();
     if (tab == 2) return aiAnalysisPage();
     if (tab == 3) return setRecommendationPage();
     return myPage();
   }
-
 
   Widget notificationPage() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -660,8 +745,6 @@ class _CafeHomeState extends State<CafeHome> {
             style: TextStyle(fontSize: 12, color: muted),
           ),
           const SizedBox(height: 16),
-
-          // 기간 선택
           Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(
@@ -696,10 +779,7 @@ class _CafeHomeState extends State<CafeHome> {
               }).toList(),
             ),
           ),
-
           const SizedBox(height: 18),
-
-          // 이번 주 총매출
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(20),
@@ -733,10 +813,7 @@ class _CafeHomeState extends State<CafeHome> {
               ],
             ),
           ),
-
           const SizedBox(height: 18),
-
-          // 주문 건수와 평균 주문 금액
           Row(
             children: [
               Expanded(
@@ -760,16 +837,13 @@ class _CafeHomeState extends State<CafeHome> {
               ),
             ],
           ),
-
           const SizedBox(height: 22),
           section('매출 흐름', null, null),
           const SizedBox(height: 10),
           chart(),
-
           const SizedBox(height: 22),
           section('매출 분석 인사이트', null, null),
           const SizedBox(height: 10),
-
           insight(
             Icons.trending_up_rounded,
             green,
@@ -778,9 +852,7 @@ class _CafeHomeState extends State<CafeHome> {
             '이번 주 매출은 지난주보다 12.8% 높아요. 인기 시간대의 재고를 미리 확인해 보세요.',
             '긍정',
           ),
-
           const SizedBox(height: 10),
-
           insight(
             Icons.access_time_rounded,
             blue,
@@ -862,6 +934,261 @@ class _CafeHomeState extends State<CafeHome> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
+class ReportScreen extends StatelessWidget {
+  const ReportScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: bg,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 상단 노치 영역(30px)을 비워 제목이 노치에 가려지지 않도록 함
+            const SizedBox(height: 30),
+            SizedBox(
+              height: 54,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Text(
+                    '오늘의 운영 리포트',
+                    style: TextStyle(
+                      color: ink,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.chevron_left_rounded,
+                          color: ink, size: 30),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('2026년 11월 1일 일요일',
+                        style: TextStyle(color: muted, fontSize: 12)),
+                    const SizedBox(height: 20),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('AI DAILY REPORT',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800)),
+                          SizedBox(height: 25),
+                          Text('오늘의 가게 컨디션은',
+                              style: TextStyle(
+                                  color: Colors.white, fontSize: 18)),
+                          SizedBox(height: 5),
+                          Text('좋음이에요!',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 29,
+                                  fontWeight: FontWeight.w800)),
+                          SizedBox(height: 18),
+                          Text(
+                            '매출이 평소보다 좋은 흐름이에요.\n재고와 피크타임을 확인해 운영 효율을 높여 보세요.',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                height: 1.7),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    const Text('오늘의 핵심 지표',
+                        style: TextStyle(
+                            color: ink,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 15),
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: _ReportMetric(
+                            icon: Icons.payments_rounded,
+                            label: '오늘 매출',
+                            value: '₩428,500',
+                            caption: '+12.8%',
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: _ReportMetric(
+                            icon: Icons.shopping_bag_rounded,
+                            label: '주문 건수',
+                            value: '68건',
+                            caption: '+8.2%',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Row(
+                      children: [
+                        Expanded(
+                          child: _ReportMetric(
+                            icon: Icons.receipt_long_rounded,
+                            label: '평균 주문 금액',
+                            value: '₩6,301',
+                          ),
+                        ),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: _ReportMetric(
+                            icon: Icons.flag_rounded,
+                            label: '목표 달성률',
+                            value: '71.4%',
+                            caption: '목표 ₩600,000',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    const Text('AI 운영 인사이트',
+                        style: TextStyle(
+                            color: ink,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 12),
+                    const _ReportInsight(
+                      icon: Icons.wb_sunny_rounded,
+                      title: '날씨에 맞는 메뉴를 준비해 보세요',
+                      body: '따뜻한 음료 판매 흐름을 확인하고 라떼류 재고를 점검해 보세요.',
+                    ),
+                    const SizedBox(height: 10),
+                    const _ReportInsight(
+                      icon: Icons.access_time_rounded,
+                      title: '오후 피크타임을 확인해 보세요',
+                      body: '주문이 몰리는 시간대의 제조 동선과 인력 배치를 점검해 보세요.',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReportMetric extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final String? caption;
+
+  const _ReportMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.caption,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        constraints: const BoxConstraints(minHeight: 140),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(19),
+          border: Border.all(color: line),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: blue, size: 20),
+            const SizedBox(height: 17),
+            Text(label, style: const TextStyle(color: muted, fontSize: 11)),
+            const SizedBox(height: 7),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value,
+                  style: const TextStyle(
+                      color: ink, fontSize: 21, fontWeight: FontWeight.w800)),
+            ),
+            if (caption != null) ...[
+              const SizedBox(height: 7),
+              Text(caption!,
+                  style: const TextStyle(
+                      color: green, fontSize: 11, fontWeight: FontWeight.w700)),
+            ],
+          ],
+        ),
+      );
+}
+
+class _ReportInsight extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const _ReportInsight({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(17),
+          border: Border.all(color: line),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: blue, size: 20),
+            const SizedBox(width: 11),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      style: const TextStyle(
+                          color: ink,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 5),
+                  Text(body,
+                      style: const TextStyle(
+                          color: muted, fontSize: 11, height: 1.5)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+}
 
 class _StatusRow extends StatelessWidget {
   final String label;
@@ -998,7 +1325,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     return Container(
       height: height * 0.84,
       decoration: const BoxDecoration(
-        color: const Color(0xFFF6F9FE),
+        color: Color(0xFFF6F9FE),
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       clipBehavior: Clip.antiAlias,
@@ -1087,37 +1414,37 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
               style: TextStyle(
                   color: muted, fontSize: 12, fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Column(
             children: categories.entries.map((entry) {
-              final wide = entry.key == '주변 상권 분석';
-              return SizedBox(
-                width: wide ? double.infinity : (MediaQuery.of(context).size.width - 44) / 2,
-                child: OutlinedButton(
-                  onPressed: () => setState(() => selectedCategory = entry.key),
-                  style: OutlinedButton.styleFrom(
-                    alignment: Alignment.centerLeft,
-                    backgroundColor: Colors.white,
-                    foregroundColor: ink,
-                    side: const BorderSide(color: Color(0xFFDDE7F5)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 15),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(entry.value, color: blue, size: 19),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(entry.key,
-                            style: const TextStyle(
-                                fontSize: 11, fontWeight: FontWeight.w700)),
-                      ),
-                      const Icon(Icons.chevron_right_rounded,
-                          color: muted, size: 18),
-                    ],
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: () => setState(() => selectedCategory = entry.key),
+                    style: OutlinedButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      backgroundColor: Colors.white,
+                      foregroundColor: ink,
+                      side: const BorderSide(color: Color(0xFFDDE7F5)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 15),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(entry.value, color: blue, size: 19),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(entry.key,
+                              style: const TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w700)),
+                        ),
+                        const Icon(Icons.chevron_right_rounded,
+                            color: muted, size: 18),
+                      ],
+                    ),
                   ),
                 ),
               );
