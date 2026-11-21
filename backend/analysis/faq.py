@@ -36,6 +36,13 @@ _FAQ = [
         ("stock_alert", "재고 부족을 미리 알 수 있나요?", "가능해요. 재고 수량과 일평균 사용량으로 남은 일수를 계산해 부족·위험 상태를 표시해요."),
         ("stock_proper", "판매량 기준으로 적정 재고를 알려주세요.", "적정 재고는 최근 14일 평균 사용량과 목표 보유 일수로 계산해요. 발주 추천 화면에서 품목별로 볼 수 있어요."),
     ]),
+    ("고객 리뷰", 2, "AI 분석", [
+        ("review_worst", "고객들이 가장 불만족스러워하는 점이 뭐예요?", None),
+        ("review_best", "가장 반응이 좋은 메뉴는 뭐예요?", None),
+        ("review_taste", "맛에 대한 부정 평가가 많은 메뉴가 있나요?", None),
+        ("review_sales_gap", "판매량은 높은데 리뷰가 좋지 않은 메뉴가 있나요?", None),
+        ("review_promo", "이번 달 어떤 메뉴를 집중 홍보하면 좋을까요?", None),
+    ]),
     ("주변 상권 분석", 2, "AI 분석", [
         ("area_where", "주변에 카페 고객이 많은 장소는 어디인가요?", "주변 대학, 지하철역, 오피스의 위치와 유동 인구 데이터를 함께 보면 고객 유입 가능성을 분석할 수 있어요. 상권 데이터는 아직 연결되지 않았어요."),
         ("area_trait", "우리 가게 주변 상권의 특징은 무엇인가요?", "주변 시설, 경쟁 카페 수, 주요 고객층, 시간대별 수요를 함께 살펴보는 것이 좋아요. 상권 데이터는 아직 연결되지 않았어요."),
@@ -65,6 +72,9 @@ def _dynamic(qid, store_id):
     from store.profitability import menu_profitability
     from store.setmenu import recommend_sets
 
+    if qid.startswith("review_"):
+        from review.insights import answer
+        return answer(qid, store_id)
     if qid == "sales_month":
         # 한국 시간 기준, 주문이 있는 가장 최근 달
         month, total, n = _fetch(
