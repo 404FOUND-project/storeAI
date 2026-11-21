@@ -1,6 +1,8 @@
+
 import 'package:flutter/material.dart';
 
 import '../app.dart' show blue, ink, muted, line, bg;
+import '../core/network/backend_api.dart';
 import '../widgets/chatbot_sheet.dart';
 import 'home_screen.dart';
 import 'sales_screen.dart';
@@ -22,7 +24,10 @@ class _MainScreenState extends State<MainScreen> {
   bool notificationsRead = false;
   final Set<int> readNotifications = {};
 
-  // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
+  int? storeId;
+  bool storeLoading = true;
+  String? storeError;
+
   Offset chatbotOffset = const Offset(20, 80);
 
   final labels = ['홈', '매출 분석', 'AI 분석', '세트 추천', '마이'];
@@ -33,6 +38,53 @@ class _MainScreenState extends State<MainScreen> {
     Icons.storefront_rounded,
     Icons.person_outline_rounded,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    loadStores();
+  }
+
+  Future<void> loadStores() async {
+    try {
+      final stores = await BackendApi.instance.stores();
+
+      if (!mounted) return;
+
+      if (stores.isEmpty) {
+        setState(() {
+          storeId = null;
+          storeLoading = false;
+          storeError = null;
+        });
+        return;
+      }
+
+      final firstStoreId = int.tryParse(
+        stores.first['id'].toString(),
+      );
+
+      if (firstStoreId == null) {
+        throw const BackendException('매장 정보를 확인할 수 없습니다.');
+      }
+
+      setState(() {
+        storeId = firstStoreId;
+        storeLoading = false;
+        storeError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        storeId = null;
+        storeLoading = false;
+        storeError = e is BackendException
+            ? e.message
+            : '매장 정보를 불러오지 못했습니다.';
+      });
+    }
+  }
 
   void openChatbot() {
     showModalBottomSheet<void>(
@@ -56,7 +108,6 @@ class _MainScreenState extends State<MainScreen> {
           builder: (context, constraints) {
             return Stack(
               children: [
-                // 기본 앱 화면 레이아웃
                 Column(
                   children: [
                     const SizedBox(height: 15),
@@ -77,18 +128,20 @@ class _MainScreenState extends State<MainScreen> {
                                 ),
                               )
                             : (tab == 0
-                                  ? HomeScreen(
-                                      onNavigate: (destination) =>
-                                          setState(() => tab = destination),
-                                    )
-                                  : otherPage()),
+                                ? HomeScreen(
+                                    onNavigate: (destination) =>
+                                        setState(() => tab = destination),
+                                    storeId: storeId,
+                                    storeLoading: storeLoading,
+                                    storeError: storeError,
+                                  )
+                                : otherPage()),
                       ),
                     ),
                     bottomNav(),
                   ],
                 ),
 
-                // 드래그 가능한 챗봇 플로팅 버튼
                 Positioned(
                   right: chatbotOffset.dx,
                   bottom: chatbotOffset.dy,
@@ -129,101 +182,114 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget header() => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
-    child: Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Image.asset(
-            'assets/icon.png',
-            width: 50,
-            height: 50,
-            fit: BoxFit.cover,
-          ),
-        ),
-        const SizedBox(width: 10),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '카페온',
-                style: TextStyle(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
-                  color: ink,
-                ),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset(
+                'assets/icon.png',
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
               ),
-              Text(
-                'AI 카페 운영 매니저',
-                style: TextStyle(fontSize: 12, color: muted),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '카페온',
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.w800,
+                      color: ink,
+                    ),
+                  ),
+                  Text(
+                    'AI 카페 운영 매니저',
+                    style: TextStyle(fontSize: 12, color: muted),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            IconButton(
+              onPressed: () {
+                setState(() {
+                  showNotifications = true;
+                });
+              },
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: ink,
+              ),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const CircleAvatar(
+              backgroundColor: Color(0xFFE3EEFF),
+              child: Icon(Icons.person_rounded, color: blue),
+            ),
+          ],
         ),
-        IconButton(
-          onPressed: () {
-            setState(() {
-              showNotifications = true;
-            });
-          },
-          icon: const Icon(Icons.notifications_none_rounded, color: ink),
-          style: IconButton.styleFrom(backgroundColor: Colors.white),
-        ),
-        const SizedBox(width: 6),
-        const CircleAvatar(
-          backgroundColor: Color(0xFFE3EEFF),
-          child: Icon(Icons.person_rounded, color: blue),
-        ),
-      ],
-    ),
-  );
+      );
 
   Widget otherPage() {
-    if (tab == 1) return const SalesScreen();
+    if (tab == 1) {
+      return SalesScreen(
+        storeId: storeId,
+        storeLoading: storeLoading,
+        storeError: storeError,
+      );
+    }
     if (tab == 2) return const AiAnalysisScreen();
     if (tab == 3) return const RecommendationScreen();
     return const MyPageScreen();
   }
 
   Widget bottomNav() => Container(
-    padding: const EdgeInsets.fromLTRB(7, 9, 7, 8),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border(top: BorderSide(color: line)),
-    ),
-    child: Row(
-      children: List.generate(labels.length, (i) {
-        final selected = tab == i;
-        return Expanded(
-          child: InkWell(
-            onTap: () => setState(() => tab = i),
-            borderRadius: BorderRadius.circular(13),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 5),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    icons[i],
-                    color: selected ? blue : const Color(0xFF9AA4B2),
-                    size: 22,
+        padding: const EdgeInsets.fromLTRB(7, 9, 7, 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: line)),
+        ),
+        child: Row(
+          children: List.generate(labels.length, (i) {
+            final selected = tab == i;
+            return Expanded(
+              child: InkWell(
+                onTap: () => setState(() => tab = i),
+                borderRadius: BorderRadius.circular(13),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 5),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        icons[i],
+                        color: selected ? blue : const Color(0xFF9AA4B2),
+                        size: 22,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        labels[i],
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: selected ? blue : muted,
+                          fontWeight: selected
+                              ? FontWeight.w800
+                              : FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    labels[i],
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: selected ? blue : muted,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      }),
-    ),
-  );
+            );
+          }),
+        ),
+      );
 }

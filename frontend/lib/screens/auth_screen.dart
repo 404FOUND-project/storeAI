@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import '../app.dart' show blue, bg, ink, line, muted;
@@ -38,7 +39,7 @@ class _AuthScreenState extends State<AuthScreen> {
     try {
       if (_isLogin) {
         await BackendApi.instance.login(
-          username: _emailController.text.trim(),
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
         if (!mounted) return;
@@ -47,7 +48,7 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       } else {
         await BackendApi.instance.signup(
-          username: _emailController.text.trim(),
+          email: _emailController.text.trim(),
           password: _passwordController.text,
           nickname: _nameController.text.trim(),
         );

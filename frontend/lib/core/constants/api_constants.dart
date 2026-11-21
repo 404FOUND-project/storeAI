@@ -9,4 +9,7 @@ class ApiConstants {
   static const logout = '/member/logout/';
   static const notices = '/notices/';
   static const chatbot = '/api/chatbot/';
+  static const stores = '/member/stores/';
+  static String salesAnalysis(int storeId) =>
+    '/sales/stores/$storeId/analysis/sales/';
 }

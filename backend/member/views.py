@@ -78,10 +78,15 @@ class AdminMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAdminUser]
 
 
-class StoreRegistrationView(generics.CreateAPIView):
+class StoreRegistrationView(generics.ListCreateAPIView):
     serializer_class = StoreSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Store.objects.filter(
+            owner=self.request.user
+        ).order_by('id')
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
