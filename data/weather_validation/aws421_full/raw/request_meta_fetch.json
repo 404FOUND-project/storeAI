@@ -1,0 +1,142 @@
+{
+ "endpoint": "https://apis.data.go.kr/1360000/AwsMtlyInfoService/getDailyAwsData",
+ "params_template": {
+  "numOfRows": 40,
+  "dataType": "JSON",
+  "station": 421
+ },
+ "calls": [
+  {
+   "year": 2025,
+   "month": 1,
+   "http_status": 200,
+   "bytes": 5364
+  },
+  {
+   "year": 2025,
+   "month": 2,
+   "http_status": 200,
+   "bytes": 4931
+  },
+  {
+   "year": 2025,
+   "month": 3,
+   "http_status": 200,
+   "bytes": 5360
+  },
+  {
+   "year": 2025,
+   "month": 4,
+   "http_status": 200,
+   "bytes": 5231
+  },
+  {
+   "year": 2025,
+   "month": 5,
+   "http_status": 200,
+   "bytes": 5313
+  },
+  {
+   "year": 2025,
+   "month": 6,
+   "http_status": 200,
+   "bytes": 5137
+  },
+  {
+   "year": 2025,
+   "month": 7,
+   "http_status": 200,
+   "bytes": 5307
+  },
+  {
+   "year": 2025,
+   "month": 8,
+   "http_status": 200,
+   "bytes": 5334
+  },
+  {
+   "year": 2025,
+   "month": 9,
+   "http_status": 200,
+   "bytes": 5167
+  },
+  {
+   "year": 2025,
+   "month": 10,
+   "http_status": 200,
+   "bytes": 5314
+  },
+  {
+   "year": 2025,
+   "month": 11,
+   "http_status": 200,
+   "bytes": 5147
+  },
+  {
+   "year": 2025,
+   "month": 12,
+   "http_status": 200,
+   "bytes": 5290
+  },
+  {
+   "year": 2026,
+   "month": 1,
+   "http_status": 200,
+   "bytes": 5291
+  },
+  {
+   "year": 2026,
+   "month": 2,
+   "http_status": 200,
+   "bytes": 4843
+  },
+  {
+   "year": 2026,
+   "month": 3,
+   "http_status": 200,
+   "bytes": 5274
+  },
+  {
+   "year": 2026,
+   "month": 4,
+   "http_status": 200,
+   "bytes": 5151
+  },
+  {
+   "year": 2026,
+   "month": 5,
+   "http_status": 200,
+   "bytes": 5298
+  },
+  {
+   "year": 2026,
+   "month": 6,
+   "http_status": 200,
+   "bytes": 5161
+  },
+  {
+   "year": 2026,
+   "month": 7,
+   "http_status": 200,
+   "bytes": 5331
+  },
+  {
+   "year": 2026,
+   "month": 8,
+   "http_status": 200,
+   "bytes": 5307
+  },
+  {
+   "year": 2026,
+   "month": 9,
+   "http_status": 200,
+   "bytes": 5155
+  },
+  {
+   "year": 2026,
+   "month": 10,
+   "http_status": 200,
+   "bytes": 94
+  }
+ ]
+}
