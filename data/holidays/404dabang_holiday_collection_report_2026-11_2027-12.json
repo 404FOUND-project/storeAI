@@ -1,0 +1,93 @@
+{
+  "source": "KASI Special Day Information API (getRestDeInfo)",
+  "requested": [
+    "2026-11",
+    "2027-12"
+  ],
+  "monthly_results": [
+    {
+      "year": 2026,
+      "month": 11,
+      "status": "complete",
+      "rows_received": 0
+    },
+    {
+      "year": 2026,
+      "month": 12,
+      "status": "complete",
+      "rows_received": 1
+    },
+    {
+      "year": 2027,
+      "month": 1,
+      "status": "complete",
+      "rows_received": 1
+    },
+    {
+      "year": 2027,
+      "month": 2,
+      "status": "complete",
+      "rows_received": 4
+    },
+    {
+      "year": 2027,
+      "month": 3,
+      "status": "complete",
+      "rows_received": 1
+    },
+    {
+      "year": 2027,
+      "month": 4,
+      "status": "complete",
+      "rows_received": 0
+    },
+    {
+      "year": 2027,
+      "month": 5,
+      "status": "complete",
+      "rows_received": 4
+    },
+    {
+      "year": 2027,
+      "month": 6,
+      "status": "complete",
+      "rows_received": 1
+    },
+    {
+      "year": 2027,
+      "month": 7,
+      "status": "complete",
+      "rows_received": 2
+    },
+    {
+      "year": 2027,
+      "month": 8,
+      "status": "complete",
+      "rows_received": 2
+    },
+    {
+      "year": 2027,
+      "month": 9,
+      "status": "complete",
+      "rows_received": 3
+    },
+    {
+      "year": 2027,
+      "month": 10,
+      "status": "complete",
+      "rows_received": 4
+    },
+    {
+      "year": 2027,
+      "month": 11,
+      "status": "complete",
+      "rows_received": 0
+    },
+    {
+      "year": 2027,
+      "month": 12,
+      "status": "unavailable:request_error",
+      "rows_received": 0
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+﻿locdate,dateName,dateKind,isHoliday,source,holiday_classification,substitute_holiday_status
+20261225,기독탄신일,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270101,1월1일,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270206,설날,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270207,설날,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270208,설날,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270209,대체공휴일(설날),01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,confirmed
+20270301,삼일절,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270501,노동절,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270503,대체공휴일(노동절),01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,confirmed
+20270505,어린이날,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270513,부처님오신날,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270606,현충일,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270717,제헌절,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270719,대체공휴일(제헌절),01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,confirmed
+20270815,광복절,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270816,대체공휴일(광복절),01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,confirmed
+20270914,추석,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270915,추석,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20270916,추석,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20271003,개천절,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20271004,대체공휴일(개천절),01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,confirmed
+20271009,한글날,01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,not_indicated
+20271011,대체공휴일(한글날),01,Y,KASI Special Day Information API (getRestDeInfo),public_holiday,confirmed

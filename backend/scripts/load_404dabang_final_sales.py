@@ -36,6 +36,7 @@ REQUIRED_MIGRATION = ("sales", "0003_sales_source_order_id")
 EXPECTED_MENUS = {f"M{n:03d}" for n in range(1, 28)}
 PERIOD_START, PERIOD_END = "2025-01-01", "2026-10-31"
 EXPECTED_DAYS = 669
+SOURCE_PREFIX = "F1-"
 SALES_BATCH, ITEM_BATCH = 2000, 3000
 ALLOWED_TEMPS = {
     "BOTH": {"HOT", "ICE"},
@@ -318,7 +319,7 @@ def verify_after_write(store, report, menus, details, using):
 
     from sales.models import Sales, SalesItem
 
-    sales_qs = Sales.objects.using(using).filter(store_id=store.pk, source_order_id__startswith="F1-")
+    sales_qs = Sales.objects.using(using).filter(store_id=store.pk, source_order_id__startswith=SOURCE_PREFIX)
     items_qs = SalesItem.objects.using(using).filter(sales__in=sales_qs)
     checks = {
         "sales_count": sales_qs.count() == report["orders"],
