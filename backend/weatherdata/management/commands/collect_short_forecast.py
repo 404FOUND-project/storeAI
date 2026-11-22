@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from weatherdata.models import WeatherCollectionRun, WeatherLocation
 from weatherdata.services.short_forecast import (
     collect_short_forecast,
+    dry_run_short_forecast,
     get_location_for_store,
     latest_available_issue,
 )
@@ -19,6 +20,11 @@ class Command(BaseCommand):
         parser.add_argument("--store-id", type=int, default=1)
         parser.add_argument("--base-date", help="Issue date in YYYYMMDD; defaults to latest available issue.")
         parser.add_argument("--base-time", help="Issue time in HHMM; defaults to latest available issue.")
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Fetch and parse the forecast and print stage timings, without saving anything to the database.",
+        )
 
     def handle(self, *args, **options):
         service_logger = logging.getLogger("weatherdata.services.short_forecast")
@@ -56,6 +62,9 @@ class Command(BaseCommand):
         else:
             issue_at = latest_available_issue()
 
+        if options.get("dry_run"):
+            return self._dry_run(location, issue_at)
+
         try:
             run = collect_short_forecast(location, base_at=issue_at)
         except KeyboardInterrupt:
@@ -72,3 +81,27 @@ class Command(BaseCommand):
             f"message={run.error_message}"
         ))
         raise CommandError("Forecast collection failed; inspect the collection-run record.")
+
+    def _dry_run(self, location, issue_at):
+        try:
+            result = dry_run_short_forecast(location, base_at=issue_at)
+        except KeyboardInterrupt:
+            raise CommandError("Dry run interrupted; nothing was saved.") from None
+        diagnostics = result.get("diagnostics", {})
+        timing = (
+            f"elapsed_ms={diagnostics.get('elapsed_ms')}, requests={diagnostics.get('requests')}, "
+            f"retries={len(diagnostics.get('retries', []))}, stage_ms={diagnostics.get('stage_ms')}"
+        )
+        if result["status"] == "ok":
+            self.stdout.write(self.style.SUCCESS(
+                f"Dry run succeeded (nothing saved): issued_at={result['issued_at']}, "
+                f"http_status={result['http_status']}, pages={result['pages_fetched']}, "
+                f"items={result['items']}, parsed={result['parsed']}, {timing}"
+            ))
+            return
+        self.stderr.write(self.style.ERROR(
+            f"Dry run failed (nothing saved): code={result['error_code']}, stage={result.get('failed_stage')}, "
+            f"http_status={result.get('http_status') or '-'}, api_result_code={result.get('api_result_code') or '-'}, "
+            f"message={result['error_message']}, {timing}"
+        ))
+        raise CommandError("Dry run failed; nothing was saved.")

@@ -17,15 +17,18 @@ import socket
 import ssl
 import time
 import threading
+from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, quote_plus, urlencode
 from urllib.parse import urlsplit
 from urllib.request import Request
 from zoneinfo import ZoneInfo
 
+from django.conf import settings as django_settings
 from django.core.exceptions import ValidationError
 from django.db import connections, transaction
 from django.db.models import Q
@@ -44,10 +47,21 @@ ENDPOINT = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageF
 ISSUE_HOURS = (2, 5, 8, 11, 14, 17, 20, 23)
 AVAILABILITY_DELAY_MINUTES = 10
 PAGE_SIZE = 1000
-TOTAL_TIMEOUT_SECONDS = 60
+# Time budgets. The network phase (DNS, connect, response, parse, retry waits)
+# and the database phase each get their own budget so a slow API cannot starve
+# the save. Defaults keep the previous 60-second limit; they are NOT tuned yet
+# and must only be changed after real response times have been measured.
+# Each value can be overridden in Django settings as WEATHERDATA_<NAME>.
+NETWORK_BUDGET_SECONDS = 60
+DB_BUDGET_SECONDS = 60
+TOTAL_TIMEOUT_SECONDS = NETWORK_BUDGET_SECONDS  # backward-compatible alias
 CONNECT_TIMEOUT_SECONDS = 5
 RESPONSE_TIMEOUT_SECONDS = 10
 MAX_PAGES = 5
+# Bounded retries for transient failures (timeouts, network errors, HTTP 5xx).
+MAX_ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = (2.0, 5.0)  # wait before attempt 2 and attempt 3
+MIN_REDACTED_SECRET_LENGTH = 8
 UPSERT_BATCH_SIZE = 100
 RESPONSE_CHUNK_SIZE = 64 * 1024
 logger = logging.getLogger(__name__)
@@ -62,6 +76,11 @@ CATEGORY_FIELDS = {
 }
 
 
+def _config(name: str, default):
+    """Read an optional WEATHERDATA_<NAME> override from Django settings."""
+    return getattr(django_settings, f"WEATHERDATA_{name}", default)
+
+
 class ForecastCollectionError(Exception):
     """Safe, structured error suitable for storing in collection-run history."""
 
@@ -72,12 +91,102 @@ class ForecastCollectionError(Exception):
         *,
         http_status: int | None = None,
         api_result_code: str = "",
+        stage: str | None = None,
+        retryable: bool = False,
     ) -> None:
         super().__init__(message)
         self.code = code
         self.safe_message = message
         self.http_status = http_status
         self.api_result_code = api_result_code
+        # Stage is filled from the active diagnostics when not given explicitly.
+        self.stage = stage
+        # Only transient transport failures are retryable; everything else
+        # (4xx, parse, auth/parameter result codes, total deadline) is final.
+        self.retryable = retryable
+
+
+class _Diagnostics:
+    """Per-collection timing and failure details (never holds request URLs)."""
+
+    def __init__(self, secrets: tuple[str, ...] = ()) -> None:
+        self.started = time.perf_counter()
+        self.stage: str | None = None
+        self.active: tuple[str, float] | None = None
+        self.stage_ms: dict[str, int] = {}
+        self.requests = 0
+        self.retries: list[dict[str, Any]] = []
+        self.secrets = tuple(s for s in secrets if len(s) >= MIN_REDACTED_SECRET_LENGTH)
+
+    def elapsed_ms(self) -> int:
+        return int((time.perf_counter() - self.started) * 1000)
+
+    def as_dict(self, *, failed_stage: str | None = None) -> dict[str, Any]:
+        stage_ms = dict(self.stage_ms)
+        if self.active is not None:  # include the stage still running (e.g. db_save before commit)
+            name, started = self.active
+            stage_ms[name] = stage_ms.get(name, 0) + int((time.perf_counter() - started) * 1000)
+        data: dict[str, Any] = {
+            "elapsed_ms": self.elapsed_ms(),
+            "stage_ms": stage_ms,
+            "requests": self.requests,
+            "retries": list(self.retries),
+            "network_budget_seconds": _config("NETWORK_BUDGET_SECONDS", NETWORK_BUDGET_SECONDS),
+            "db_budget_seconds": _config("DB_BUDGET_SECONDS", DB_BUDGET_SECONDS),
+        }
+        if failed_stage:
+            data["failed_stage"] = failed_stage
+        return data
+
+
+# Diagnostics use perf_counter (not time.monotonic) so they never interfere
+# with deadline arithmetic that tests control through time.monotonic.
+_diagnostics_var: ContextVar[_Diagnostics | None] = ContextVar("weatherdata_forecast_diagnostics", default=None)
+
+
+def _redact(text: str, secrets: tuple[str, ...]) -> str:
+    for secret in secrets:
+        for variant in {secret, quote(secret, safe=""), quote_plus(secret)}:
+            if variant:
+                text = text.replace(variant, "***")
+    return text
+
+
+class _SecretRedactingFilter(logging.Filter):
+    """Mask the active service key (raw and URL-encoded) in every log record."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        diagnostics = _diagnostics_var.get()
+        if diagnostics is not None and diagnostics.secrets:
+            record.msg = _redact(record.getMessage(), diagnostics.secrets)
+            record.args = ()
+        return True
+
+
+@contextmanager
+def _stage(name: str):
+    """Time one stage; on failure the failing stage name stays recorded."""
+    diagnostics = _diagnostics_var.get()
+    if diagnostics is None:
+        yield
+        return
+    previous = diagnostics.stage
+    diagnostics.stage = name
+    started = time.perf_counter()
+    diagnostics.active = (name, started)
+    try:
+        yield
+    finally:
+        diagnostics.active = None
+        diagnostics.stage_ms[name] = diagnostics.stage_ms.get(name, 0) + int((time.perf_counter() - started) * 1000)
+    diagnostics.stage = previous  # only reached when the stage succeeded
+
+
+logger.addFilter(_SecretRedactingFilter())
+
+
+def _sleep(seconds: float) -> None:
+    time.sleep(seconds)
 
 
 @dataclass(frozen=True)
@@ -175,7 +284,7 @@ def _check_deadline(deadline: float) -> float:
 def _remaining_until(deadline: float, message: str) -> float:
     remaining = deadline - time.monotonic()
     if remaining <= 0:
-        raise ForecastCollectionError("timeout_error", message)
+        raise ForecastCollectionError("timeout_error", message, stage="connect", retryable=True)
     return remaining
 
 
@@ -207,17 +316,21 @@ def _resolve_host(host: str, port: int, *, deadline: float, resolver=None):
     except queue.Empty:
         duration_ms = int((time.monotonic() - started) * 1000)
         logger.warning("DNS lookup timed out (host=%s, started_at=%s, duration_ms=%d)", host, started_at, duration_ms)
-        raise ForecastCollectionError("timeout_error", "DNS lookup exceeded its time limit.") from None
+        raise ForecastCollectionError(
+            "timeout_error", "DNS lookup exceeded its time limit.", stage="dns", retryable=True,
+        ) from None
     duration_ms = int((time.monotonic() - started) * 1000)
     if not succeeded:
         logger.warning(
             "DNS lookup failed (host=%s, started_at=%s, duration_ms=%d, error_type=%s)",
             host, started_at, duration_ms, type(value).__name__,
         )
-        raise ForecastCollectionError("network_error", "Could not resolve the KMA API host.") from None
+        raise ForecastCollectionError(
+            "network_error", "Could not resolve the KMA API host.", stage="dns", retryable=True,
+        ) from None
     if not value:
         logger.warning("DNS lookup returned no addresses (host=%s, started_at=%s, duration_ms=%d)", host, started_at, duration_ms)
-        raise ForecastCollectionError("network_error", "DNS lookup returned no addresses.")
+        raise ForecastCollectionError("network_error", "DNS lookup returned no addresses.", stage="dns", retryable=True)
     logger.info(
         "DNS lookup completed (host=%s, started_at=%s, duration_ms=%d, address_count=%d)",
         host, started_at, duration_ms, len(value),
@@ -394,35 +507,45 @@ def _request_page(
                 deadline=deadline,
             )
         else:
-            status, raw = transport(
-                request,
-                connect_timeout=connect_timeout,
-                response_timeout=response_timeout,
-                deadline=deadline,
-            )
+            with _stage("request"):
+                status, raw = transport(
+                    request,
+                    connect_timeout=connect_timeout,
+                    response_timeout=response_timeout,
+                    deadline=deadline,
+                )
     except (TimeoutError, socket.timeout):
         logger.warning(
             "KMA short forecast request failed (page=%d, started_at=%s, duration_ms=%d, error_type=TimeoutError)",
             page, request_started_at, int((time.monotonic() - request_started) * 1000),
         )
-        raise ForecastCollectionError("timeout_error", "KMA request exceeded a connection or response timeout.") from None
+        raise ForecastCollectionError(
+            "timeout_error", "KMA request exceeded a connection or response timeout.", retryable=True,
+        ) from None
     except (OSError, http.client.HTTPException) as exc:
         logger.warning(
             "KMA short forecast request failed (page=%d, started_at=%s, duration_ms=%d, error_type=%s)",
             page, request_started_at, int((time.monotonic() - request_started) * 1000), type(exc).__name__,
         )
-        raise ForecastCollectionError("network_error", "Could not reach the KMA forecast API.") from None
+        raise ForecastCollectionError(
+            "network_error", "Could not reach the KMA forecast API.", retryable=True,
+        ) from None
     _check_deadline(deadline)
     logger.info(
         "KMA short forecast response received (page=%d, started_at=%s, http_status=%d, duration_ms=%d)",
         page, request_started_at, int(status), int((time.monotonic() - request_started) * 1000),
     )
     if status < 200 or status >= 300:
-        raise ForecastCollectionError("http_error", "KMA returned a non-success HTTP status.", http_status=status)
-    try:
-        payload = json.loads(raw.decode("utf-8-sig"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        raise ForecastCollectionError("parse_error", "KMA response was not valid JSON.", http_status=status) from None
+        # Only server-side (5xx) failures are transient; 4xx is final.
+        raise ForecastCollectionError(
+            "http_error", "KMA returned a non-success HTTP status.",
+            http_status=status, stage="response_wait", retryable=status >= 500,
+        )
+    with _stage("parse"):
+        try:
+            payload = json.loads(raw.decode("utf-8-sig"))
+        except (UnicodeDecodeError, json.JSONDecodeError):
+            raise ForecastCollectionError("parse_error", "KMA response was not valid JSON.", http_status=status) from None
     return payload, status
 
 
@@ -437,7 +560,8 @@ def _https_transport(
     parsed_url = urlsplit(request.full_url)
     if parsed_url.scheme != "https" or not parsed_url.hostname:
         raise OSError("KMA endpoint must use HTTPS")
-    addresses = _resolve_host(parsed_url.hostname, parsed_url.port or 443, deadline=deadline)
+    with _stage("dns"):
+        addresses = _resolve_host(parsed_url.hostname, parsed_url.port or 443, deadline=deadline)
     connect_started_at = _timestamp()
     connect_started = time.monotonic()
     connect_deadline = min(deadline, connect_started + connect_timeout)
@@ -452,7 +576,8 @@ def _https_transport(
     try:
         logger.info("HTTPS connection started (started_at=%s)", connect_started_at)
         try:
-            connection.connect()
+            with _stage("connect"):
+                connection.connect()
         except BaseException as exc:
             logger.warning(
                 "HTTPS connection failed (started_at=%s, duration_ms=%d, error_type=%s)",
@@ -470,7 +595,8 @@ def _https_transport(
         path = parsed_url.path or "/"
         if parsed_url.query:
             path = f"{path}?{parsed_url.query}"
-        connection.request(request.get_method(), path, headers=dict(request.header_items()))
+        with _stage("request_send"):
+            connection.request(request.get_method(), path, headers=dict(request.header_items()))
         remaining = _check_deadline(deadline)
         connection.sock.settimeout(min(response_timeout, remaining))
         connection.response_class = _deadline_response_class(deadline, response_timeout)
@@ -478,7 +604,8 @@ def _https_transport(
         response_started = time.monotonic()
         logger.info("HTTP response wait started (started_at=%s)", response_started_at)
         try:
-            response = connection.getresponse()
+            with _stage("response_wait"):
+                response = connection.getresponse()
         except BaseException as exc:
             logger.warning(
                 "HTTP response wait failed (started_at=%s, duration_ms=%d, error_type=%s)",
@@ -494,13 +621,14 @@ def _https_transport(
         logger.info("HTTP response body read started (started_at=%s)", body_started_at)
         chunks: list[bytes] = []
         try:
-            while True:
-                remaining = _check_deadline(deadline)
-                chunk = response.read1(RESPONSE_CHUNK_SIZE)
-                if not chunk:
-                    break
-                chunks.append(chunk)
-            _check_deadline(deadline)
+            with _stage("body_read"):
+                while True:
+                    remaining = _check_deadline(deadline)
+                    chunk = response.read1(RESPONSE_CHUNK_SIZE)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+                _check_deadline(deadline)
         except BaseException as exc:
             logger.warning(
                 "HTTP response body read failed (started_at=%s, duration_ms=%d, error_type=%s)",
@@ -514,6 +642,58 @@ def _https_transport(
         return int(response.status), b"".join(chunks)
     finally:
         connection.close()
+
+
+def _retry_delay(attempt: int) -> float:
+    backoff = _config("RETRY_BACKOFF_SECONDS", RETRY_BACKOFF_SECONDS)
+    if not backoff:
+        return 0.0
+    return float(backoff[min(attempt, len(backoff)) - 1])
+
+
+def _request_page_with_retry(
+    parameters: dict[str, str | int],
+    service_key: str,
+    *,
+    deadline: float,
+    page: int,
+    transport=None,
+):
+    """Retry only transient transport failures, within the network budget."""
+    max_attempts = max(1, int(_config("MAX_ATTEMPTS", MAX_ATTEMPTS)))
+    diagnostics = _diagnostics_var.get()
+    attempt = 0
+    while True:
+        attempt += 1
+        if diagnostics is not None:
+            diagnostics.requests += 1
+        try:
+            return _request_page(parameters, service_key, deadline=deadline, page=page, transport=transport)
+        except ForecastCollectionError as error:
+            if not error.retryable or attempt >= max_attempts:
+                raise
+            delay = _retry_delay(attempt)
+            if deadline - time.monotonic() <= delay:
+                logger.warning(
+                    "KMA short forecast retry skipped: not enough network budget (page=%d, attempt=%d, error_code=%s)",
+                    page, attempt, error.code,
+                )
+                raise
+            stage = error.stage or (diagnostics.stage if diagnostics is not None else None)
+            if diagnostics is not None:
+                diagnostics.retries.append({
+                    "page": page,
+                    "attempt": attempt,
+                    "error_code": error.code,
+                    "stage": stage,
+                    "http_status": error.http_status,
+                    "wait_seconds": delay,
+                })
+            logger.warning(
+                "KMA short forecast request will be retried (page=%d, attempt=%d/%d, error_code=%s, stage=%s, http_status=%s, wait_seconds=%.1f)",
+                page, attempt, max_attempts, error.code, stage, error.http_status, delay,
+            )
+            _sleep(delay)
 
 
 def _fetch_all_items(
@@ -545,14 +725,15 @@ def _fetch_all_items(
             )
         _check_deadline(deadline)
         parameters["pageNo"] = page
-        payload, final_status = _request_page(
+        payload, final_status = _request_page_with_retry(
             parameters, service_key, deadline=deadline, page=page, transport=transport,
         )
         page_started_at = _timestamp()
         page_started = time.monotonic()
         logger.info("Forecast page processing started (page=%d, started_at=%s)", page, page_started_at)
         try:
-            page_items, total_count, result_code = _response_items(payload, final_status)
+            with _stage("parse"):
+                page_items, total_count, result_code = _response_items(payload, final_status)
         except ForecastCollectionError as error:
             logger.warning(
                 "Forecast page processing failed (page=%d, started_at=%s, duration_ms=%d, error_code=%s)",
@@ -584,17 +765,30 @@ def _fetch_all_items(
 
 
 def _mark_failed(run: WeatherCollectionRun, error: ForecastCollectionError) -> None:
+    diagnostics = _diagnostics_var.get()
+    message = error.safe_message
+    update_fields = ["status", "error_code", "error_message", "http_status", "api_result_code"]
+    stage = error.stage
+    if diagnostics is not None:
+        stage = stage or diagnostics.stage or "unknown"
+        message = _redact(message, diagnostics.secrets)
+        message = f"{message} [stage={stage}, elapsed_ms={diagnostics.elapsed_ms()}, requests={diagnostics.requests}]"
+        # Diagnostics live under their own key so existing request keys are untouched.
+        parameters = dict(run.request_parameters or {})
+        parameters["diagnostics"] = diagnostics.as_dict(failed_stage=stage)
+        run.request_parameters = parameters
+        update_fields.append("request_parameters")
     run.status = WeatherCollectionRun.Status.FAILED
     run.error_code = error.code
-    run.error_message = error.safe_message
+    run.error_message = message
     if error.http_status is not None:
         run.http_status = error.http_status
     if error.api_result_code:
         run.api_result_code = error.api_result_code
-    run.save(update_fields=("status", "error_code", "error_message", "http_status", "api_result_code"))
+    run.save(update_fields=tuple(update_fields))
     logger.warning(
-        "KMA short forecast collection failed (run_id=%s, error_code=%s, http_status=%s, api_result_code=%s)",
-        run.pk, error.code, error.http_status, error.api_result_code,
+        "KMA short forecast collection failed (run_id=%s, error_code=%s, stage=%s, http_status=%s, api_result_code=%s)",
+        run.pk, error.code, stage, error.http_status, error.api_result_code,
     )
 
 
@@ -645,10 +839,26 @@ def _build_forecast_datum(
             "Forecast value and quality status are inconsistent.",
         )
 
+    if run.pk is None or publication.pk is None:
+        raise ForecastCollectionError(
+            "persistence_validation_error",
+            "Forecast data must reference a saved collection run and publication.",
+        )
+
     try:
         # Field and model clean() checks remain active. Unique and CHECK
         # constraints are enforced by the database during the atomic upsert.
-        datum.full_clean(validate_unique=False, validate_constraints=False)
+        # The two ForeignKey fields are excluded from field validation only:
+        # ForeignKey.validate() issues one SELECT per row to confirm the target
+        # exists (2 x N round trips, ~80s for 330 rows on a remote DB). Both
+        # targets are objects this collection just fetched/created and are
+        # held in memory, so existence is already known; the run/publication
+        # consistency is still enforced by WeatherDatum.clean() below.
+        datum.full_clean(
+            exclude=("collection_run", "forecast_publication"),
+            validate_unique=False,
+            validate_constraints=False,
+        )
     except ValidationError as exc:
         raise ForecastCollectionError(
             "persistence_validation_error",
@@ -767,12 +977,13 @@ def collect_short_forecast(
 ) -> WeatherCollectionRun:
     """Create an attempt, fetch one publication, and idempotently persist its data."""
     started_at = time.monotonic()
-    deadline = started_at + TOTAL_TIMEOUT_SECONDS
+    deadline = started_at + float(_config("NETWORK_BUDGET_SECONDS", NETWORK_BUDGET_SECONDS))
     issue_at = base_at or latest_available_issue()
     if timezone.is_naive(issue_at):
         issue_at = issue_at.replace(tzinfo=KST)
     issue_at = issue_at.astimezone(KST).replace(second=0, microsecond=0)
     run = None
+    diagnostics_token = _diagnostics_var.set(_Diagnostics(secrets=(_resolve_service_key(service_key),)))
     try:
         # Keep publication and attempt creation together so an interrupt during
         # setup cannot leave an orphan publication or a half-created attempt.
@@ -828,6 +1039,34 @@ def collect_short_forecast(
                             run.pk, type(exc).__name__,
                         )
         raise
+    finally:
+        _diagnostics_var.reset(diagnostics_token)
+
+
+def _resolve_service_key(service_key: str | None) -> str:
+    return service_key if service_key is not None else os.environ.get("KMA_SERVICE_KEY", "")
+
+
+def _verify_and_parse_items(
+    items: list[dict[str, Any]],
+    issue_at: datetime,
+    *,
+    http_status: int | None,
+    result_code: str,
+) -> list[ParsedForecast]:
+    """Check every item belongs to the requested publication, then normalize."""
+    with _stage("parse"):
+        for item in items:
+            response_base_date = item.get("baseDate")
+            response_base_time = item.get("baseTime")
+            if response_base_date and response_base_time:
+                response_issue = _as_kst_datetime(str(response_base_date), str(response_base_time))
+                if response_issue != issue_at:
+                    raise ForecastCollectionError(
+                        "parse_error", "API response issue time differs from the requested publication.",
+                        http_status=http_status, api_result_code=result_code,
+                    )
+        return parse_forecast_items(items)
 
 
 def _collect_from_run(
@@ -845,7 +1084,7 @@ def _collect_from_run(
         run.pk, _timestamp(), issue_at.isoformat(),
     )
 
-    key = service_key if service_key is not None else os.environ.get("KMA_SERVICE_KEY", "")
+    key = _resolve_service_key(service_key)
     if not key:
         error = ForecastCollectionError("configuration_error", "KMA_SERVICE_KEY is not configured.")
         _mark_failed(run, error)
@@ -866,17 +1105,7 @@ def _collect_from_run(
             deadline=deadline,
             transport=transport,
         )
-        for item in items:
-            response_base_date = item.get("baseDate")
-            response_base_time = item.get("baseTime")
-            if response_base_date and response_base_time:
-                response_issue = _as_kst_datetime(str(response_base_date), str(response_base_time))
-                if response_issue != issue_at:
-                    raise ForecastCollectionError(
-                        "parse_error", "API response issue time differs from the requested publication.",
-                        http_status=http_status, api_result_code=result_code,
-                    )
-        parsed = parse_forecast_items(items)
+        parsed = _verify_and_parse_items(items, issue_at, http_status=http_status, result_code=result_code)
         _check_deadline(deadline)
     except ForecastCollectionError as error:
         if error.http_status is None and http_status is not None and error.code in {"parse_error", "api_response_error"}:
@@ -888,21 +1117,39 @@ def _collect_from_run(
             )
         _mark_failed(run, error)
         return run
+    except Exception as exc:
+        # Anything unexpected must still leave an auditable FAILED record
+        # (never RUNNING). Only the exception class name is stored: its text
+        # could contain request details.
+        logger.error(
+            "KMA short forecast collection failed unexpectedly (run_id=%s, error_type=%s)",
+            run.pk, type(exc).__name__,
+        )
+        _mark_failed(run, ForecastCollectionError(
+            "unexpected_error", f"Unexpected {type(exc).__name__} during collection.",
+        ))
+        return run
 
+    # The database phase has its own budget, independent of network time spent.
+    db_deadline = time.monotonic() + float(_config("DB_BUDGET_SECONDS", DB_BUDGET_SECONDS))
     db_started_at = _timestamp()
     db_started = time.monotonic()
     logger.info("KMA short forecast database save started (run_id=%s, started_at=%s, records=%d)", run.pk, db_started_at, len(parsed))
     try:
-        with transaction.atomic():
-            _upsert_forecast_data(parsed, run, publication, deadline=deadline)
-            _check_deadline(deadline)
+        with _stage("db_save"), transaction.atomic():
+            _upsert_forecast_data(parsed, run, publication, deadline=db_deadline)
+            _check_deadline(db_deadline)
             run.status = WeatherCollectionRun.Status.SUCCEEDED
             run.http_status = http_status
             run.api_result_code = result_code
             run.error_code = ""
             run.error_message = ""
             run.record_count = len(parsed)
-            run.request_parameters = safe_parameters
+            diagnostics = _diagnostics_var.get()
+            run.request_parameters = (
+                {**safe_parameters, "diagnostics": diagnostics.as_dict()}
+                if diagnostics is not None else safe_parameters
+            )
             run.save(update_fields=(
                 "status", "http_status", "api_result_code", "error_code", "error_message",
                 "record_count", "request_parameters",
@@ -928,6 +1175,60 @@ def _collect_from_run(
             run.pk, db_started_at, int((time.monotonic() - db_started) * 1000), len(parsed),
         )
     return run
+
+
+def dry_run_short_forecast(
+    location: WeatherLocation,
+    *,
+    base_at: datetime | None = None,
+    service_key: str | None = None,
+    transport=None,
+) -> dict[str, Any]:
+    """Fetch and parse one publication WITHOUT writing anything to the database.
+
+    Creates no publication, run or datum rows. Returns a summary dict with
+    per-stage timings so response times can be measured before a real save.
+    """
+    started_at = time.monotonic()
+    deadline = started_at + float(_config("NETWORK_BUDGET_SECONDS", NETWORK_BUDGET_SECONDS))
+    issue_at = base_at or latest_available_issue()
+    if timezone.is_naive(issue_at):
+        issue_at = issue_at.replace(tzinfo=KST)
+    issue_at = issue_at.astimezone(KST).replace(second=0, microsecond=0)
+    key = _resolve_service_key(service_key)
+    diagnostics = _Diagnostics(secrets=(key,))
+    token = _diagnostics_var.set(diagnostics)
+    result: dict[str, Any] = {"dry_run": True, "issued_at": issue_at.isoformat()}
+    try:
+        if not key:
+            raise ForecastCollectionError("configuration_error", "KMA_SERVICE_KEY is not configured.")
+        if location.forecast_nx is None or location.forecast_ny is None:
+            raise ForecastCollectionError("configuration_error", "Forecast grid coordinates are not configured.")
+        items, http_status, result_code, safe_parameters = _fetch_all_items(
+            issue_at, location.forecast_nx, location.forecast_ny, key,
+            deadline=deadline, transport=transport,
+        )
+        parsed = _verify_and_parse_items(items, issue_at, http_status=http_status, result_code=result_code)
+        result.update(
+            status="ok", http_status=http_status, api_result_code=result_code,
+            pages_fetched=safe_parameters["pages_fetched"], items=len(items), parsed=len(parsed),
+        )
+    except ForecastCollectionError as error:
+        stage = error.stage or diagnostics.stage or "unknown"
+        result.update(
+            status="failed", error_code=error.code, http_status=error.http_status,
+            api_result_code=error.api_result_code, failed_stage=stage,
+            error_message=_redact(error.safe_message, diagnostics.secrets),
+        )
+    except Exception as exc:
+        result.update(
+            status="failed", error_code="unexpected_error", failed_stage=diagnostics.stage or "unknown",
+            error_message=f"Unexpected {type(exc).__name__} during collection.",
+        )
+    finally:
+        _diagnostics_var.reset(token)
+    result["diagnostics"] = diagnostics.as_dict(failed_stage=result.get("failed_stage"))
+    return result
 
 
 def get_location_for_store(store_id: int) -> WeatherLocation:
