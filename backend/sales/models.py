@@ -173,3 +173,99 @@ class SalesItem(models.Model):
     def __str__(self):
         return f"{self.menu.name} - {self.quantity}"
 # Create your models here.
+
+class ForecastRun(models.Model):
+    class Status(models.TextChoices):
+        RUNNING = "RUNNING", "Running"
+        COMPLETED = "COMPLETED", "Completed"
+        FAILED = "FAILED", "Failed"
+
+    store = models.ForeignKey(
+        Store,
+        on_delete=models.CASCADE,
+        related_name="forecast_runs",
+    )
+    as_of = models.DateField()
+    generated_at = models.DateTimeField(auto_now_add=True)
+    model_version = models.CharField(max_length=50)
+    status = models.CharField(
+        max_length=12,
+        choices=Status.choices,
+        default=Status.RUNNING,
+    )
+    metrics = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-generated_at"]
+        indexes = [
+            models.Index(fields=["store", "as_of"]),
+            models.Index(fields=["store", "generated_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.store_id} - {self.as_of} - {self.model_version}"
+
+
+class ForecastValue(models.Model):
+    class Granularity(models.TextChoices):
+        DAILY = "DAILY", "Daily"
+        HOURLY = "HOURLY", "Hourly"
+        MENU = "MENU", "Menu"
+
+    class Metric(models.TextChoices):
+        SALES = "SALES", "Sales"
+        ORDERS = "ORDERS", "Orders"
+        QUANTITY = "QUANTITY", "Quantity"
+
+    class ServingTemperature(models.TextChoices):
+        HOT = "HOT", "HOT"
+        ICE = "ICE", "ICE"
+
+    run = models.ForeignKey(
+        ForecastRun,
+        on_delete=models.CASCADE,
+        related_name="values",
+    )
+    series_key = models.CharField(max_length=150)
+    granularity = models.CharField(max_length=10, choices=Granularity.choices)
+    metric = models.CharField(max_length=10, choices=Metric.choices)
+    target_date = models.DateField()
+    target_hour = models.PositiveSmallIntegerField(null=True, blank=True)
+    menu = models.ForeignKey(
+        Menu,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="forecast_values",
+    )
+    serving_temperature = models.CharField(
+        max_length=3,
+        choices=ServingTemperature.choices,
+        null=True,
+        blank=True,
+    )
+    predicted_value = models.DecimalField(max_digits=18, decimal_places=2)
+    lower_bound = models.DecimalField(
+        max_digits=18, decimal_places=2, null=True, blank=True
+    )
+    upper_bound = models.DecimalField(
+        max_digits=18, decimal_places=2, null=True, blank=True
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["target_date", "target_hour", "series_key"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["run", "series_key", "target_date"],
+                name="forecast_value_run_date_uniq",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["run", "target_date"]),
+            models.Index(fields=["granularity", "metric", "target_date"]),
+        ]
+
+    def __str__(self):
+        return f"{self.run_id} - {self.series_key} - {self.predicted_value}"

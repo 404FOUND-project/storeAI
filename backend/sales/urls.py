@@ -1,8 +1,15 @@
 from django.urls import path
 
 from .views import (
-    MenuQuantityForecastView, NextDaySalesForecastView, SalesComparisonView,
-    SalesPatternView, SalesSeriesView,
+    HomeSummaryView,
+    MenuQuantityForecastView,
+    NextDaySalesForecastView,
+    SalesComparisonView,
+    ForecastAccuracyView,
+    SalesPatternView,
+    SalesSeriesView,
+    SevenDayForecastView,
+    SavedForecastView,
 )
 
 app_name = 'sales'
@@ -14,4 +21,13 @@ urlpatterns = [
     path('stores/<int:store_id>/forecast/next-day/', NextDaySalesForecastView.as_view(), name='forecast-next-day'),
     path('stores/<int:store_id>/forecast/menu-quantity/', MenuQuantityForecastView.as_view(),
          name='forecast-menu-quantity'),
+    path('stores/<int:store_id>/forecast/7-days/', SevenDayForecastView.as_view(), name='forecast-seven-days'),
+    path('stores/<int:store_id>/forecast/saved/', SavedForecastView.as_view(), name='forecast-saved'),
+    path('stores/<int:store_id>/forecast/accuracy/', ForecastAccuracyView.as_view(), name='forecast-accuracy'),
+    path(
+    'stores/<int:store_id>/home/',
+    HomeSummaryView.as_view(),
+    name='home-summary',
+),
+
 ]

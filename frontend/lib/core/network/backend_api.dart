@@ -163,6 +163,19 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
+  // ??? ?? ?? ??
+  Future<Map<String, dynamic>> savedForecast(
+    int storeId, {
+    int runId = 5,
+  }) async {
+    final body = await _request(
+      (uri, headers) => http.get(uri, headers: headers),
+      ApiConstants.savedForecast(storeId, runId),
+    );
+
+    return Map<String, dynamic>.from(body as Map);
+  }
+
   // 로그아웃
   Future<void> logout() async {
     await _request(

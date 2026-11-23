@@ -12,4 +12,7 @@ class ApiConstants {
   static const stores = '/member/stores/';
   static String salesAnalysis(int storeId) =>
     '/sales/stores/$storeId/analysis/sales/';
+
+  static String savedForecast(int storeId, int runId) =>
+    '/sales/stores/$storeId/forecast/saved/?run_id=$runId';
 }
