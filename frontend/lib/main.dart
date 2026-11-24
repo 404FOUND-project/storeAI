@@ -319,6 +319,8 @@ class _CafeHomeState extends State<CafeHome> {
   String? _salesError;
   Map<String, dynamic>? _salesData;
   Map<String, dynamic>? _patternsData;
+  Map<String, dynamic>? _dailySalesData;
+  int? _hoveredWeekIndex;
   Map<String, dynamic>? _forecastData;
   bool _isForecastLoading = false;
   String? _forecastError;
@@ -332,45 +334,62 @@ class _CafeHomeState extends State<CafeHome> {
     return 'month';
   }
 
-  Future<void> _loadSalesData({int? periodIndex}) async {
-    if (_storeId == null) return;
 
-    if (periodIndex != null) {
-      setState(() {
-        _salesPeriodIndex = periodIndex;
-      });
+Future<void> _loadSalesData({int? periodIndex}) async {
+  if (_storeId == null) return;
+
+  if (periodIndex != null) {
+    setState(() {
+      _salesPeriodIndex = periodIndex;
+    });
+  }
+
+  setState(() {
+    _isSalesLoading = true;
+    _salesError = null;
+  });
+
+  try {
+    final results = await Future.wait([
+      _businessService.getSales(
+        _storeId!,
+        granularity: _salesGranularity,
+      ),
+      _businessService.getPatterns(_storeId!),
+    ]);
+
+    Map<String, dynamic>? dailyData;
+
+    if (_salesPeriodIndex == 1) {
+      try {
+        dailyData = await _businessService.getSales(
+          _storeId!,
+          granularity: 'day',
+        );
+      } catch (_) {
+        dailyData = null;
+      }
     }
+
+    if (!mounted) return;
 
     setState(() {
-      _isSalesLoading = true;
-      _salesError = null;
+      _salesData = results[0];
+      _patternsData = results[1];
+      _dailySalesData = dailyData;
+      _hoveredWeekIndex = null;
+      _isSalesLoading = false;
     });
+  } catch (error) {
+    if (!mounted) return;
 
-    try {
-      final results = await Future.wait([
-        _businessService.getSales(
-          _storeId!,
-          granularity: _salesGranularity,
-        ),
-        _businessService.getPatterns(_storeId!),
-      ]);
-
-      if (!mounted) return;
-
-      setState(() {
-        _salesData = results[0];
-        _patternsData = results[1];
-        _isSalesLoading = false;
-      });
-    } catch (error) {
-      if (!mounted) return;
-
-      setState(() {
-        _salesError = error.toString();
-        _isSalesLoading = false;
-      });
-    }
+    setState(() {
+      _salesError = error.toString();
+      _isSalesLoading = false;
+    });
   }
+}
+
 
   @override
   void initState() {
@@ -657,6 +676,50 @@ class _CafeHomeState extends State<CafeHome> {
     final forecast = data?['today_predicted_sales'];
     final change = data?['sales_change_percent'];
 
+    final salesChangeForCondition =
+        metrics['sales_change_percent'] is num
+            ? (metrics['sales_change_percent'] as num).toDouble()
+            : null;
+    final reviewForCondition = reviewRating is num
+        ? (reviewRating as num).toDouble()
+        : null;
+    final hasDailySales = metrics['sales'] != null &&
+        daily['status'] != 'INSUFFICIENT_DATA';
+
+    final conditionBad = hasDailySales &&
+        (salesChangeForCondition != null &&
+                salesChangeForCondition <= -10 ||
+            reviewForCondition != null && reviewForCondition <= 2.5);
+    final conditionCaution = hasDailySales &&
+        !conditionBad &&
+        (salesChangeForCondition == null ||
+            salesChangeForCondition < 0 ||
+            reviewForCondition != null && reviewForCondition < 3.5);
+
+    final conditionColor = !hasDailySales
+        ? const Color(0xFF718096)
+        : conditionBad
+            ? const Color(0xFFD94343)
+            : conditionCaution
+                ? const Color(0xFFE98A22)
+                : const Color(0xFF287FF0);
+
+    final conditionTitle = !hasDailySales
+        ? '오늘의 가게 컨디션은 진단 불가예요.'
+        : conditionBad
+            ? '오늘의 가게 컨디션은 나쁨이에요.'
+            : conditionCaution
+                ? '오늘의 가게 컨디션은 주의예요.'
+                : '오늘의 가게 컨디션은 좋음이에요!';
+
+    final conditionDescription = !hasDailySales
+        ? '운영 데이터를 더 모으면 진단할 수 있어요.'
+        : conditionBad
+            ? '매출과 리뷰 등 주요 운영 지표를 점검해 보세요.'
+            : conditionCaution
+                ? '일부 운영 지표를 확인해 보세요.'
+                : '매출과 리뷰 흐름이 양호해요.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -722,56 +785,124 @@ class _CafeHomeState extends State<CafeHome> {
             ),
           )
         else ...[
-          section('전일 운영 진단', '월간 리포트', () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const ReportScreen(),
-              ),
-            );
-          }),
-          const SizedBox(height: 10),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
+              gradient: LinearGradient(
+                colors: [
+                  conditionColor,
+                  Color.lerp(conditionColor, Colors.black, 0.12)!,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: conditionColor.withValues(alpha: 0.20),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Text(
+                        'AI DAILY REPORT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                      size: 27,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
                 const Text(
-                  'DAILY BUSINESS INSIGHT',
+                  '오늘의 가게 컨디션은',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  conditionTitle.replaceFirst('오늘의 가게 컨디션은 ', ''),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 25,
+                    height: 1.35,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  daily['summary']?.toString() ?? '진단 결과가 없습니다.',
+                  conditionDescription,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
-                    height: 1.6,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                    height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 10),
-                Text(
-                  '진단 상태: ${daily['status'] ?? '확인 불가'}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ReportScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      '리포트 확인',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.22),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 17,
+                        vertical: 10,
+                      ),
+                      shape: const StadiumBorder(),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
           section('매출 현황', '상세 보기', () => _changeTab(1)),
           const SizedBox(height: 10),
           Row(
@@ -1028,6 +1159,10 @@ class _CafeHomeState extends State<CafeHome> {
   );
 
   Widget chart() {
+    if (_salesPeriodIndex == 1) {
+      return weeklyComparisonChart();
+    }
+
     final rawSeries = _salesData?['series'];
     final allItems = rawSeries is List
         ? rawSeries
@@ -1152,6 +1287,238 @@ class _CafeHomeState extends State<CafeHome> {
             ),
         ],
       ),
+    );
+  }
+    Widget weeklyComparisonChart() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final monday = today.subtract(
+      Duration(days: today.weekday - DateTime.monday),
+    );
+
+    final dates = List.generate(
+      7,
+      (index) => monday.add(Duration(days: index)),
+    );
+
+    String dateKey(DateTime date) {
+      final year = date.year.toString().padLeft(4, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      final day = date.day.toString().padLeft(2, '0');
+      return '$year-$month-$day';
+    }
+
+    final actualMap = <String, double>{};
+    final rawDailySeries = _dailySalesData?['series'];
+
+    if (rawDailySeries is List) {
+      for (final item in rawDailySeries.whereType<Map>()) {
+        final data = Map<String, dynamic>.from(item);
+        final rawDate = data['period_start']?.toString();
+        final date = rawDate == null ? null : DateTime.tryParse(rawDate);
+
+        if (date != null) {
+          actualMap[dateKey(date)] =
+              (data['sales'] as num?)?.toDouble() ?? 0;
+        }
+      }
+    }
+
+    final forecastMap = <String, double>{};
+    final rawForecastValues = _forecastData?['values'];
+
+    if (rawForecastValues is List) {
+      for (final item in rawForecastValues.whereType<Map>()) {
+        final data = Map<String, dynamic>.from(item);
+
+        if (data['metric'] != 'SALES' ||
+            data['granularity'] != 'day') {
+          continue;
+        }
+
+        final rawDate = data['target_date']?.toString();
+        final date = rawDate == null ? null : DateTime.tryParse(rawDate);
+
+        if (date != null && data['predicted_value'] is num) {
+          forecastMap[dateKey(date)] =
+              (data['predicted_value'] as num).toDouble();
+        }
+      }
+    }
+
+    final actualValues = dates.map((date) {
+      if (!date.isBefore(today)) return null;
+      return actualMap[dateKey(date)];
+    }).toList();
+
+    final forecastValues = dates.map((date) {
+      return forecastMap[dateKey(date)];
+    }).toList();
+
+    final labels = ['월', '화', '수', '목', '금', '토', '일'];
+
+    final hoveredIndex = _hoveredWeekIndex;
+    final hoveredDate = hoveredIndex == null ? null : dates[hoveredIndex];
+
+    String actualDescription(int index) {
+      final date = dates[index];
+
+      if (!date.isBefore(today)) return '집계 전';
+
+      final value = actualValues[index];
+      return value == null ? '매출 기록 없음' : _formatWon(value);
+    }
+
+    String forecastDescription(int index) {
+      final value = forecastValues[index];
+      return value == null ? '예측 데이터 없음' : _formatWon(value);
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(17, 17, 17, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '이번 주 매출 비교',
+            style: TextStyle(color: muted, fontSize: 12),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            _formatWon(_salesData?['summary'] is Map
+                ? (_salesData!['summary'] as Map)['sales']
+                : null),
+            style: const TextStyle(
+              color: ink,
+              fontSize: 23,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _chartLegend(blue, '실제 매출', dashed: false),
+              const SizedBox(width: 18),
+              _chartLegend(
+                const Color(0xFFF59E0B),
+                '예측 매출',
+                dashed: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return MouseRegion(
+                onHover: (event) {
+                  final index = ((event.localPosition.dx /
+                              constraints.maxWidth) *
+                          7)
+                      .floor()
+                      .clamp(0, 6);
+
+                  if (_hoveredWeekIndex != index) {
+                    setState(() {
+                      _hoveredWeekIndex = index;
+                    });
+                  }
+                },
+                onExit: (_) {
+                  setState(() {
+                    _hoveredWeekIndex = null;
+                  });
+                },
+                child: SizedBox(
+                  height: 170,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: WeeklySalesPainter(
+                      actual: actualValues,
+                      forecast: forecastValues,
+                      todayIndex: today.difference(monday).inDays,
+                      hoveredIndex: hoveredIndex ?? -1,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          Row(
+            children: List.generate(7, (index) {
+              return Expanded(
+                child: Text(
+                  '${labels[index]}\n${dates[index].month}/${dates[index].day}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: hoveredIndex == index ? blue : muted,
+                    fontWeight: hoveredIndex == index
+                        ? FontWeight.w800
+                        : FontWeight.normal,
+                  ),
+                ),
+              );
+            }),
+          ),
+          if (hoveredDate != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F8FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${hoveredDate.month}월 ${hoveredDate.day}일 (${labels[hoveredIndex!]})',
+                    style: const TextStyle(
+                      color: ink,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('실제 매출: ${actualDescription(hoveredIndex)}'),
+                  Text('예측 매출: ${forecastDescription(hoveredIndex)}'),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+    Widget _chartLegend(
+    Color color,
+    String label, {
+    required bool dashed,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CustomPaint(
+          size: const Size(24, 10),
+          painter: LegendLinePainter(
+            color: color,
+            dashed: dashed,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: muted,
+          ),
+        ),
+      ],
     );
   }
   Widget otherPage() {
@@ -3103,7 +3470,208 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     ),
   );
 }
+class LegendLinePainter extends CustomPainter {
+  final Color color;
+  final bool dashed;
 
+  LegendLinePainter({
+    required this.color,
+    required this.dashed,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+
+    if (dashed) {
+      const dashWidth = 4.0;
+      const gap = 3.0;
+      double x = 0;
+
+      while (x < size.width) {
+        canvas.drawLine(
+          Offset(x, size.height / 2),
+          Offset((x + dashWidth).clamp(0.0, size.width), size.height / 2),
+          paint,
+        );
+        x += dashWidth + gap;
+      }
+    } else {
+      canvas.drawLine(
+        Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant LegendLinePainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.dashed != dashed;
+  }
+}
+
+class WeeklySalesPainter extends CustomPainter {
+  final List<double?> actual;
+  final List<double?> forecast;
+  final int todayIndex;
+  final int hoveredIndex;
+
+  WeeklySalesPainter({
+    required this.actual,
+    required this.forecast,
+    required this.todayIndex,
+    required this.hoveredIndex,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const actualColor = Color(0xFF3978D5);
+    const forecastColor = Color(0xFFF59E0B);
+
+    const left = 8.0;
+    const right = 8.0;
+    const top = 12.0;
+    const bottom = 12.0;
+
+    final chartWidth = size.width - left - right;
+    final chartHeight = size.height - top - bottom;
+
+    if (chartWidth <= 0 || chartHeight <= 0) return;
+
+    final allValues = [
+      ...actual.whereType<double>(),
+      ...forecast.whereType<double>(),
+    ];
+
+    final maxValue = allValues.isEmpty
+        ? 1.0
+        : allValues.reduce((a, b) => a > b ? a : b);
+
+    final scaleMax = maxValue <= 0 ? 1.0 : maxValue * 1.15;
+
+    Offset pointAt(int index, double value) {
+      final x = left + chartWidth * index / 6;
+      final y = top + chartHeight * (1 - value / scaleMax);
+      return Offset(x, y);
+    }
+
+    final gridPaint = Paint()
+      ..color = const Color(0xFFEAEFF5)
+      ..strokeWidth = 1;
+
+    for (var i = 0; i < 4; i++) {
+      final y = top + chartHeight * i / 3;
+      canvas.drawLine(
+        Offset(left, y),
+        Offset(size.width - right, y),
+        gridPaint,
+      );
+    }
+
+    if (hoveredIndex >= 0 && hoveredIndex < 7) {
+      final x = left + chartWidth * hoveredIndex / 6;
+
+      final hoverPaint = Paint()
+        ..color = const Color(0xFFB8C8DC)
+        ..strokeWidth = 1;
+
+      canvas.drawLine(
+        Offset(x, top),
+        Offset(x, size.height - bottom),
+        hoverPaint,
+      );
+    }
+
+    void drawSeries(
+      List<double?> values,
+      Color color, {
+      required bool dashed,
+    }) {
+      final linePaint = Paint()
+        ..color = color
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+
+      for (var i = 0; i < values.length - 1; i++) {
+        final startValue = values[i];
+        final endValue = values[i + 1];
+
+        if (startValue == null || endValue == null) continue;
+
+        final start = pointAt(i, startValue);
+        final end = pointAt(i + 1, endValue);
+
+        if (!dashed) {
+          canvas.drawLine(start, end, linePaint);
+        } else {
+          final distance = (end - start).distance;
+          const dashLength = 6.0;
+          const gapLength = 4.0;
+
+          var position = 0.0;
+
+          while (position < distance) {
+            final next = (position + dashLength).clamp(0.0, distance);
+
+            final from = Offset(
+              start.dx + (end.dx - start.dx) * position / distance,
+              start.dy + (end.dy - start.dy) * position / distance,
+            );
+
+            final to = Offset(
+              start.dx + (end.dx - start.dx) * next / distance,
+              start.dy + (end.dy - start.dy) * next / distance,
+            );
+
+            canvas.drawLine(from, to, linePaint);
+            position += dashLength + gapLength;
+          }
+        }
+      }
+
+      final dotPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
+
+      for (var i = 0; i < values.length; i++) {
+        final value = values[i];
+        if (value == null) continue;
+
+        canvas.drawCircle(
+          pointAt(i, value),
+          3.5,
+          dotPaint,
+        );
+      }
+    }
+
+    drawSeries(
+      forecast,
+      forecastColor,
+      dashed: true,
+    );
+
+    drawSeries(
+      actual,
+      actualColor,
+      dashed: false,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant WeeklySalesPainter oldDelegate) {
+    return oldDelegate.actual != actual ||
+        oldDelegate.forecast != forecast ||
+        oldDelegate.todayIndex != todayIndex ||
+        oldDelegate.hoveredIndex != hoveredIndex;
+  }
+}
 
 
 
