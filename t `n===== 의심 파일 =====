@@ -1,0 +1,23 @@
+warning: in the working copy of 'backend/store/serializers.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/lib/main.dart', LF will be replaced by CRLF the next time Git touches it
+M	backend/sales/urls.py
+M	backend/sales/views.py
+M	backend/store/serializers.py
+D	frontend/lib/app.dart
+M	frontend/lib/core/constants/api_constants.dart
+D	frontend/lib/core/network/backend_api.dart
+M	frontend/lib/main.dart
+D	frontend/lib/screens/ai_analysis_screen.dart
+D	frontend/lib/screens/auth_screen.dart
+D	frontend/lib/screens/home_screen.dart
+D	frontend/lib/screens/main_screen.dart
+D	frontend/lib/screens/mypage_screen.dart
+D	frontend/lib/screens/notification_screen.dart
+D	frontend/lib/screens/recommendation_screen.dart
+D	frontend/lib/screens/report_screen.dart
+D	frontend/lib/screens/sales_screen.dart
+D	frontend/lib/widgets/backend_state.dart
+D	frontend/lib/widgets/chatbot_sheet.dart
+D	frontend/lib/widgets/common_widgets.dart
+M	frontend/pubspec.lock
+M	frontend/pubspec.yaml
