@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'core/network/auth_service.dart';
+import 'features/auth/login_screen.dart';
 
 void main() => runApp(const CafeOnApp());
 
@@ -9,24 +13,130 @@ const line = Color(0xFFE8EBF0);
 const bg = Color(0xFFF4F7FB);
 const green = Color(0xFF15956F);
 
-class CafeOnApp extends StatelessWidget {
+class CafeOnApp extends StatefulWidget {
   const CafeOnApp({super.key});
 
   @override
-  Widget build(BuildContext context) => MaterialApp(
-        title: '카페온',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          scaffoldBackgroundColor: const Color(0xFF1E232A),
-          colorScheme: ColorScheme.fromSeed(seedColor: blue),
-        ),
-        home: const PhoneFrameScreen(),
-      );
+  State<CafeOnApp> createState() => _CafeOnAppState();
+}
+
+class _CafeOnAppState extends State<CafeOnApp> {
+  Map<String, dynamic>? _user;
+  String? _token;
+  bool _isCheckingLogin = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkLogin();
+  }
+
+  // 앱 실행 시 저장된 토큰 확인
+  Future<void> _checkLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedToken = prefs.getString('auth_token');
+
+    if (savedToken != null) {
+      try {
+        final user = await AuthService().getMe(savedToken);
+
+        if (!mounted) return;
+
+        setState(() {
+          _token = savedToken;
+          _user = user;
+        });
+      } catch (_) {
+        await prefs.remove('auth_token');
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isCheckingLogin = false;
+    });
+  }
+
+  // 로그인 성공 처리
+  Future<void> _handleLoginSuccess(Map<String, dynamic> result) async {
+    final token = result['token'];
+    final user = result['user'];
+
+    if (token is! String || user is! Map) {
+      throw Exception('로그인 응답 형식이 올바르지 않습니다.');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+
+    if (!mounted) return;
+
+    setState(() {
+      _token = token;
+      _user = Map<String, dynamic>.from(user);
+    });
+  }
+
+  // 로그아웃 처리
+  Future<void> _handleLogout() async {
+    final token = _token;
+
+    if (token != null) {
+      try {
+        await AuthService().logout(token);
+      } catch (_) {
+        // 서버 연결에 실패해도 앱에서는 로그아웃 처리
+      }
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+
+    if (!mounted) return;
+
+    setState(() {
+      _user = null;
+      _token = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '카페온',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        scaffoldBackgroundColor: const Color(0xFF1E232A),
+        colorScheme: ColorScheme.fromSeed(seedColor: blue),
+      ),
+      home: _isCheckingLogin
+          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
+          : _user == null || _token == null
+          ? LoginPhoneFrameScreen(
+              child: LoginScreen(onLoginSuccess: _handleLoginSuccess),
+            )
+          : PhoneFrameScreen(
+              user: _user!,
+              token: _token!,
+              onLogout: _handleLogout,
+            ),
+    );
+  }
 }
 
 class PhoneFrameScreen extends StatelessWidget {
-  const PhoneFrameScreen({super.key});
+  final Map<String, dynamic> user;
+  final String token;
+  final Future<void> Function() onLogout;
+
+  const PhoneFrameScreen({
+    super.key,
+    required this.user,
+    required this.token,
+    required this.onLogout,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +166,8 @@ class PhoneFrameScreen extends StatelessWidget {
                 Navigator(
                   onGenerateRoute: (settings) => MaterialPageRoute<void>(
                     settings: settings,
-                    builder: (_) => const CafeHome(),
+                    builder: (_) =>
+                        CafeHome(user: user, token: token, onLogout: onLogout),
                   ),
                 ),
                 Positioned(
@@ -101,8 +212,89 @@ class PhoneFrameScreen extends StatelessWidget {
   }
 }
 
+class LoginPhoneFrameScreen extends StatelessWidget {
+  final Widget child;
+
+  const LoginPhoneFrameScreen({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF181C24),
+      body: Center(
+        child: Container(
+          width: 390,
+          height: 800,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(40),
+            border: Border.all(color: const Color(0xFF3A4252), width: 10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 30,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Stack(
+              children: [
+                Positioned.fill(child: child),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 30,
+                  child: IgnorePointer(
+                    child: Center(
+                      child: Container(
+                        width: 110,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: Colors.black,
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(14),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF111418),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class CafeHome extends StatefulWidget {
-  const CafeHome({super.key});
+  final Map<String, dynamic> user;
+  final String token;
+  final Future<void> Function() onLogout;
+
+  const CafeHome({
+    super.key,
+    required this.user,
+    required this.token,
+    required this.onLogout,
+  });
 
   @override
   State<CafeHome> createState() => _CafeHomeState();
@@ -113,7 +305,7 @@ class _CafeHomeState extends State<CafeHome> {
   bool showNotifications = false;
   bool notificationsRead = false;
   final Set<int> readNotifications = {};
-  
+
   // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
   Offset chatbotOffset = const Offset(20, 80);
 
@@ -173,10 +365,14 @@ class _CafeHomeState extends State<CafeHome> {
                     onPanUpdate: (details) {
                       setState(() {
                         chatbotOffset = Offset(
-                          (chatbotOffset.dx - details.delta.dx)
-                              .clamp(10.0, constraints.maxWidth - 70.0),
-                          (chatbotOffset.dy - details.delta.dy)
-                              .clamp(10.0, constraints.maxHeight - 140.0),
+                          (chatbotOffset.dx - details.delta.dx).clamp(
+                            10.0,
+                            constraints.maxWidth - 70.0,
+                          ),
+                          (chatbotOffset.dy - details.delta.dy).clamp(
+                            10.0,
+                            constraints.maxHeight - 140.0,
+                          ),
                         );
                       });
                     },
@@ -202,289 +398,409 @@ class _CafeHomeState extends State<CafeHome> {
   }
 
   Widget header() => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.asset(
-                'assets/icon.png',
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-              ),
-            ),
-            const SizedBox(width: 10),
-            const Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '카페온',
-                    style: TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.w800,
-                      color: ink,
-                    ),
-                  ),
-                  Text(
-                    'AI 카페 운영 매니저',
-                    style: TextStyle(fontSize: 12, color: muted),
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              onPressed: () {
-                setState(() {
-                  showNotifications = true;
-                });
-              },
-              icon: const Icon(
-                Icons.notifications_none_rounded,
-                color: ink,
-              ),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white,
-              ),
-            ),
-            const SizedBox(width: 6),
-            const CircleAvatar(
-              backgroundColor: Color(0xFFE3EEFF),
-              child: Icon(Icons.person_rounded, color: blue),
-            ),
-          ],
+    padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
+    child: Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.asset(
+            'assets/icon.png',
+            width: 50,
+            height: 50,
+            fit: BoxFit.cover,
+          ),
         ),
-      );
+        const SizedBox(width: 10),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '카페온',
+                style: TextStyle(
+                  fontSize: 21,
+                  fontWeight: FontWeight.w800,
+                  color: ink,
+                ),
+              ),
+              Text(
+                'AI 카페 운영 매니저',
+                style: TextStyle(fontSize: 12, color: muted),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            setState(() {
+              showNotifications = true;
+            });
+          },
+          icon: const Icon(Icons.notifications_none_rounded, color: ink),
+          style: IconButton.styleFrom(backgroundColor: Colors.white),
+        ),
+        const SizedBox(width: 6),
+        const CircleAvatar(
+          backgroundColor: Color(0xFFE3EEFF),
+          child: Icon(Icons.person_rounded, color: blue),
+        ),
+      ],
+    ),
+  );
 
   Widget home() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        '안녕하세요, 사장님 👋',
+        style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: ink),
+      ),
+      const SizedBox(height: 5),
+      const Text(
+        '오늘 가게 운영 현황을 확인해 보세요.',
+        style: TextStyle(fontSize: 13, color: muted),
+      ),
+      const SizedBox(height: 18),
+      hero(),
+      const SizedBox(height: 20),
+      section('오늘의 매출', '상세 보기', () => setState(() => tab = 1)),
+      const SizedBox(height: 10),
+      Row(
         children: [
-          const Text('안녕하세요, 사장님 👋',
-              style: TextStyle(
-                  fontSize: 23, fontWeight: FontWeight.w800, color: ink)),
-          const SizedBox(height: 5),
-          const Text('오늘 가게 운영 현황을 확인해 보세요.',
-              style: TextStyle(fontSize: 13, color: muted)),
-          const SizedBox(height: 18),
-          hero(),
-          const SizedBox(height: 20),
-          section('오늘의 매출', '상세 보기', () => setState(() => tab = 1)),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(
-                child: metric('오늘 매출', '₩428,500', '+12.8%',
-                    Icons.payments_rounded, green)),
-            const SizedBox(width: 10),
-            Expanded(
-                child: metric('주문 건수', '68건', '+8.2%',
-                    Icons.shopping_bag_rounded, blue)),
-          ]),
-          const SizedBox(height: 10),
-          Row(children: [
-            Expanded(
-                child: metric('평균 주문 금액', '₩6,301', '+3.4%',
-                    Icons.receipt_long_rounded, const Color(0xFFB46C08))),
-            const SizedBox(width: 10),
-            Expanded(
-                child: metric('목표 달성률', '71.4%', '목표 ₩600,000',
-                    Icons.flag_rounded, blue)),
-          ]),
-          const SizedBox(height: 22),
-          section('AI 운영 인사이트', '모두 보기',
-              () => message('AI 운영 인사이트 목록을 준비 중이에요.')),
-          const SizedBox(height: 10),
-          insight(Icons.wb_sunny_rounded, const Color(0xFFB46C08),
-              const Color(0xFFFFF6E5), '날씨에 맞는 메뉴를 준비해 보세요',
-              '오늘은 따뜻한 음료 판매가 늘어날 수 있어요. 라떼류 재고를 확인해 보세요.',
-              '날씨 분석'),
-          const SizedBox(height: 10),
-          insight(Icons.auto_awesome_rounded, blue,
-              const Color(0xFFEEF6FF), '오후 2–4시 매출이 늘었어요',
-              '최근 같은 시간대보다 매출이 12% 높아요. 주문 동선을 점검해 보세요.',
-              'AI 인사이트'),
-          const SizedBox(height: 20),
-          section('매출 흐름', '주간 리포트', () => setState(() => tab = 1)),
-          const SizedBox(height: 10),
-          chart(),
-          const SizedBox(height: 20),
-          section('매장 상태', '종합 운영 진단 보기', () => setState(() => tab = 2)),
-          const SizedBox(height: 10),
-          Container(padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: line)), child: const Column(children: [
+          Expanded(
+            child: metric(
+              '오늘 매출',
+              '₩428,500',
+              '+12.8%',
+              Icons.payments_rounded,
+              green,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: metric(
+              '주문 건수',
+              '68건',
+              '+8.2%',
+              Icons.shopping_bag_rounded,
+              blue,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 10),
+      Row(
+        children: [
+          Expanded(
+            child: metric(
+              '평균 주문 금액',
+              '₩6,301',
+              '+3.4%',
+              Icons.receipt_long_rounded,
+              const Color(0xFFB46C08),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: metric(
+              '목표 달성률',
+              '71.4%',
+              '목표 ₩600,000',
+              Icons.flag_rounded,
+              blue,
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 22),
+      section('AI 운영 인사이트', '모두 보기', () => message('AI 운영 인사이트 목록을 준비 중이에요.')),
+      const SizedBox(height: 10),
+      insight(
+        Icons.wb_sunny_rounded,
+        const Color(0xFFB46C08),
+        const Color(0xFFFFF6E5),
+        '날씨에 맞는 메뉴를 준비해 보세요',
+        '오늘은 따뜻한 음료 판매가 늘어날 수 있어요. 라떼류 재고를 확인해 보세요.',
+        '날씨 분석',
+      ),
+      const SizedBox(height: 10),
+      insight(
+        Icons.auto_awesome_rounded,
+        blue,
+        const Color(0xFFEEF6FF),
+        '오후 2–4시 매출이 늘었어요',
+        '최근 같은 시간대보다 매출이 12% 높아요. 주문 동선을 점검해 보세요.',
+        'AI 인사이트',
+      ),
+      const SizedBox(height: 20),
+      section('매출 흐름', '주간 리포트', () => setState(() => tab = 1)),
+      const SizedBox(height: 10),
+      chart(),
+      const SizedBox(height: 20),
+      section('매장 상태', '종합 운영 진단 보기', () => setState(() => tab = 2)),
+      const SizedBox(height: 10),
+      Container(
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: line),
+        ),
+        child: const Column(
+          children: [
             _StatusRow(label: '매출 흐름', value: '안정적이에요', color: green),
             Divider(height: 18, color: line),
             _StatusRow(label: '리뷰 만족도', value: '4.6 · 좋은 편', color: blue),
             Divider(height: 18, color: line),
-            _StatusRow(label: '재고', value: '2개 품목 확인 필요', color: Color(0xFFB46C08)),
+            _StatusRow(
+              label: '재고',
+              value: '2개 품목 확인 필요',
+              color: Color(0xFFB46C08),
+            ),
             Divider(height: 18, color: line),
-            _StatusRow(label: '운영 진단', value: '주의 깊게 관찰', color: Color(0xFFB46C08)),
-          ])),
-        ],
-      );
-
-  Widget hero() => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(21),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF4A96FF), Color(0xFF2676E8)]),
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: [
-            BoxShadow(
-                color: blue.withValues(alpha: 0.18),
-                blurRadius: 20,
-                offset: const Offset(0, 8))
+            _StatusRow(
+              label: '운영 진단',
+              value: '주의 깊게 관찰',
+              color: Color(0xFFB46C08),
+            ),
           ],
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+      ),
+    ],
+  );
+
+  Widget hero() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(21),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
+      ),
+      borderRadius: BorderRadius.circular(25),
+      boxShadow: [
+        BoxShadow(
+          color: blue.withValues(alpha: 0.18),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(30)),
-              child: const Text('AI DAILY REPORT',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700)),
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: const Text(
+                'AI DAILY REPORT',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
             const Spacer(),
-            const Icon(Icons.auto_awesome_rounded,
-                color: Colors.white, size: 25),
-          ]),
-          const SizedBox(height: 15),
-          const Text('오늘의 가게 컨디션은',
-              style: TextStyle(color: Colors.white, fontSize: 15)),
-          const SizedBox(height: 3),
-          const Text('좋음이에요!',
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 27,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 9),
-          Text(
-              '매출이 평소보다 좋은 흐름이에요.\n재고와 피크타임을 확인해 운영 효율을 높여 보세요.',
-              style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  fontSize: 12,
-                  height: 1.6)),
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ReportScreen(),
-                  ),
-                );
-              },
-              style: TextButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  backgroundColor: Colors.white.withValues(alpha: 0.18)),
-              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-              label: const Text('리포트 확인'),
+            const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 25,
             ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        const Text(
+          '오늘의 가게 컨디션은',
+          style: TextStyle(color: Colors.white, fontSize: 15),
+        ),
+        const SizedBox(height: 3),
+        const Text(
+          '좋음이에요!',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 27,
+            fontWeight: FontWeight.w800,
           ),
-        ]),
-      );
+        ),
+        const SizedBox(height: 9),
+        Text(
+          '매출이 평소보다 좋은 흐름이에요.\n재고와 피크타임을 확인해 운영 효율을 높여 보세요.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.92),
+            fontSize: 12,
+            height: 1.6,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const ReportScreen()),
+              );
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.white.withValues(alpha: 0.18),
+            ),
+            icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+            label: const Text('리포트 확인'),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget metric(
-          String title, String value, String caption, IconData icon, Color color) =>
-      Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: line)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+    String title,
+    String value,
+    String caption,
+    IconData icon,
+    Color color,
+  ) => Container(
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(19),
+      border: Border.all(color: line),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
             Icon(icon, color: color, size: 18),
             const SizedBox(width: 6),
             Expanded(
-                child: Text(title,
-                    style: const TextStyle(fontSize: 11, color: muted),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis)),
-          ]),
-          const SizedBox(height: 13),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(value,
-                style: const TextStyle(
-                    fontSize: 21, fontWeight: FontWeight.w800, color: ink)),
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 11, color: muted),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 13),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              color: ink,
+            ),
           ),
-          const SizedBox(height: 5),
-          Text(caption,
-              style: TextStyle(
-                  fontSize: 10,
-                  color: caption.startsWith('+') ? green : muted,
-                  fontWeight: FontWeight.w600)),
-        ]),
-      );
+        ),
+        const SizedBox(height: 5),
+        Text(
+          caption,
+          style: TextStyle(
+            fontSize: 10,
+            color: caption.startsWith('+') ? green : muted,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget section(String title, String? action, VoidCallback? onTap) => Row(
-        children: [
-          Expanded(
-              child: Text(title,
-                  style: const TextStyle(
-                      fontSize: 17, fontWeight: FontWeight.w800, color: ink))),
-          if (action != null)
-            TextButton(
-              onPressed: onTap,
-              style: TextButton.styleFrom(
-                  foregroundColor: blue,
-                  padding: const EdgeInsets.symmetric(horizontal: 4)),
-              child: Text(action,
-                  style: const TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w700)),
-            ),
-        ],
-      );
-
-  Widget insight(IconData icon, Color color, Color background, String title,
-          String body, String tag) =>
-      Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(19),
-            border: Border.all(color: line)),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-                color: background, borderRadius: BorderRadius.circular(13)),
-            child: Icon(icon, color: color, size: 21),
+    children: [
+      Expanded(
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: ink,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                Text(tag,
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(title,
-                    style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: ink)),
-                const SizedBox(height: 5),
-                Text(body,
-                    style: const TextStyle(
-                        fontSize: 11, color: muted, height: 1.5)),
-              ])),
-        ]),
-      );
+        ),
+      ),
+      if (action != null)
+        TextButton(
+          onPressed: onTap,
+          style: TextButton.styleFrom(
+            foregroundColor: blue,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+          ),
+          child: Text(
+            action,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          ),
+        ),
+    ],
+  );
+
+  Widget insight(
+    IconData icon,
+    Color color,
+    Color background,
+    String title,
+    String body,
+    String tag,
+  ) => Container(
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(19),
+      border: Border.all(color: line),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: color, size: 21),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tag,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: ink,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                body,
+                style: const TextStyle(fontSize: 11, color: muted, height: 1.5),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget chart() {
     const values = [0.36, 0.55, 0.42, 0.78, 0.62, 0.91, 0.70];
@@ -492,56 +808,75 @@ class _CafeHomeState extends State<CafeHome> {
     return Container(
       padding: const EdgeInsets.fromLTRB(17, 17, 17, 14),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: line)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('이번 주 매출 추이',
-            style: TextStyle(color: muted, fontSize: 12)),
-        const SizedBox(height: 5),
-        const Text('₩2,845,000',
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '이번 주 매출 추이',
+            style: TextStyle(color: muted, fontSize: 12),
+          ),
+          const SizedBox(height: 5),
+          const Text(
+            '₩2,845,000',
             style: TextStyle(
-                color: ink, fontSize: 23, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 18),
-        SizedBox(
-          height: 110,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(values.length, (i) => Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 5),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.bottomCenter,
-                        child: FractionallySizedBox(
-                          heightFactor: values[i],
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: i == 5 ? blue : const Color(0xFFD9E8FF),
-                              borderRadius: BorderRadius.circular(7),
+              color: ink,
+              fontSize: 23,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 18),
+          SizedBox(
+            height: 110,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(
+                values.length,
+                (i) => Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: values[i],
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: i == 5
+                                      ? blue
+                                      : const Color(0xFFD9E8FF),
+                                  borderRadius: BorderRadius.circular(7),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(days[i],
-                        style: TextStyle(
+                        const SizedBox(height: 8),
+                        Text(
+                          days[i],
+                          style: TextStyle(
                             fontSize: 10,
                             color: i == 5 ? blue : muted,
                             fontWeight: i == 5
                                 ? FontWeight.w800
-                                : FontWeight.normal)),
-                  ],
+                                : FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            )),
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -553,97 +888,97 @@ class _CafeHomeState extends State<CafeHome> {
   }
 
   Widget notificationPage() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
         children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    showNotifications = false;
-                  });
-                },
-                icon: const Icon(Icons.chevron_left_rounded, size: 27),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  '알림',
-                  style: TextStyle(
-                    fontSize: 25,
-                    fontWeight: FontWeight.w800,
-                    color: ink,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    notificationsRead = true;
-                  });
-                },
-                child: const Text(
-                  '모두 읽음',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: blue,
-                  ),
-                ),
-              ),
-            ],
+          IconButton(
+            onPressed: () {
+              setState(() {
+                showNotifications = false;
+              });
+            },
+            icon: const Icon(Icons.chevron_left_rounded, size: 27),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          const SizedBox(height: 25),
-          const Text(
-            '오늘',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: muted,
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              '알림',
+              style: TextStyle(
+                fontSize: 25,
+                fontWeight: FontWeight.w800,
+                color: ink,
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-
-          notificationItem(
-            icon: Icons.warning_amber_rounded,
-            iconColor: const Color(0xFFE58A00),
-            iconBg: const Color(0xFFFFF5E5),
-            title: '매출 이상 징후를 확인해 주세요',
-            description: '목요일 오후 매출이 최근 평균보다 18% 낮아요.',
-            time: '10분 전',
-            index: 0,
-          ),
-          notificationItem(
-            icon: Icons.inventory_2_outlined,
-            iconColor: const Color(0xFFFF5B66),
-            iconBg: const Color(0xFFFFF0F1),
-            title: '우유 재고가 곧 부족해요',
-            description: '현재 판매 속도라면 내일 오후 소진될 수 있어요.',
-            time: '1시간 전',
-            index: 1,
-          ),
-          notificationItem(
-            icon: Icons.description_outlined,
-            iconColor: const Color(0xFF438EFF),
-            iconBg: const Color(0xFFEDF5FF),
-            title: '주간 AI 보고서가 완성됐어요',
-            description: '이번 주 우선 실행 항목 3개를 확인해 보세요.',
-            time: '어제',
-            index: 2,
-          ),
-          notificationItem(
-            icon: Icons.storefront_outlined,
-            iconColor: const Color(0xFF438EFF),
-            iconBg: const Color(0xFFEDF5FF),
-            title: '새로운 세트 조합을 찾았어요',
-            description: '함께 주문되는 메뉴를 분석해 세트 구성을 제안했어요.',
-            time: '어제',
-            index: 3,
+          TextButton(
+            onPressed: () {
+              setState(() {
+                notificationsRead = true;
+              });
+            },
+            child: const Text(
+              '모두 읽음',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: blue,
+              ),
+            ),
           ),
         ],
-      );
+      ),
+      const SizedBox(height: 25),
+      const Text(
+        '오늘',
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: muted,
+        ),
+      ),
+      const SizedBox(height: 8),
+
+      notificationItem(
+        icon: Icons.warning_amber_rounded,
+        iconColor: const Color(0xFFE58A00),
+        iconBg: const Color(0xFFFFF5E5),
+        title: '매출 이상 징후를 확인해 주세요',
+        description: '목요일 오후 매출이 최근 평균보다 18% 낮아요.',
+        time: '10분 전',
+        index: 0,
+      ),
+      notificationItem(
+        icon: Icons.inventory_2_outlined,
+        iconColor: const Color(0xFFFF5B66),
+        iconBg: const Color(0xFFFFF0F1),
+        title: '우유 재고가 곧 부족해요',
+        description: '현재 판매 속도라면 내일 오후 소진될 수 있어요.',
+        time: '1시간 전',
+        index: 1,
+      ),
+      notificationItem(
+        icon: Icons.description_outlined,
+        iconColor: const Color(0xFF438EFF),
+        iconBg: const Color(0xFFEDF5FF),
+        title: '주간 AI 보고서가 완성됐어요',
+        description: '이번 주 우선 실행 항목 3개를 확인해 보세요.',
+        time: '어제',
+        index: 2,
+      ),
+      notificationItem(
+        icon: Icons.storefront_outlined,
+        iconColor: const Color(0xFF438EFF),
+        iconBg: const Color(0xFFEDF5FF),
+        title: '새로운 세트 조합을 찾았어요',
+        description: '함께 주문되는 메뉴를 분석해 세트 구성을 제안했어요.',
+        time: '어제',
+        index: 3,
+      ),
+    ],
+  );
 
   Widget notificationItem({
     required IconData icon,
@@ -663,9 +998,7 @@ class _CafeHomeState extends State<CafeHome> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 15),
         decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Color(0xFFE5E9F0)),
-          ),
+          border: Border(bottom: BorderSide(color: Color(0xFFE5E9F0))),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -729,206 +1062,580 @@ class _CafeHomeState extends State<CafeHome> {
   }
 
   Widget salesPage() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '매출 분석',
-            style: TextStyle(
-              fontSize: 25,
-              fontWeight: FontWeight.w800,
-              color: ink,
-            ),
-          ),
-          const SizedBox(height: 5),
-          const Text(
-            '매장 실적과 변화를 한눈에',
-            style: TextStyle(fontSize: 12, color: muted),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8EDF4),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: ['오늘', '이번 주', '이번 달']
-                  .asMap()
-                  .entries
-                  .map((entry) {
-                final selected = entry.key == 1;
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        '매출 분석',
+        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+      ),
+      const SizedBox(height: 5),
+      const Text(
+        '매장 실적과 변화를 한눈에',
+        style: TextStyle(fontSize: 12, color: muted),
+      ),
+      const SizedBox(height: 16),
+      Container(
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8EDF4),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: ['오늘', '이번 주', '이번 달'].asMap().entries.map((entry) {
+            final selected = entry.key == 1;
 
-                return Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: selected ? Colors.white : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      entry.value,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: selected ? ink : muted,
-                      ),
-                    ),
+            return Expanded(
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white : Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  entry.value,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? ink : muted,
                   ),
-                );
-              }).toList(),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+      const SizedBox(height: 18),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '이번 주 총매출',
+              style: TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+            SizedBox(height: 8),
+            Text(
+              '₩2,845,000',
+              style: TextStyle(
+                fontSize: 27,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              '지난주보다 12.8% 증가',
+              style: TextStyle(fontSize: 12, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 18),
+      Row(
+        children: [
+          Expanded(
+            child: metric(
+              '주문 건수',
+              '412건',
+              '+8.2%',
+              Icons.shopping_bag_rounded,
+              blue,
             ),
           ),
-          const SizedBox(height: 18),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
-              ),
-              borderRadius: BorderRadius.circular(20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: metric(
+              '평균 주문 금액',
+              '₩6,905',
+              '+3.4%',
+              Icons.receipt_long_rounded,
+              green,
             ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          ),
+        ],
+      ),
+      const SizedBox(height: 22),
+      section('매출 흐름', null, null),
+      const SizedBox(height: 10),
+      chart(),
+      const SizedBox(height: 22),
+      section('매출 분석 인사이트', null, null),
+      const SizedBox(height: 10),
+      insight(
+        Icons.trending_up_rounded,
+        green,
+        const Color(0xFFE9F8F2),
+        '매출이 상승하고 있어요',
+        '이번 주 매출은 지난주보다 12.8% 높아요. 인기 시간대의 재고를 미리 확인해 보세요.',
+        '긍정',
+      ),
+      const SizedBox(height: 10),
+      insight(
+        Icons.access_time_rounded,
+        blue,
+        const Color(0xFFEEF6FF),
+        '토요일 매출이 가장 높아요',
+        '요일별 매출을 비교해 피크타임에 인력을 효율적으로 배치해 보세요.',
+        '요일 분석',
+      ),
+    ],
+  );
+
+  Widget aiAnalysisPage() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        'AI 운영 진단',
+        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+      ),
+      const SizedBox(height: 5),
+      const Text(
+        '데이터로 매장의 다음 행동을 찾아요',
+        style: TextStyle(fontSize: 12, color: muted),
+      ),
+      const SizedBox(height: 18),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: line),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('종합 운영 상태', style: TextStyle(fontSize: 12, color: muted)),
+            SizedBox(height: 8),
+            Text(
+              '주의 깊게 관찰해 주세요',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+                color: ink,
+              ),
+            ),
+            SizedBox(height: 14),
+            Row(
               children: [
-                Text(
-                  '이번 주 총매출',
-                  style: TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '₩2,845,000',
-                  style: TextStyle(
-                    fontSize: 27,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
+                Expanded(
+                  child: LinearProgressIndicator(
+                    value: .72,
+                    minHeight: 8,
+                    borderRadius: BorderRadius.all(Radius.circular(8)),
+                    color: Color(0xFFFFBD59),
+                    backgroundColor: line,
                   ),
                 ),
-                SizedBox(height: 6),
+                SizedBox(width: 12),
                 Text(
-                  '지난주보다 12.8% 증가',
-                  style: TextStyle(fontSize: 12, color: Colors.white),
+                  '72/100',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: ink,
+                  ),
                 ),
               ],
             ),
+            SizedBox(height: 12),
+            Text(
+              '최근 매출, 리뷰, 운영 데이터를 종합한 예시 진단입니다.',
+              style: TextStyle(fontSize: 11, color: muted, height: 1.5),
+            ),
+          ],
+        ),
+      ),
+      const SizedBox(height: 22),
+      section('주요 판단 근거', null, null),
+      const SizedBox(height: 10),
+      insight(
+        Icons.bar_chart_rounded,
+        blue,
+        const Color(0xFFEEF6FF),
+        '매출 변동성',
+        '최근 4주간 변동 폭이 7% 커졌어요.',
+        '주의',
+      ),
+      const SizedBox(height: 10),
+      insight(
+        Icons.rate_review_rounded,
+        const Color(0xFF8B6CE8),
+        const Color(0xFFF2EDFF),
+        '고객 반응',
+        '대기 시간 관련 언급이 늘고 있어요.',
+        '확인',
+      ),
+      const SizedBox(height: 10),
+      insight(
+        Icons.location_on_outlined,
+        green,
+        const Color(0xFFE9F8F2),
+        '상권 흐름',
+        '평일 유동 인구는 비슷한 수준이에요.',
+        '안정',
+      ),
+      const SizedBox(height: 22),
+      section('이번 주 우선 실행 항목', null, null),
+      const SizedBox(height: 10),
+      insight(
+        Icons.check_circle_outline,
+        blue,
+        const Color(0xFFEEF6FF),
+        '피크타임 주문 동선을 점검하세요',
+        '혼잡 시간대의 대기 시간을 줄일 수 있도록 제조 순서를 확인해 보세요.',
+        '실행 제안',
+      ),
+    ],
+  );
+
+  Widget setRecommendationPage() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        '세트메뉴 추천',
+        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+      ),
+      const SizedBox(height: 5),
+      const Text(
+        '실제 주문 조합에서 잘 맞는 메뉴를 찾아요',
+        style: TextStyle(fontSize: 12, color: muted),
+      ),
+      const SizedBox(height: 18),
+      section('시간대별 추천', null, null),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: ['전체', '아침', '점심', '오후']
+            .map(
+              (e) => Chip(
+                label: Text(e),
+                backgroundColor: e == '전체' ? blue : Colors.white,
+                labelStyle: TextStyle(color: e == '전체' ? Colors.white : ink),
+              ),
+            )
+            .toList(),
+      ),
+      const SizedBox(height: 14),
+      _recommendCard(
+        '아메리카노 + 버터 크루아상',
+        '함께 주문 1위',
+        '38%',
+        '두 메뉴 중 하나를 주문한 고객의 38%가 함께 선택했어요.',
+        '7,900원 제안',
+      ),
+      const SizedBox(height: 14),
+      section('다른 추천 조합', null, null),
+      const SizedBox(height: 10),
+      _recommendCard(
+        '카페라떼 + 버터 쿠키',
+        '오후 인기 조합',
+        '31%',
+        '오후 시간대에 함께 선택되는 조합이에요.',
+        '추천 조합',
+      ),
+      const SizedBox(height: 10),
+      _recommendCard(
+        '아메리카노 + 샌드위치',
+        '점심 추천 조합',
+        '27%',
+        '간단한 식사 메뉴와 음료를 함께 제안해 보세요.',
+        '추천 조합',
+      ),
+    ],
+  );
+
+  Widget myPage() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text(
+        '마이',
+        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+      ),
+      const SizedBox(height: 18),
+      Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: metric(
-                  '주문 건수',
-                  '412건',
-                  '+8.2%',
-                  Icons.shopping_bag_rounded,
-                  blue,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: Colors.white,
+              child: Text(
+                ((widget.user['nickname'] ?? widget.user['username'] ?? '사')
+                        .toString()
+                        .isNotEmpty)
+                    ? (widget.user['nickname'] ?? widget.user['username'])
+                          .toString()
+                          .substring(0, 1)
+                    : '사',
+                style: const TextStyle(
+                  color: blue,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: metric(
-                  '평균 주문 금액',
-                  '₩6,905',
-                  '+3.4%',
-                  Icons.receipt_long_rounded,
-                  green,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${widget.user['nickname'] ?? widget.user['username'] ?? '사장님'} 사장님',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '아이디: ${widget.user['username'] ?? ''}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.white),
+          ],
+        ),
+      ),
+      const SizedBox(height: 22),
+      section('데이터 연결', null, null),
+      const SizedBox(height: 10),
+      _settingsTile(Icons.link_rounded, '연결 상태', '4개 중 3개 연결됨'),
+      const SizedBox(height: 12),
+      InkWell(
+        onTap: () async {
+          await widget.onLogout();
+        },
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: line),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.logout_rounded, color: Colors.red, size: 20),
+              SizedBox(width: 12),
+              Text(
+                '로그아웃',
+                style: TextStyle(
+                  color: Colors.red,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 22),
-          section('매출 흐름', null, null),
-          const SizedBox(height: 10),
-          chart(),
-          const SizedBox(height: 22),
-          section('매출 분석 인사이트', null, null),
-          const SizedBox(height: 10),
-          insight(
-            Icons.trending_up_rounded,
-            green,
-            const Color(0xFFE9F8F2),
-            '매출이 상승하고 있어요',
-            '이번 주 매출은 지난주보다 12.8% 높아요. 인기 시간대의 재고를 미리 확인해 보세요.',
-            '긍정',
-          ),
-          const SizedBox(height: 10),
-          insight(
-            Icons.access_time_rounded,
-            blue,
-            const Color(0xFFEEF6FF),
-            '토요일 매출이 가장 높아요',
-            '요일별 매출을 비교해 피크타임에 인력을 효율적으로 배치해 보세요.',
-            '요일 분석',
-          ),
-        ],
-      );
+        ),
+      ),
+      const SizedBox(height: 20),
+      section('매장 관리', null, null),
+      const SizedBox(height: 10),
+      _settingsTile(Icons.store_outlined, '매장 정보 수정', '주소, 영업시간, 메뉴'),
+      _settingsTile(
+        Icons.upload_file_rounded,
+        '데이터 연결 및 업로드',
+        'POS, 리뷰, 재고 데이터',
+      ),
+      _settingsTile(Icons.notifications_none_rounded, '알림 설정', '매출 및 재고 알림'),
+      _settingsTile(Icons.description_outlined, '보고서 설정', '주간 AI 운영 보고서'),
+      const SizedBox(height: 20),
+      section('서비스', null, null),
+      _settingsTile(Icons.help_outline_rounded, '문의하기', '도움이 필요하신가요?'),
+    ],
+  );
 
-  Widget aiAnalysisPage() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('AI 운영 진단', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink)),
-    const SizedBox(height: 5), const Text('데이터로 매장의 다음 행동을 찾아요', style: TextStyle(fontSize: 12, color: muted)),
-    const SizedBox(height: 18),
-    Container(width: double.infinity, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(22), border: Border.all(color: line)), child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('종합 운영 상태', style: TextStyle(fontSize: 12, color: muted)), SizedBox(height: 8), Text('주의 깊게 관찰해 주세요', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: ink)), SizedBox(height: 14), Row(children: [Expanded(child: LinearProgressIndicator(value: .72, minHeight: 8, borderRadius: BorderRadius.all(Radius.circular(8)), color: Color(0xFFFFBD59), backgroundColor: line)), SizedBox(width: 12), Text('72/100', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: ink))]), SizedBox(height: 12), Text('최근 매출, 리뷰, 운영 데이터를 종합한 예시 진단입니다.', style: TextStyle(fontSize: 11, color: muted, height: 1.5))])),
-    const SizedBox(height: 22), section('주요 판단 근거', null, null), const SizedBox(height: 10),
-    insight(Icons.bar_chart_rounded, blue, const Color(0xFFEEF6FF), '매출 변동성', '최근 4주간 변동 폭이 7% 커졌어요.', '주의'), const SizedBox(height: 10),
-    insight(Icons.rate_review_rounded, const Color(0xFF8B6CE8), const Color(0xFFF2EDFF), '고객 반응', '대기 시간 관련 언급이 늘고 있어요.', '확인'), const SizedBox(height: 10),
-    insight(Icons.location_on_outlined, green, const Color(0xFFE9F8F2), '상권 흐름', '평일 유동 인구는 비슷한 수준이에요.', '안정'),
-    const SizedBox(height: 22), section('이번 주 우선 실행 항목', null, null), const SizedBox(height: 10), insight(Icons.check_circle_outline, blue, const Color(0xFFEEF6FF), '피크타임 주문 동선을 점검하세요', '혼잡 시간대의 대기 시간을 줄일 수 있도록 제조 순서를 확인해 보세요.', '실행 제안'),
-  ]);
-
-  Widget setRecommendationPage() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('세트메뉴 추천', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink)),
-    const SizedBox(height: 5), const Text('실제 주문 조합에서 잘 맞는 메뉴를 찾아요', style: TextStyle(fontSize: 12, color: muted)),
-    const SizedBox(height: 18), section('시간대별 추천', null, null), const SizedBox(height: 10),
-    Wrap(spacing: 8, runSpacing: 8, children: ['전체','아침','점심','오후'].map((e) => Chip(label: Text(e), backgroundColor: e == '전체' ? blue : Colors.white, labelStyle: TextStyle(color: e == '전체' ? Colors.white : ink))).toList()),
-    const SizedBox(height: 14), _recommendCard('아메리카노 + 버터 크루아상','함께 주문 1위','38%','두 메뉴 중 하나를 주문한 고객의 38%가 함께 선택했어요.','7,900원 제안'),
-    const SizedBox(height: 14), section('다른 추천 조합', null, null), const SizedBox(height: 10), _recommendCard('카페라떼 + 버터 쿠키','오후 인기 조합','31%','오후 시간대에 함께 선택되는 조합이에요.','추천 조합'), const SizedBox(height: 10), _recommendCard('아메리카노 + 샌드위치','점심 추천 조합','27%','간단한 식사 메뉴와 음료를 함께 제안해 보세요.','추천 조합'),
-  ]);
-
-  Widget myPage() => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    const Text('마이', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink)), const SizedBox(height: 18),
-    Container(padding: const EdgeInsets.all(18), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF4A96FF), Color(0xFF2676E8)]), borderRadius: BorderRadius.circular(20)), child: const Row(children: [CircleAvatar(backgroundColor: Colors.white, child: Text('김', style: TextStyle(color: blue, fontWeight: FontWeight.w800))), SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('김서연 사장님', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800)), SizedBox(height: 4), Text('오후의 커피 성수점', style: TextStyle(color: Colors.white70, fontSize: 11))])), Icon(Icons.chevron_right, color: Colors.white)])),
-    const SizedBox(height: 22), section('데이터 연결', null, null), const SizedBox(height: 10), _settingsTile(Icons.link_rounded, '연결 상태', '4개 중 3개 연결됨'), const SizedBox(height: 20), section('매장 관리', null, null), const SizedBox(height: 10), _settingsTile(Icons.store_outlined, '매장 정보 수정', '주소, 영업시간, 메뉴'), _settingsTile(Icons.upload_file_rounded, '데이터 연결 및 업로드', 'POS, 리뷰, 재고 데이터'), _settingsTile(Icons.notifications_none_rounded, '알림 설정', '매출 및 재고 알림'), _settingsTile(Icons.description_outlined, '보고서 설정', '주간 AI 운영 보고서'), const SizedBox(height: 20), section('서비스', null, null), _settingsTile(Icons.help_outline_rounded, '문의하기', '도움이 필요하신가요?'),
-  ]);
-
-  Widget _progress(String label, double value, String percent) => Padding(padding: const EdgeInsets.symmetric(vertical: 8), child: Column(children: [Row(children: [Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: ink))), Text(percent, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: ink))]), const SizedBox(height: 7), ClipRRect(borderRadius: BorderRadius.circular(8), child: LinearProgressIndicator(value: value, minHeight: 6, color: blue, backgroundColor: line))]));
-
-  Widget _recommendCard(String title, String tag, String percent, String body, String price) => Container(width: double.infinity, padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: line)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(tag, style: const TextStyle(fontSize: 10, color: blue, fontWeight: FontWeight.w800)), const SizedBox(height: 7), Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ink)), const SizedBox(height: 7), Text(body, style: const TextStyle(fontSize: 11, color: muted, height: 1.5)), const SizedBox(height: 12), Row(children: [Text(percent, style: const TextStyle(fontSize: 21, color: blue, fontWeight: FontWeight.w800)), const Spacer(), Text(price, style: const TextStyle(fontSize: 11, color: muted))])]));
-
-  Widget _settingsTile(IconData icon, String title, String subtitle) => Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: line)), child: Row(children: [Icon(icon, color: muted, size: 20), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 12, color: ink, fontWeight: FontWeight.w700)), const SizedBox(height: 3), Text(subtitle, style: const TextStyle(fontSize: 10, color: muted))])), const Icon(Icons.chevron_right_rounded, color: muted)]));
-
-  Widget bottomNav() => Container(
-        padding: const EdgeInsets.fromLTRB(7, 9, 7, 8),
-        decoration: BoxDecoration(
-            color: Colors.white, border: Border(top: BorderSide(color: line))),
-        child: Row(
-          children: List.generate(labels.length, (i) {
-            final selected = tab == i;
-            return Expanded(
-              child: InkWell(
-                onTap: () => setState(() => tab = i),
-                borderRadius: BorderRadius.circular(13),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 5),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(icons[i],
-                        color: selected ? blue : const Color(0xFF9AA4B2),
-                        size: 22),
-                    const SizedBox(height: 4),
-                    Text(labels[i],
-                        style: TextStyle(
-                            fontSize: 10,
-                            color: selected ? blue : muted,
-                            fontWeight: selected
-                                ? FontWeight.w800
-                                : FontWeight.w500)),
-                  ]),
-                ),
+  Widget _progress(String label, double value, String percent) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 8),
+    child: Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(fontSize: 12, color: ink),
               ),
-            );
-          }),
+            ),
+            Text(
+              percent,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: ink,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 7),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: value,
+            minHeight: 6,
+            color: blue,
+            backgroundColor: line,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _recommendCard(
+    String title,
+    String tag,
+    String percent,
+    String body,
+    String price,
+  ) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: line),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tag,
+          style: const TextStyle(
+            fontSize: 10,
+            color: blue,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
+        ),
+        const SizedBox(height: 7),
+        Text(
+          body,
+          style: const TextStyle(fontSize: 11, color: muted, height: 1.5),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Text(
+              percent,
+              style: const TextStyle(
+                fontSize: 21,
+                color: blue,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const Spacer(),
+            Text(price, style: const TextStyle(fontSize: 11, color: muted)),
+          ],
+        ),
+      ],
+    ),
+  );
+
+  Widget _settingsTile(IconData icon, String title, String subtitle) =>
+      Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: line),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: muted, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: ink,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 10, color: muted),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: muted),
+          ],
         ),
       );
+
+  Widget bottomNav() => Container(
+    padding: const EdgeInsets.fromLTRB(7, 9, 7, 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border(top: BorderSide(color: line)),
+    ),
+    child: Row(
+      children: List.generate(labels.length, (i) {
+        final selected = tab == i;
+        return Expanded(
+          child: InkWell(
+            onTap: () => setState(() => tab = i),
+            borderRadius: BorderRadius.circular(13),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 5),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icons[i],
+                    color: selected ? blue : const Color(0xFF9AA4B2),
+                    size: 22,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    labels[i],
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: selected ? blue : muted,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }),
+    ),
+  );
 
   void message(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -963,8 +1670,11 @@ class ReportScreen extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.chevron_left_rounded,
-                          color: ink, size: 30),
+                      icon: const Icon(
+                        Icons.chevron_left_rounded,
+                        color: ink,
+                        size: 30,
+                      ),
                     ),
                   ),
                 ],
@@ -976,8 +1686,10 @@ class ReportScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('2026년 11월 1일 일요일',
-                        style: TextStyle(color: muted, fontSize: 12)),
+                    const Text(
+                      '2026년 11월 1일 일요일',
+                      style: TextStyle(color: muted, fontSize: 12),
+                    ),
                     const SizedBox(height: 20),
                     Container(
                       width: double.infinity,
@@ -993,38 +1705,49 @@ class ReportScreen extends StatelessWidget {
                       child: const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('AI DAILY REPORT',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800)),
+                          Text(
+                            'AI DAILY REPORT',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                           SizedBox(height: 25),
-                          Text('오늘의 가게 컨디션은',
-                              style: TextStyle(
-                                  color: Colors.white, fontSize: 18)),
+                          Text(
+                            '오늘의 가게 컨디션은',
+                            style: TextStyle(color: Colors.white, fontSize: 18),
+                          ),
                           SizedBox(height: 5),
-                          Text('좋음이에요!',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 29,
-                                  fontWeight: FontWeight.w800)),
+                          Text(
+                            '좋음이에요!',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 29,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                           SizedBox(height: 18),
                           Text(
                             '매출이 평소보다 좋은 흐름이에요.\n재고와 피크타임을 확인해 운영 효율을 높여 보세요.',
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                height: 1.7),
+                              color: Colors.white,
+                              fontSize: 13,
+                              height: 1.7,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 30),
-                    const Text('오늘의 핵심 지표',
-                        style: TextStyle(
-                            color: ink,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
+                    const Text(
+                      '오늘의 핵심 지표',
+                      style: TextStyle(
+                        color: ink,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 15),
                     const Row(
                       children: [
@@ -1069,11 +1792,14 @@ class ReportScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 28),
-                    const Text('AI 운영 인사이트',
-                        style: TextStyle(
-                            color: ink,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800)),
+                    const Text(
+                      'AI 운영 인사이트',
+                      style: TextStyle(
+                        color: ink,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                     const SizedBox(height: 12),
                     const _ReportInsight(
                       icon: Icons.wb_sunny_rounded,
@@ -1112,36 +1838,46 @@ class _ReportMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        constraints: const BoxConstraints(minHeight: 140),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(19),
-          border: Border.all(color: line),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: blue, size: 20),
-            const SizedBox(height: 17),
-            Text(label, style: const TextStyle(color: muted, fontSize: 11)),
-            const SizedBox(height: 7),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(value,
-                  style: const TextStyle(
-                      color: ink, fontSize: 21, fontWeight: FontWeight.w800)),
+    constraints: const BoxConstraints(minHeight: 140),
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(19),
+      border: Border.all(color: line),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: blue, size: 20),
+        const SizedBox(height: 17),
+        Text(label, style: const TextStyle(color: muted, fontSize: 11)),
+        const SizedBox(height: 7),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: const TextStyle(
+              color: ink,
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
             ),
-            if (caption != null) ...[
-              const SizedBox(height: 7),
-              Text(caption!,
-                  style: const TextStyle(
-                      color: green, fontSize: 11, fontWeight: FontWeight.w700)),
-            ],
-          ],
+          ),
         ),
-      );
+        if (caption != null) ...[
+          const SizedBox(height: 7),
+          Text(
+            caption!,
+            style: const TextStyle(
+              color: green,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ],
+    ),
+  );
 }
 
 class _ReportInsight extends StatelessWidget {
@@ -1157,46 +1893,82 @@ class _ReportInsight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(17),
-          border: Border.all(color: line),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: blue, size: 20),
-            const SizedBox(width: 11),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          color: ink,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 5),
-                  Text(body,
-                      style: const TextStyle(
-                          color: muted, fontSize: 11, height: 1.5)),
-                ],
+    width: double.infinity,
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(17),
+      border: Border.all(color: line),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: blue, size: 20),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: ink,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 5),
+              Text(
+                body,
+                style: const TextStyle(color: muted, fontSize: 11, height: 1.5),
+              ),
+            ],
+          ),
         ),
-      );
+      ],
+    ),
+  );
 }
 
 class _StatusRow extends StatelessWidget {
   final String label;
   final String value;
   final Color color;
-  const _StatusRow({required this.label, required this.value, required this.color});
+  const _StatusRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
   @override
-  Widget build(BuildContext context) => Row(children: [Expanded(child: Text(label, style: const TextStyle(fontSize: 12, color: ink, fontWeight: FontWeight.w600))), Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5), decoration: BoxDecoration(color: color.withValues(alpha: .10), borderRadius: BorderRadius.circular(20)), child: Text(value, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w700)))]);
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            color: ink,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          value,
+          style: TextStyle(
+            fontSize: 10,
+            color: color,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    ],
+  );
 }
 
 class ChatbotSheet extends StatefulWidget {
@@ -1357,22 +2129,30 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                     ),
                     borderRadius: BorderRadius.circular(11),
                   ),
-                  child: const Icon(Icons.auto_awesome_rounded,
-                      color: Colors.white, size: 20),
+                  child: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 const Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('AI 경영비서',
-                          style: TextStyle(
-                              color: ink,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800)),
+                      Text(
+                        'AI 경영비서',
+                        style: TextStyle(
+                          color: ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       SizedBox(height: 3),
-                      Text('매장 운영에 필요한 정보를 빠르게 확인해 보세요.',
-                          style: TextStyle(color: muted, fontSize: 9)),
+                      Text(
+                        '매장 운영에 필요한 정보를 빠르게 확인해 보세요.',
+                        style: TextStyle(color: muted, fontSize: 9),
+                      ),
                     ],
                   ),
                 ),
@@ -1404,15 +2184,17 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _bubble(
-          '안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.',
-          isBot: true,
-        ),
+        _bubble('안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.', isBot: true),
         const SizedBox(height: 18),
         if (selectedCategory == null) ...[
-          const Text('무엇이 궁금하세요?',
-              style: TextStyle(
-                  color: muted, fontSize: 12, fontWeight: FontWeight.w800)),
+          const Text(
+            '무엇이 궁금하세요?',
+            style: TextStyle(
+              color: muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           const SizedBox(height: 10),
           Column(
             children: categories.entries.map((entry) {
@@ -1421,28 +2203,39 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                 child: SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
-                    onPressed: () => setState(() => selectedCategory = entry.key),
+                    onPressed: () =>
+                        setState(() => selectedCategory = entry.key),
                     style: OutlinedButton.styleFrom(
                       alignment: Alignment.centerLeft,
                       backgroundColor: Colors.white,
                       foregroundColor: ink,
                       side: const BorderSide(color: Color(0xFFDDE7F5)),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 15),
+                        horizontal: 12,
+                        vertical: 15,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Icon(entry.value, color: blue, size: 19),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(entry.key,
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w700)),
+                          child: Text(
+                            entry.key,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
-                        const Icon(Icons.chevron_right_rounded,
-                            color: muted, size: 18),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: muted,
+                          size: 18,
+                        ),
                       ],
                     ),
                   ),
@@ -1453,50 +2246,64 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
         ] else ...[
           Row(
             children: [
-              const Text('자주 묻는 질문',
-                  style: TextStyle(
-                      color: ink, fontSize: 13, fontWeight: FontWeight.w800)),
+              const Text(
+                '자주 묻는 질문',
+                style: TextStyle(
+                  color: ink,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const Spacer(),
               TextButton(
                 onPressed: () => setState(() => selectedCategory = null),
-                child: const Text('카테고리 변경',
-                    style: TextStyle(fontSize: 10)),
+                child: const Text('카테고리 변경', style: TextStyle(fontSize: 10)),
               ),
             ],
           ),
           const SizedBox(height: 5),
-          ...questions[selectedCategory]!.map((question) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Material(
-                  color: Colors.white,
+          ...questions[selectedCategory]!.map(
+            (question) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(13),
+                child: InkWell(
+                  onTap: () => setState(() => selectedQuestion = question),
                   borderRadius: BorderRadius.circular(13),
-                  child: InkWell(
-                    onTap: () => setState(() => selectedQuestion = question),
-                    borderRadius: BorderRadius.circular(13),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 13, vertical: 14),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(color: line),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(question,
-                                style: const TextStyle(
-                                    fontSize: 11,
-                                    color: ink,
-                                    height: 1.4)),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 13,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(13),
+                      border: Border.all(color: line),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            question,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: ink,
+                              height: 1.4,
+                            ),
                           ),
-                          const Icon(Icons.chevron_right_rounded,
-                              color: Color(0xFFADB8C8), size: 18),
-                        ],
-                      ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Color(0xFFADB8C8),
+                          size: 18,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-              )),
+              ),
+            ),
+          ),
         ],
       ],
     );
@@ -1507,10 +2314,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _bubble(
-          '안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.',
-          isBot: true,
-        ),
+        _bubble('안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.', isBot: true),
         const SizedBox(height: 14),
         Align(
           alignment: Alignment.centerRight,
@@ -1519,13 +2323,17 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               color: blue,
-              borderRadius: BorderRadius.circular(16).copyWith(
-                bottomRight: const Radius.circular(5),
+              borderRadius: BorderRadius.circular(16)
+                  .copyWith(bottomRight: const Radius.circular(5)),
+            ),
+            child: Text(
+              question,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                height: 1.4,
               ),
             ),
-            child: Text(question,
-                style: const TextStyle(
-                    color: Colors.white, fontSize: 12, height: 1.4)),
           ),
         ),
         const SizedBox(height: 14),
@@ -1539,8 +2347,11 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                 color: blue,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.auto_awesome_rounded,
-                  color: Colors.white, size: 15),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: Colors.white,
+                size: 15,
+              ),
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -1554,36 +2365,48 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(answerFor(question),
-                        style: const TextStyle(
-                            color: ink, fontSize: 12, height: 1.7)),
+                    Text(
+                      answerFor(question),
+                      style: const TextStyle(
+                        color: ink,
+                        fontSize: 12,
+                        height: 1.7,
+                      ),
+                    ),
                     const SizedBox(height: 13),
                     const Divider(height: 1, color: line),
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () {
-                        final destination = selectedCategory == '매출 예측' ||
+                        final destination =
+                            selectedCategory == '매출 예측' ||
                                 selectedCategory == '이번 달 매출'
                             ? 1
                             : selectedCategory == '메뉴 분석'
-                                ? 3
-                                : selectedCategory == '재고 관리'
-                                    ? 4
-                                    : 2;
+                            ? 3
+                            : selectedCategory == '재고 관리'
+                            ? 4
+                            : 2;
                         Navigator.pop(context);
                         widget.onNavigate(destination);
                       },
                       child: const Row(
                         children: [
                           Expanded(
-                            child: Text('관련 분석 확인하기',
-                                style: TextStyle(
-                                    color: blue,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w800)),
+                            child: Text(
+                              '관련 분석 확인하기',
+                              style: TextStyle(
+                                color: blue,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
-                          Icon(Icons.arrow_forward_rounded,
-                              color: blue, size: 17),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: blue,
+                            size: 17,
+                          ),
                         ],
                       ),
                     ),
@@ -1608,8 +2431,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                   foregroundColor: muted,
                   shape: const StadiumBorder(),
                 ),
-                child: const Text('다른 질문 보기',
-                    style: TextStyle(fontSize: 10)),
+                child: const Text('다른 질문 보기', style: TextStyle(fontSize: 10)),
               ),
               OutlinedButton(
                 onPressed: () => setState(() {
@@ -1622,8 +2444,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                   foregroundColor: muted,
                   shape: const StadiumBorder(),
                 ),
-                child: const Text('처음으로',
-                    style: TextStyle(fontSize: 10)),
+                child: const Text('처음으로', style: TextStyle(fontSize: 10)),
               ),
             ],
           ),
@@ -1633,19 +2454,20 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
   }
 
   Widget _bubble(String text, {required bool isBot}) => Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 310),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: line),
-            borderRadius: BorderRadius.circular(15).copyWith(
-              bottomLeft: const Radius.circular(5),
-            ),
-          ),
-          child: Text(text,
-              style: const TextStyle(color: muted, fontSize: 11, height: 1.6)),
-        ),
-      );
+    alignment: Alignment.centerLeft,
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: 310),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: line),
+        borderRadius: BorderRadius.circular(15)
+            .copyWith(bottomLeft: const Radius.circular(5)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: muted, fontSize: 11, height: 1.6),
+      ),
+    ),
+  );
 }
