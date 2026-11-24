@@ -1,6 +1,6 @@
 from django.urls import path
 
-from .views import MenuDetailView, SetMenuRecommendView, MenuProfitabilityView, MenuListCreateView, StoreDetailView, StoreListView
+from .views import MenuDetailView, SetMenuRecommendView, MenuProfitabilityView, ReviewAnalysisView, MenuListCreateView, StoreDetailView, StoreListView
 
 # /store/ 하위 경로
 urlpatterns = [
@@ -10,4 +10,5 @@ urlpatterns = [
     path('<int:store_id>/menus/<int:pk>/', MenuDetailView.as_view(), name='menu-detail'),
     path("<int:store_id>/menus/profitability/", MenuProfitabilityView.as_view(), name="menu-profitability"),
     path("<int:store_id>/menus/set-recommend/", SetMenuRecommendView.as_view(), name="set-recommend"),
+    path("<int:store_id>/reviews/analysis/", ReviewAnalysisView.as_view(), name="review-analysis"),
 ]

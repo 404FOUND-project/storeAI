@@ -62,3 +62,32 @@ def answer(qid, store_id):
         return ("판매량은 낮지만 긍정 반응이 좋은 메뉴: " + ", ".join(hit[:3]) + ". 홍보 강화를 검토해 보세요." if hit
                 else "판매량이 낮으면서 긍정 반응이 높은 메뉴는 없어요.") + NOTE
     return None
+
+
+def analysis(store_id):
+    """프론트용 JSON: 메뉴별 판매량·긍부정 + 불만 카테고리 + 판매-반응 비교 (규칙 기반, 더미 리뷰면 source=DUMMY)"""
+    st = _stats(store_id)
+    sales = _sales(store_id)
+    ok = {m: s for m, s in st.items() if s["n"] >= MIN_REVIEWS}
+    qtys = sorted(sales.get(m, 0) for m in ok)
+    mid_q = qtys[len(qtys) // 2] if qtys else 0
+    menus = []
+    for m, s in ok.items():
+        q = sales.get(m, 0)
+        menus.append({
+            "menu_id": m, "name": s["name"], "quantity": q, "review_count": s["n"],
+            "positive": s["pos"], "negative": s["neg"], "neutral": s["neu"],
+            "positive_ratio": round(s["pos"] / s["n"], 2), "negative_ratio": round(s["neg"] / s["n"], 2),
+            "flag": "check_quality" if q >= mid_q and s["neg"] / s["n"] >= 0.4
+                    else "promote" if q < mid_q and s["pos"] / s["n"] >= 0.5 else None,
+        })
+    menus.sort(key=lambda x: -x["quantity"])
+    cats = Counter(Review.objects.filter(store_id=store_id, sentiment="negative").exclude(category="")
+                   .values_list("category", flat=True))
+    sources = list(Review.objects.filter(store_id=store_id).values_list("source", flat=True).distinct())
+    return {
+        "min_reviews": MIN_REVIEWS, "sources": sources,
+        "notice": NOTE.strip(),
+        "negative_categories": [{"category": k, "label": CAT.get(k, k), "count": v} for k, v in cats.most_common()],
+        "menus": menus,
+    }

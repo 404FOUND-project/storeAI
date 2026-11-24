@@ -95,3 +95,12 @@ class SetMenuRecommendView(_Auth, APIView):
         except ValueError:
             top = 10
         return Response(recommend_sets(store.id, top))
+
+
+class ReviewAnalysisView(_Auth, APIView):
+    """GET /store/{id}/reviews/analysis/ : 메뉴별 판매량·긍부정 비율, 불만 카테고리, 점검/홍보 후보"""
+
+    def get(self, request, store_id):
+        from review.insights import analysis
+        store = get_my_store(request, store_id)
+        return Response(analysis(store.id))
