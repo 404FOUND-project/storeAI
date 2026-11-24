@@ -1,0 +1,11 @@
+[35mHEAD:backend/analysis/config/settings.py[m[36m:[m[32m20[m[36m:[m[1;31mALLOWED_HOSTS[m = ["127.0.0.1", "localhost", "10.0.2.2"]
+[35mHEAD:backend/scripts/register_404dabang_purchase_data.py[m[36m:[m[32m31[m[36m:[m    ("아이스티용 티베이스", "1", "L", "1000", "상품 표시 규격 1L = 1,000ml", "1[1;31m8000[m"),
+[35mHEAD:backend/scripts/register_404dabang_purchase_data.py[m[36m:[m[32m32[m[36m:[m    ("녹차 베이스", "1", "L", "1000", "상품 표시 규격 1L = 1,000ml", "1[1;31m8000[m"),
+[35mHEAD:backend/scripts/register_404dabang_purchase_data.py[m[36m:[m[32m33[m[36m:[m    ("홍차 베이스", "1", "L", "1000", "상품 표시 규격 1L = 1,000ml", "1[1;31m8000[m"),
+[35mHEAD:backend/scripts/register_404dabang_purchase_data.py[m[36m:[m[32m35[m[36m:[m    ("탄산수", "18", "L", "1[1;31m8000[m", "상품 표시 규격 1.5L × 12개 = 총 18L = 18,000ml", "14900"),
+[35mHEAD:backend/scripts/register_404dabang_purchase_data.py[m[36m:[m[32m41[m[36m:[m    ("레몬 커드", "1", "kg", "1000", "상품 표시 규격 1kg = 1,000g", "1[1;31m8000[m"),
+[35mHEAD:backend/scripts/register_404dabang_remaining_purchase_data.py[m[36m:[m[32m22[m[36m:[m    (41, "패션후르츠청", "1[1;31m8000[m"),
+[35mHEAD:backend/store/data/menus.csv[m[36m:[m[32m21[m[36m:[mM020,밀크티 바스크,디저트,[1;31m8000[m,NONE
+[35mHEAD:backend/store/management/commands/seed_dummy_costs.py[m[36m:[m[32m21[m[36m:[m    "원두": ("1", "kg", "1000", "2[1;31m8000[m"), "디카페인원두": ("1", "kg", "1000", "35000"),
+[35mHEAD:backend/store/management/commands/seed_dummy_costs.py[m[36m:[m[32m24[m[36m:[m    "생크림": ("1", "L", "1000", "[1;31m8000[m"), "초코소스": ("1", "kg", "1000", "12000"),
+[35mHEAD:backend/store/management/commands/seed_dummy_costs.py[m[36m:[m[32m25[m[36m:[m    "티베이스": ("1", "L", "1000", "7000"), "과일청": ("1", "L", "1000", "[1;31m8000[m"),

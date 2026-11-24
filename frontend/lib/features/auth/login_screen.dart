@@ -1,11 +1,16 @@
+
 import 'package:flutter/material.dart';
 
 import '../../core/network/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
-  final Future<void> Function(Map<String, dynamic> result) onLoginSuccess;
+  final Future<void> Function(Map<String, dynamic> result)
+      onLoginSuccess;
 
-  const LoginScreen({super.key, required this.onLoginSuccess});
+  const LoginScreen({
+    super.key,
+    required this.onLoginSuccess,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -80,7 +85,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(e.toString().replaceFirst('Exception: ', '')),
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -91,7 +98,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  InputDecoration _inputDecoration(String label, IconData icon) {
+  InputDecoration _inputDecoration(
+    String label,
+    IconData icon,
+  ) {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: muted, size: 20),
@@ -135,7 +145,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextFormField(
       controller: controller,
       obscureText: _hidePassword,
-      decoration: _inputDecoration(label, Icons.lock_outline_rounded).copyWith(
+      decoration: _inputDecoration(
+        label,
+        Icons.lock_outline_rounded,
+      ).copyWith(
         suffixIcon: IconButton(
           icon: Icon(
             _hidePassword
@@ -159,7 +172,10 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 30),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 28,
+              vertical: 30,
+            ),
             child: Form(
               key: _formKey,
               child: Column(
@@ -168,7 +184,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 25),
 
                   // 로고
-                  const Icon(Icons.coffee_rounded, color: blue, size: 55),
+                  const Icon(
+                    Icons.coffee_rounded,
+                    color: blue,
+                    size: 55,
+                  ),
                   const SizedBox(height: 15),
 
                   const Text(
@@ -183,9 +203,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
 
                   Text(
-                    _isSignup ? '카페온과 함께 스마트한 매장 운영을 시작해 보세요.' : 'AI 카페 운영 매니저',
+                    _isSignup
+                        ? '카페온과 함께 스마트한 매장 운영을 시작해 보세요.'
+                        : 'AI 카페 운영 매니저',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 13, color: muted),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: muted,
+                    ),
                   ),
 
                   const SizedBox(height: 40),
@@ -201,8 +226,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 8),
 
                   Text(
-                    _isSignup ? '회원 정보를 입력해 주세요.' : '계정에 로그인하고 매장 관리를 시작하세요.',
-                    style: const TextStyle(fontSize: 12, color: muted),
+                    _isSignup
+                        ? '회원 정보를 입력해 주세요.'
+                        : '계정에 로그인하고 매장 관리를 시작하세요.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: muted,
+                    ),
                   ),
 
                   const SizedBox(height: 25),
@@ -215,8 +245,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return '아이디를 입력해 주세요.';
+                        return '이메일을 입력해 주세요.';
                       }
+
+                      if (!RegExp(
+                        r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                      ).hasMatch(value.trim())) {
+                        return '올바른 이메일 형식을 입력해 주세요.';
+                      }
+
                       return null;
                     },
                   ),
@@ -281,7 +318,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: blue,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor: blue.withValues(alpha: 0.5),
+                        disabledBackgroundColor: blue.withValues(
+                          alpha: 0.5,
+                        ),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
@@ -313,8 +352,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        _isSignup ? '이미 계정이 있으신가요?' : '아직 회원이 아니신가요?',
-                        style: const TextStyle(fontSize: 12, color: muted),
+                        _isSignup
+                            ? '이미 계정이 있으신가요?'
+                            : '아직 회원이 아니신가요?',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: muted,
+                        ),
                       ),
                       TextButton(
                         onPressed: _isLoading

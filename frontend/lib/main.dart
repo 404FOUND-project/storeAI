@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/network/auth_service.dart';
+import 'core/network/business_data_service.dart';
 import 'features/auth/login_screen.dart';
 
 void main() => runApp(const CafeOnApp());
@@ -306,6 +307,200 @@ class _CafeHomeState extends State<CafeHome> {
   bool notificationsRead = false;
   final Set<int> readNotifications = {};
 
+  late final BusinessDataService _businessService;
+  bool _isBusinessLoading = true;
+  String? _businessError;
+  int? _storeId;
+  String? _storeName;
+  Map<String, dynamic>? _homeData;
+
+  int _salesPeriodIndex = 1;
+  bool _isSalesLoading = false;
+  String? _salesError;
+  Map<String, dynamic>? _salesData;
+  Map<String, dynamic>? _patternsData;
+  Map<String, dynamic>? _dailySalesData;
+  int? _hoveredWeekIndex;
+  Map<String, dynamic>? _forecastData;
+  bool _isForecastLoading = false;
+  String? _forecastError;
+  Map<String, dynamic>? _reviewData;
+  bool _isReviewLoading = false;
+  String? _reviewError;
+
+  String get _salesGranularity {
+    if (_salesPeriodIndex == 0) return 'day';
+    if (_salesPeriodIndex == 1) return 'week';
+    return 'month';
+  }
+
+
+Future<void> _loadSalesData({int? periodIndex}) async {
+  if (_storeId == null) return;
+
+  if (periodIndex != null) {
+    setState(() {
+      _salesPeriodIndex = periodIndex;
+    });
+  }
+
+  setState(() {
+    _isSalesLoading = true;
+    _salesError = null;
+  });
+
+  try {
+    final results = await Future.wait([
+      _businessService.getSales(
+        _storeId!,
+        granularity: _salesGranularity,
+      ),
+      _businessService.getPatterns(_storeId!),
+    ]);
+
+    Map<String, dynamic>? dailyData;
+
+    if (_salesPeriodIndex == 1) {
+      try {
+        dailyData = await _businessService.getSales(
+          _storeId!,
+          granularity: 'day',
+        );
+      } catch (_) {
+        dailyData = null;
+      }
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _salesData = results[0];
+      _patternsData = results[1];
+      _dailySalesData = dailyData;
+      _hoveredWeekIndex = null;
+      _isSalesLoading = false;
+    });
+  } catch (error) {
+    if (!mounted) return;
+
+    setState(() {
+      _salesError = error.toString();
+      _isSalesLoading = false;
+    });
+  }
+}
+
+
+  @override
+  void initState() {
+    super.initState();
+    _businessService = BusinessDataService(token: widget.token);
+    _loadBusinessData();
+  }
+
+  Future<void> _loadBusinessData() async {
+    try {
+      final stores = await _businessService.getStores();
+
+      if (stores.isEmpty) {
+        throw Exception('???? ??? ??? ??? ????.');
+      }
+
+      final store = stores.first;
+      final storeId = int.parse(store['id'].toString());
+      final homeData = await _businessService.getHome(storeId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _storeId = storeId;
+        _storeName = store['name']?.toString();
+        _homeData = homeData;
+        _isBusinessLoading = false;
+        _businessError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _isBusinessLoading = false;
+        _businessError = error.toString();
+      });
+    }
+  }
+
+
+  Future<void> _loadSavedForecast() async {
+    if (_storeId == null) return;
+
+    setState(() {
+      _isForecastLoading = true;
+      _forecastError = null;
+    });
+
+    try {
+      final result = await _businessService.getSavedForecast(_storeId!);
+
+      if (!mounted) return;
+
+      setState(() {
+        _forecastData = result;
+        _isForecastLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _forecastError = error.toString();
+        _isForecastLoading = false;
+      });
+    }
+  }
+  Future<void> _loadReviewAnalysis() async {
+    if (_storeId == null) return;
+
+    setState(() {
+      _isReviewLoading = true;
+      _reviewError = null;
+    });
+
+    try {
+      final result = await _businessService.getReviewAnalysis(_storeId!);
+      if (!mounted) return;
+
+      setState(() {
+        _reviewData = result;
+        _isReviewLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _reviewError = error.toString();
+        _isReviewLoading = false;
+      });
+    }
+  }
+  void _changeTab(int destination) {
+    setState(() {
+      tab = destination;
+    });
+
+    if (destination == 1 && _storeId != null) {
+      if (_salesData == null && !_isSalesLoading) {
+        _loadSalesData();
+      }
+      if (_forecastData == null && !_isForecastLoading) {
+        _loadSavedForecast();
+      }
+    }
+    if (destination == 2 &&
+        _storeId != null &&
+        _reviewData == null &&
+        !_isReviewLoading) {
+      _loadReviewAnalysis();
+    }
+  }
   // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
   Offset chatbotOffset = const Offset(20, 80);
 
@@ -326,7 +521,7 @@ class _CafeHomeState extends State<CafeHome> {
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x990B1728),
       builder: (context) => ChatbotSheet(
-        onNavigate: (destination) => setState(() => tab = destination),
+        onNavigate: (destination) => _changeTab(destination),
       ),
     );
   }
@@ -448,216 +643,377 @@ class _CafeHomeState extends State<CafeHome> {
     ),
   );
 
-  Widget home() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        '안녕하세요, 사장님 👋',
-        style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: ink),
-      ),
-      const SizedBox(height: 5),
-      const Text(
-        '오늘 가게 운영 현황을 확인해 보세요.',
-        style: TextStyle(fontSize: 13, color: muted),
-      ),
-      const SizedBox(height: 18),
-      hero(),
-      const SizedBox(height: 20),
-      section('오늘의 매출', '상세 보기', () => setState(() => tab = 1)),
-      const SizedBox(height: 10),
-      Row(
-        children: [
-          Expanded(
-            child: metric(
-              '오늘 매출',
-              '₩428,500',
-              '+12.8%',
-              Icons.payments_rounded,
-              green,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: metric(
-              '주문 건수',
-              '68건',
-              '+8.2%',
-              Icons.shopping_bag_rounded,
-              blue,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 10),
-      Row(
-        children: [
-          Expanded(
-            child: metric(
-              '평균 주문 금액',
-              '₩6,301',
-              '+3.4%',
-              Icons.receipt_long_rounded,
-              const Color(0xFFB46C08),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: metric(
-              '목표 달성률',
-              '71.4%',
-              '목표 ₩600,000',
-              Icons.flag_rounded,
-              blue,
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 22),
-      section('AI 운영 인사이트', '모두 보기', () => message('AI 운영 인사이트 목록을 준비 중이에요.')),
-      const SizedBox(height: 10),
-      insight(
-        Icons.wb_sunny_rounded,
-        const Color(0xFFB46C08),
-        const Color(0xFFFFF6E5),
-        '날씨에 맞는 메뉴를 준비해 보세요',
-        '오늘은 따뜻한 음료 판매가 늘어날 수 있어요. 라떼류 재고를 확인해 보세요.',
-        '날씨 분석',
-      ),
-      const SizedBox(height: 10),
-      insight(
-        Icons.auto_awesome_rounded,
-        blue,
-        const Color(0xFFEEF6FF),
-        '오후 2–4시 매출이 늘었어요',
-        '최근 같은 시간대보다 매출이 12% 높아요. 주문 동선을 점검해 보세요.',
-        'AI 인사이트',
-      ),
-      const SizedBox(height: 20),
-      section('매출 흐름', '주간 리포트', () => setState(() => tab = 1)),
-      const SizedBox(height: 10),
-      chart(),
-      const SizedBox(height: 20),
-      section('매장 상태', '종합 운영 진단 보기', () => setState(() => tab = 2)),
-      const SizedBox(height: 10),
-      Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: line),
-        ),
-        child: const Column(
-          children: [
-            _StatusRow(label: '매출 흐름', value: '안정적이에요', color: green),
-            Divider(height: 18, color: line),
-            _StatusRow(label: '리뷰 만족도', value: '4.6 · 좋은 편', color: blue),
-            Divider(height: 18, color: line),
-            _StatusRow(
-              label: '재고',
-              value: '2개 품목 확인 필요',
-              color: Color(0xFFB46C08),
-            ),
-            Divider(height: 18, color: line),
-            _StatusRow(
-              label: '운영 진단',
-              value: '주의 깊게 관찰',
-              color: Color(0xFFB46C08),
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
 
-  Widget hero() => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(21),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
-      ),
-      borderRadius: BorderRadius.circular(25),
-      boxShadow: [
-        BoxShadow(
-          color: blue.withValues(alpha: 0.18),
-          blurRadius: 20,
-          offset: const Offset(0, 8),
-        ),
-      ],
-    ),
-    child: Column(
+  String _formatWon(dynamic value) {
+    if (value == null) return '데이터 없음';
+    final number = num.tryParse(value.toString());
+    if (number == null) return '데이터 없음';
+    return '${number.toStringAsFixed(0).replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    )}원';
+  }
+
+  String _formatPercent(dynamic value) {
+    if (value == null) return '비교 데이터 없음';
+    final number = num.tryParse(value.toString());
+    if (number == null) return '비교 데이터 없음';
+    final sign = number > 0 ? '+' : '';
+    return '$sign${number.toStringAsFixed(1)}%';
+  }
+
+  Widget home() {
+    final data = _homeData;
+    final daily = data?['daily_insights'] is Map
+        ? Map<String, dynamic>.from(data!['daily_insights'])
+        : <String, dynamic>{};
+    final metrics = daily['metrics'] is Map
+        ? Map<String, dynamic>.from(daily['metrics'])
+        : <String, dynamic>{};
+
+    final reviewRating = metrics['review_average_rating'];
+    final reviewCount = metrics['review_count'];
+    final forecast = data?['today_predicted_sales'];
+    final change = data?['sales_change_percent'];
+
+    final salesChangeForCondition =
+        metrics['sales_change_percent'] is num
+            ? (metrics['sales_change_percent'] as num).toDouble()
+            : null;
+    final reviewForCondition = reviewRating is num
+        ? (reviewRating as num).toDouble()
+        : null;
+    final hasDailySales = metrics['sales'] != null &&
+        daily['status'] != 'INSUFFICIENT_DATA';
+
+    final conditionBad = hasDailySales &&
+        (salesChangeForCondition != null &&
+                salesChangeForCondition <= -10 ||
+            reviewForCondition != null && reviewForCondition <= 2.5);
+    final conditionCaution = hasDailySales &&
+        !conditionBad &&
+        (salesChangeForCondition == null ||
+            salesChangeForCondition < 0 ||
+            reviewForCondition != null && reviewForCondition < 3.5);
+
+    final conditionColor = !hasDailySales
+        ? const Color(0xFF718096)
+        : conditionBad
+            ? const Color(0xFFD94343)
+            : conditionCaution
+                ? const Color(0xFFE98A22)
+                : const Color(0xFF287FF0);
+
+    final conditionTitle = !hasDailySales
+        ? '오늘의 가게 컨디션은 진단 불가예요.'
+        : conditionBad
+            ? '오늘의 가게 컨디션은 나쁨이에요.'
+            : conditionCaution
+                ? '오늘의 가게 컨디션은 주의예요.'
+                : '오늘의 가게 컨디션은 좋음이에요!';
+
+    final conditionDescription = !hasDailySales
+        ? '운영 데이터를 더 모으면 진단할 수 있어요.'
+        : conditionBad
+            ? '매출과 리뷰 등 주요 운영 지표를 점검해 보세요.'
+            : conditionCaution
+                ? '일부 운영 지표를 확인해 보세요.'
+                : '매출과 리뷰 흐름이 양호해요.';
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(30),
+        Text(
+          '안녕하세요, 사장님',
+          style: const TextStyle(
+            fontSize: 23,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          _storeName ?? '매장 운영 현황을 확인해 보세요',
+          style: const TextStyle(fontSize: 13, color: muted),
+        ),
+        const SizedBox(height: 18),
+
+        if (_isBusinessLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(30),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_businessError != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '매장 데이터를 불러오지 못했습니다.',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: ink,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _businessError!,
+                  style: const TextStyle(fontSize: 12, color: muted),
+                ),
+                const SizedBox(height: 10),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _isBusinessLoading = true;
+                      _businessError = null;
+                    });
+                    _loadBusinessData();
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('다시 불러오기'),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  conditionColor,
+                  Color.lerp(conditionColor, Colors.black, 0.12)!,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              child: const Text(
-                'AI DAILY REPORT',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: conditionColor.withValues(alpha: 0.20),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: const Text(
+                        'AI DAILY REPORT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.auto_awesome,
+                      color: Colors.white,
+                      size: 27,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                const Text(
+                  '오늘의 가게 컨디션은',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  conditionTitle.replaceFirst('오늘의 가게 컨디션은 ', ''),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 25,
+                    height: 1.35,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  conditionDescription,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ReportScreen(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(
+                      Icons.arrow_forward,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                    label: const Text(
+                      '리포트 확인',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: 0.22),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 17,
+                        vertical: 10,
+                      ),
+                      shape: const StadiumBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          section('매출 현황', '상세 보기', () => _changeTab(1)),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: metric(
+                  '전일 매출',
+                  _formatWon(data?['yesterday_sales']),
+                  '실제 매출 데이터',
+                  Icons.payments_rounded,
+                  green,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: metric(
+                  '오늘 예상 매출',
+                  _formatWon(forecast),
+                  forecast == null ? '저장된 예측 없음' : '저장된 예측 결과',
+                  Icons.trending_up_rounded,
+                  blue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: metric(
+                  '전일 매출 증감률',
+                  _formatPercent(change),
+                  '전전일 대비',
+                  Icons.show_chart_rounded,
+                  const Color(0xFFB46C08),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: metric(
+                  '리뷰 평균 평점',
+                  reviewRating == null
+                      ? '데이터 없음'
+                      : '${reviewRating}점',
+                  '${reviewCount ?? 0}개 · 테스트 리뷰 기준',
+                  Icons.star_rounded,
+                  blue,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          section('운영 인사이트', null, null),
+          const SizedBox(height: 10),
+          _insightList('잘된 점', daily['strengths'], green),
+          _insightList('주의할 점', daily['cautions'], const Color(0xFFB46C08)),
+          _insightList('운영 제안', daily['recommendations'], blue),
+        ],
+      ],
+    );
+  }
+
+  Widget _insightList(String title, dynamic items, Color color) {
+    final values = items is List
+        ? items.map((item) => item.toString()).toList()
+        : <String>[];
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(color: line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (values.isEmpty)
+            const Text(
+              '해당 데이터가 없습니다.',
+              style: TextStyle(color: muted, fontSize: 12),
+            )
+          else
+            ...values.map(
+              (value) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text(
+                  '• $value',
+                  style: const TextStyle(
+                    color: ink,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
                 ),
               ),
             ),
-            const Spacer(),
-            const Icon(
-              Icons.auto_awesome_rounded,
-              color: Colors.white,
-              size: 25,
-            ),
-          ],
-        ),
-        const SizedBox(height: 15),
-        const Text(
-          '오늘의 가게 컨디션은',
-          style: TextStyle(color: Colors.white, fontSize: 15),
-        ),
-        const SizedBox(height: 3),
-        const Text(
-          '좋음이에요!',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 27,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 9),
-        Text(
-          '매출이 평소보다 좋은 흐름이에요.\n재고와 피크타임을 확인해 운영 효율을 높여 보세요.',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.92),
-            fontSize: 12,
-            height: 1.6,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const ReportScreen()),
-              );
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-            ),
-            icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-            label: const Text('리포트 확인'),
-          ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 
   Widget metric(
     String title,
@@ -803,8 +1159,220 @@ class _CafeHomeState extends State<CafeHome> {
   );
 
   Widget chart() {
-    const values = [0.36, 0.55, 0.42, 0.78, 0.62, 0.91, 0.70];
-    const days = ['월', '화', '수', '목', '금', '토', '일'];
+    if (_salesPeriodIndex == 1) {
+      return weeklyComparisonChart();
+    }
+
+    final rawSeries = _salesData?['series'];
+    final allItems = rawSeries is List
+        ? rawSeries
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    final items = _salesPeriodIndex == 0 && allItems.length > 14
+        ? allItems.sublist(allItems.length - 14)
+        : allItems;
+
+    final salesValues = items
+        .map((item) => (item['sales'] as num?)?.toDouble() ?? 0)
+        .toList();
+
+    final maxSales = salesValues.isEmpty
+        ? 0.0
+        : salesValues.reduce((a, b) => a > b ? a : b);
+
+    String labelFor(Map<String, dynamic> item) {
+      final rawDate = item['period_start']?.toString();
+      final date = rawDate == null ? null : DateTime.tryParse(rawDate);
+      if (date == null) return '-';
+
+      if (_salesPeriodIndex == 2) return '${date.month}월';
+      return '${date.month}/${date.day}';
+    }
+
+    final summary = _salesData?['summary'] is Map
+        ? Map<String, dynamic>.from(_salesData!['summary'])
+        : <String, dynamic>{};
+
+    final title = [
+      '최근 매출 흐름',
+      '주별 매출 흐름',
+      '월별 매출 흐름',
+    ][_salesPeriodIndex];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(17, 17, 17, 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: muted, fontSize: 12)),
+          const SizedBox(height: 5),
+          Text(
+            _formatWon(summary['sales']),
+            style: const TextStyle(
+              color: ink,
+              fontSize: 23,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 18),
+          if (items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text('표시할 매출 데이터가 없습니다.', style: TextStyle(color: muted)),
+              ),
+            )
+          else
+            SizedBox(
+              height: 110,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: List.generate(items.length, (i) {
+                  final value = salesValues[i];
+                  final heightFactor = maxSales > 0
+                      ? (value / maxSales).clamp(0.04, 1.0).toDouble()
+                      : 0.0;
+
+                  final highlighted = i == salesValues.length - 1;
+
+                  return Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.bottomCenter,
+                              child: FractionallySizedBox(
+                                heightFactor: heightFactor,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: highlighted
+                                        ? blue
+                                        : const Color(0xFFD9E8FF),
+                                    borderRadius: BorderRadius.circular(7),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            labelFor(items[i]),
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            style: TextStyle(
+                              fontSize: _salesPeriodIndex == 0 ? 8 : 10,
+                              color: highlighted ? blue : muted,
+                              fontWeight: highlighted
+                                  ? FontWeight.w800
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+    Widget weeklyComparisonChart() {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final monday = today.subtract(
+      Duration(days: today.weekday - DateTime.monday),
+    );
+
+    final dates = List.generate(
+      7,
+      (index) => monday.add(Duration(days: index)),
+    );
+
+    String dateKey(DateTime date) {
+      final year = date.year.toString().padLeft(4, '0');
+      final month = date.month.toString().padLeft(2, '0');
+      final day = date.day.toString().padLeft(2, '0');
+      return '$year-$month-$day';
+    }
+
+    final actualMap = <String, double>{};
+    final rawDailySeries = _dailySalesData?['series'];
+
+    if (rawDailySeries is List) {
+      for (final item in rawDailySeries.whereType<Map>()) {
+        final data = Map<String, dynamic>.from(item);
+        final rawDate = data['period_start']?.toString();
+        final date = rawDate == null ? null : DateTime.tryParse(rawDate);
+
+        if (date != null) {
+          actualMap[dateKey(date)] =
+              (data['sales'] as num?)?.toDouble() ?? 0;
+        }
+      }
+    }
+
+    final forecastMap = <String, double>{};
+    final rawForecastValues = _forecastData?['values'];
+
+    if (rawForecastValues is List) {
+      for (final item in rawForecastValues.whereType<Map>()) {
+        final data = Map<String, dynamic>.from(item);
+
+        if (data['metric'] != 'SALES' ||
+            data['granularity'] != 'day') {
+          continue;
+        }
+
+        final rawDate = data['target_date']?.toString();
+        final date = rawDate == null ? null : DateTime.tryParse(rawDate);
+
+        if (date != null && data['predicted_value'] is num) {
+          forecastMap[dateKey(date)] =
+              (data['predicted_value'] as num).toDouble();
+        }
+      }
+    }
+
+    final actualValues = dates.map((date) {
+      if (!date.isBefore(today)) return null;
+      return actualMap[dateKey(date)];
+    }).toList();
+
+    final forecastValues = dates.map((date) {
+      return forecastMap[dateKey(date)];
+    }).toList();
+
+    final labels = ['월', '화', '수', '목', '금', '토', '일'];
+
+    final hoveredIndex = _hoveredWeekIndex;
+    final hoveredDate = hoveredIndex == null ? null : dates[hoveredIndex];
+
+    String actualDescription(int index) {
+      final date = dates[index];
+
+      if (!date.isBefore(today)) return '집계 전';
+
+      final value = actualValues[index];
+      return value == null ? '매출 기록 없음' : _formatWon(value);
+    }
+
+    String forecastDescription(int index) {
+      final value = forecastValues[index];
+      return value == null ? '예측 데이터 없음' : _formatWon(value);
+    }
+
     return Container(
       padding: const EdgeInsets.fromLTRB(17, 17, 17, 14),
       decoration: BoxDecoration(
@@ -816,70 +1384,143 @@ class _CafeHomeState extends State<CafeHome> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '이번 주 매출 추이',
+            '이번 주 매출 비교',
             style: TextStyle(color: muted, fontSize: 12),
           ),
           const SizedBox(height: 5),
-          const Text(
-            '₩2,845,000',
-            style: TextStyle(
+          Text(
+            _formatWon(_salesData?['summary'] is Map
+                ? (_salesData!['summary'] as Map)['sales']
+                : null),
+            style: const TextStyle(
               color: ink,
               fontSize: 23,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 18),
-          SizedBox(
-            height: 110,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(
-                values.length,
-                (i) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: FractionallySizedBox(
-                              heightFactor: values[i],
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: i == 5
-                                      ? blue
-                                      : const Color(0xFFD9E8FF),
-                                  borderRadius: BorderRadius.circular(7),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          days[i],
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: i == 5 ? blue : muted,
-                            fontWeight: i == 5
-                                ? FontWeight.w800
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _chartLegend(blue, '실제 매출', dashed: false),
+              const SizedBox(width: 18),
+              _chartLegend(
+                const Color(0xFFF59E0B),
+                '예측 매출',
+                dashed: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return MouseRegion(
+                onHover: (event) {
+                  final index = ((event.localPosition.dx /
+                              constraints.maxWidth) *
+                          7)
+                      .floor()
+                      .clamp(0, 6);
+
+                  if (_hoveredWeekIndex != index) {
+                    setState(() {
+                      _hoveredWeekIndex = index;
+                    });
+                  }
+                },
+                onExit: (_) {
+                  setState(() {
+                    _hoveredWeekIndex = null;
+                  });
+                },
+                child: SizedBox(
+                  height: 170,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: WeeklySalesPainter(
+                      actual: actualValues,
+                      forecast: forecastValues,
+                      todayIndex: today.difference(monday).inDays,
+                      hoveredIndex: hoveredIndex ?? -1,
                     ),
                   ),
                 ),
+              );
+            },
+          ),
+          Row(
+            children: List.generate(7, (index) {
+              return Expanded(
+                child: Text(
+                  '${labels[index]}\n${dates[index].month}/${dates[index].day}',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: hoveredIndex == index ? blue : muted,
+                    fontWeight: hoveredIndex == index
+                        ? FontWeight.w800
+                        : FontWeight.normal,
+                  ),
+                ),
+              );
+            }),
+          ),
+          if (hoveredDate != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F8FF),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${hoveredDate.month}월 ${hoveredDate.day}일 (${labels[hoveredIndex!]})',
+                    style: const TextStyle(
+                      color: ink,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text('실제 매출: ${actualDescription(hoveredIndex)}'),
+                  Text('예측 매출: ${forecastDescription(hoveredIndex)}'),
+                ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
+    Widget _chartLegend(
+    Color color,
+    String label, {
+    required bool dashed,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CustomPaint(
+          size: const Size(24, 10),
+          painter: LegendLinePainter(
+            color: color,
+            dashed: dashed,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            color: muted,
+          ),
+        ),
+      ],
+    );
+  }
   Widget otherPage() {
     if (tab == 1) return salesPage();
     if (tab == 2) return aiAnalysisPage();
@@ -1061,243 +1702,601 @@ class _CafeHomeState extends State<CafeHome> {
     );
   }
 
-  Widget salesPage() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        '매출 분석',
-        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
-      ),
-      const SizedBox(height: 5),
-      const Text(
-        '매장 실적과 변화를 한눈에',
-        style: TextStyle(fontSize: 12, color: muted),
-      ),
-      const SizedBox(height: 16),
-      Container(
-        padding: const EdgeInsets.all(5),
-        decoration: BoxDecoration(
-          color: const Color(0xFFE8EDF4),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: ['오늘', '이번 주', '이번 달'].asMap().entries.map((entry) {
-            final selected = entry.key == 1;
+  Widget savedForecastCard() {
+    final rawValues = _forecastData?['values'];
+    final values = rawValues is List
+        ? rawValues
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .where((item) =>
+                item['metric'] == 'SALES' &&
+                item['granularity'] == 'day')
+            .toList()
+        : <Map<String, dynamic>>[];
 
-            return Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: selected ? Colors.white : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  entry.value,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: selected ? ink : muted,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
+    values.sort((a, b) =>
+        (a['target_date']?.toString() ?? '')
+            .compareTo(b['target_date']?.toString() ?? ''));
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(17),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: line),
       ),
-      const SizedBox(height: 18),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '이번 주 총매출',
-              style: TextStyle(fontSize: 12, color: Colors.white70),
-            ),
-            SizedBox(height: 8),
-            Text(
-              '₩2,845,000',
-              style: TextStyle(
-                fontSize: 27,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              '지난주보다 12.8% 증가',
-              style: TextStyle(fontSize: 12, color: Colors.white),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 18),
-      Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: metric(
-              '주문 건수',
-              '412건',
-              '+8.2%',
-              Icons.shopping_bag_rounded,
-              blue,
-            ),
+          const Text(
+            '저장된 7일 매출 예측',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: ink),
           ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: metric(
-              '평균 주문 금액',
-              '₩6,905',
-              '+3.4%',
-              Icons.receipt_long_rounded,
-              green,
-            ),
+          const SizedBox(height: 5),
+          const Text(
+            '마지막으로 성공적으로 저장된 예측 결과',
+            style: TextStyle(fontSize: 11, color: muted),
           ),
+          const SizedBox(height: 14),
+          if (_isForecastLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (_forecastError != null)
+            Text(
+              '예측 데이터를 불러오지 못했어요: $_forecastError',
+              style: const TextStyle(fontSize: 12, color: muted),
+            )
+          else if (values.isEmpty)
+            const Text(
+              '저장된 일별 매출 예측 데이터가 없습니다.',
+              style: TextStyle(fontSize: 12, color: muted),
+            )
+          else
+            ...values.map((item) {
+              final date = DateTime.tryParse(
+                item['target_date']?.toString() ?? '',
+              );
+              final dateLabel = date == null
+                  ? item['target_date']?.toString() ?? '-'
+                  : '${date.month}월 ${date.day}일';
+
+              final predicted = item['predicted_value'];
+              final lower = item['lower_bound'];
+              final upper = item['upper_bound'];
+              final hasBounds = lower is num && upper is num;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 75,
+                      child: Text(
+                        dateLabel,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: muted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Text(
+                        _formatWon(predicted),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    if (hasBounds)
+                      Text(
+                        '${_formatWon(lower)} ~ ${_formatWon(upper)}',
+                        style: const TextStyle(fontSize: 10, color: muted),
+                      ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
-      const SizedBox(height: 22),
-      section('매출 흐름', null, null),
-      const SizedBox(height: 10),
-      chart(),
-      const SizedBox(height: 22),
-      section('매출 분석 인사이트', null, null),
-      const SizedBox(height: 10),
-      insight(
-        Icons.trending_up_rounded,
-        green,
-        const Color(0xFFE9F8F2),
-        '매출이 상승하고 있어요',
-        '이번 주 매출은 지난주보다 12.8% 높아요. 인기 시간대의 재고를 미리 확인해 보세요.',
-        '긍정',
-      ),
-      const SizedBox(height: 10),
-      insight(
-        Icons.access_time_rounded,
-        blue,
-        const Color(0xFFEEF6FF),
-        '토요일 매출이 가장 높아요',
-        '요일별 매출을 비교해 피크타임에 인력을 효율적으로 배치해 보세요.',
-        '요일 분석',
-      ),
-    ],
-  );
+    );
+  }
+  Widget salesPage() {
+    final summary = _salesData?['summary'] is Map
+        ? Map<String, dynamic>.from(_salesData!['summary'])
+        : <String, dynamic>{};
 
-  Widget aiAnalysisPage() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        'AI 운영 진단',
-        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
-      ),
-      const SizedBox(height: 5),
-      const Text(
-        '데이터로 매장의 다음 행동을 찾아요',
-        style: TextStyle(fontSize: 12, color: muted),
-      ),
-      const SizedBox(height: 18),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: line),
+    final hasData = (summary['days_with_data'] as num?)?.toInt() != null &&
+        (summary['days_with_data'] as num).toInt() > 0;
+
+    final patterns = _patternsData ?? <String, dynamic>{};
+    final weekdayItems = patterns['weekday'] is List
+        ? (patterns['weekday'] as List)
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .where((item) => item['total_sales'] is num)
+            .toList()
+        : <Map<String, dynamic>>[];
+    final hourlyItems = patterns['hourly'] is List
+        ? (patterns['hourly'] as List)
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .where((item) => item['total_sales'] is num)
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    final bestWeekday = weekdayItems.isEmpty
+        ? null
+        : weekdayItems.reduce((a, b) =>
+            (a['total_sales'] as num) >= (b['total_sales'] as num) ? a : b);
+    final bestHour = hourlyItems.isEmpty
+        ? null
+        : hourlyItems.reduce((a, b) =>
+            (a['total_sales'] as num) >= (b['total_sales'] as num) ? a : b);
+
+    final periodLabels = ['오늘', '이번 주', '이번 달'];
+    final periodTitle = [
+      '최근 30일 일별 총매출',
+      '최근 12주 주별 총매출',
+      '최근 365일 월별 총매출',
+    ][_salesPeriodIndex];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '매출 분석',
+          style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
         ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('종합 운영 상태', style: TextStyle(fontSize: 12, color: muted)),
-            SizedBox(height: 8),
-            Text(
-              '주의 깊게 관찰해 주세요',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: ink,
-              ),
-            ),
-            SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: LinearProgressIndicator(
-                    value: .72,
-                    minHeight: 8,
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                    color: Color(0xFFFFBD59),
-                    backgroundColor: line,
+        const SizedBox(height: 5),
+        const Text(
+          '매장 실적과 변화를 한눈에',
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8EDF4),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: periodLabels.asMap().entries.map((entry) {
+              final selected = entry.key == _salesPeriodIndex;
+              return Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: selected || _isSalesLoading
+                      ? null
+                      : () => _loadSalesData(periodIndex: entry.key),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                      color: selected ? Colors.white : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      entry.value,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: selected ? ink : muted,
+                      ),
+                    ),
                   ),
                 ),
-                SizedBox(width: 12),
-                Text(
-                  '72/100',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    color: ink,
-                  ),
+              );
+            }).toList(),
+          ),
+        ),
+        const SizedBox(height: 18),
+        if (_isSalesLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_salesError != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '매출 데이터를 불러오지 못했어요.',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: ink),
+                ),
+                const SizedBox(height: 8),
+                Text(_salesError!, style: const TextStyle(fontSize: 11, color: muted)),
+                const SizedBox(height: 10),
+                TextButton(
+                  onPressed: _loadSalesData,
+                  child: const Text('다시 시도'),
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            Text(
-              '최근 매출, 리뷰, 운영 데이터를 종합한 예시 진단입니다.',
-              style: TextStyle(fontSize: 11, color: muted, height: 1.5),
+          )
+        else if (_salesData == null)
+          const Center(child: Text('매출 데이터를 불러오는 중입니다.'))
+        else ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
+              ),
+              borderRadius: BorderRadius.circular(20),
             ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 22),
-      section('주요 판단 근거', null, null),
-      const SizedBox(height: 10),
-      insight(
-        Icons.bar_chart_rounded,
-        blue,
-        const Color(0xFFEEF6FF),
-        '매출 변동성',
-        '최근 4주간 변동 폭이 7% 커졌어요.',
-        '주의',
-      ),
-      const SizedBox(height: 10),
-      insight(
-        Icons.rate_review_rounded,
-        const Color(0xFF8B6CE8),
-        const Color(0xFFF2EDFF),
-        '고객 반응',
-        '대기 시간 관련 언급이 늘고 있어요.',
-        '확인',
-      ),
-      const SizedBox(height: 10),
-      insight(
-        Icons.location_on_outlined,
-        green,
-        const Color(0xFFE9F8F2),
-        '상권 흐름',
-        '평일 유동 인구는 비슷한 수준이에요.',
-        '안정',
-      ),
-      const SizedBox(height: 22),
-      section('이번 주 우선 실행 항목', null, null),
-      const SizedBox(height: 10),
-      insight(
-        Icons.check_circle_outline,
-        blue,
-        const Color(0xFFEEF6FF),
-        '피크타임 주문 동선을 점검하세요',
-        '혼잡 시간대의 대기 시간을 줄일 수 있도록 제조 순서를 확인해 보세요.',
-        '실행 제안',
-      ),
-    ],
-  );
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  periodTitle,
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  hasData ? _formatWon(summary['sales']) : '데이터 없음',
+                  style: const TextStyle(
+                    fontSize: 27,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  hasData
+                      ? '매출 기록 ${summary['days_with_data']}일 기준'
+                      : '해당 기간에 확인할 매출 기록이 없습니다.',
+                  style: const TextStyle(fontSize: 12, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Expanded(
+                child: metric(
+                  '주문 건수',
+                  hasData ? '${summary['order_count']}건' : '-',
+                  '조회 기간 합계',
+                  Icons.shopping_bag_rounded,
+                  blue,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: metric(
+                  '평균 주문 금액',
+                  hasData ? _formatWon(summary['average_ticket']) : '-',
+                  '주문당 평균',
+                  Icons.receipt_long_rounded,
+                  green,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          section('매출 흐름', null, null),
+          const SizedBox(height: 10),
+          chart(),
+          const SizedBox(height: 18),
+          savedForecastCard(),
+          const SizedBox(height: 22),
+          section('매출 분석 인사이트', null, null),
+          const SizedBox(height: 10),
+          if (bestWeekday != null)
+            insight(
+              Icons.calendar_today_rounded,
+              green,
+              const Color(0xFFE9F8F2),
+              '${bestWeekday['weekday_name']} 매출이 가장 높아요',
+              '요일별 누적 매출은 ${_formatWon(bestWeekday['total_sales'])}입니다. 요일별 운영 계획을 세울 때 참고해 보세요.',
+              '요일 분석',
+            )
+          else
+            const Text(
+              '요일별 매출 데이터가 없어 분석할 수 없습니다.',
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
+          const SizedBox(height: 10),
+          if (bestHour != null)
+            insight(
+              Icons.access_time_rounded,
+              blue,
+              const Color(0xFFEEF6FF),
+              '${bestHour['hour']}시 매출이 가장 높아요',
+              '해당 시간대 누적 매출은 ${_formatWon(bestHour['total_sales'])}이며, 전체 매출의 ${(bestHour['sales_share_pct'] as num?)?.toStringAsFixed(1) ?? '-'}%입니다.',
+              '시간대 분석',
+            )
+          else
+            const Text(
+              '시간대별 매출 데이터가 없어 분석할 수 없습니다.',
+              style: TextStyle(fontSize: 12, color: muted),
+            ),
 
+        ],
+      ],
+    );
+  }
+  Widget aiAnalysisPage() {
+    final rawMenus = _reviewData?['menus'];
+    final menus = rawMenus is List
+        ? rawMenus
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    final rawCategories = _reviewData?['negative_categories'];
+    final categories = rawCategories is List
+        ? rawCategories
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList()
+        : <Map<String, dynamic>>[];
+
+    final rawSources = _reviewData?['sources'];
+    final sources = rawSources is List
+        ? rawSources.map((item) => item.toString()).toList()
+        : <String>[];
+
+    final totalReviews = menus.fold<int>(
+      0,
+      (sum, item) => sum + ((item['review_count'] as num?)?.toInt() ?? 0),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'AI 운영 진단',
+          style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          '실제 분석 데이터에서 매장 운영의 점검 항목을 찾아요',
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 18),
+
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('리뷰 분석 현황', style: TextStyle(fontSize: 12, color: muted)),
+              const SizedBox(height: 8),
+              if (_isReviewLoading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(18),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (_reviewError != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '리뷰 분석 데이터를 불러오지 못했어요.',
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ink),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      _reviewError!,
+                      style: const TextStyle(fontSize: 11, color: muted),
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton(
+                      onPressed: _isReviewLoading ? null : _loadReviewAnalysis,
+                      child: const Text('다시 불러오기'),
+                    ),
+                  ],
+                )
+              else if (_reviewData == null)
+                const Text(
+                  '리뷰 분석 데이터를 아직 불러오지 않았어요.',
+                  style: TextStyle(fontSize: 13, color: muted),
+                )
+              else ...[
+                Text(
+                  menus.isEmpty ? '분석 가능한 메뉴가 없어요.' : '분석 기준을 충족한 메뉴 ${menus.length}개',
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: ink),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _metricCell('분석 메뉴', '${menus.length}개'),
+                    ),
+                    Expanded(
+                      child: _metricCell('메뉴별 리뷰 합계', '$totalReviews건'),
+                    ),
+                  ],
+                ),
+                if (sources.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    '데이터 출처: ${sources.join(', ')}',
+                    style: const TextStyle(fontSize: 11, color: muted),
+                  ),
+                ],
+              ],
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 22),
+        section('메뉴별 고객 반응', null, null),
+        const SizedBox(height: 10),
+
+        if (_isReviewLoading)
+          const Text('리뷰 데이터를 불러오는 중이에요.', style: TextStyle(fontSize: 12, color: muted))
+        else if (_reviewError != null)
+          const Text('리뷰 데이터를 확인할 수 없어요.', style: TextStyle(fontSize: 12, color: muted))
+        else if (_reviewData != null && menus.isEmpty)
+          const Text(
+            '메뉴별 리뷰가 최소 ${3}건 이상 쌓인 데이터가 없어 분석할 수 없습니다.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
+        else
+          ...menus.map((item) {
+            final name = item['name']?.toString() ?? '이름 없는 메뉴';
+            final count = (item['review_count'] as num?)?.toInt() ?? 0;
+            final positive = (item['positive_ratio'] as num?)?.toDouble() ?? 0;
+            final negative = (item['negative_ratio'] as num?)?.toDouble() ?? 0;
+            final quantity = (item['quantity'] as num?)?.toInt() ?? 0;
+            final flag = item['flag']?.toString();
+
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: line),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: ink),
+                        ),
+                      ),
+                      if (flag == 'check_quality')
+                        const Text('품질 점검 후보', style: TextStyle(fontSize: 10, color: Color(0xFFE58A00), fontWeight: FontWeight.w700))
+                      else if (flag == 'promote')
+                        const Text('홍보 검토 후보', style: TextStyle(fontSize: 10, color: blue, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    '판매 ${quantity}개 · 리뷰 $count건',
+                    style: const TextStyle(fontSize: 11, color: muted),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '긍정 ${(positive * 100).round()}%',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF29966A), fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          '부정 ${(negative * 100).round()}%',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFFE36B6B), fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 7),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: (positive * 1000).round().clamp(1, 1000),
+                          child: Container(height: 7, color: const Color(0xFF55B88B)),
+                        ),
+                        Expanded(
+                          flex: (negative * 1000).round().clamp(1, 1000),
+                          child: Container(height: 7, color: const Color(0xFFE58A8A)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+
+        const SizedBox(height: 22),
+        section('주요 부정 리뷰 유형', null, null),
+        const SizedBox(height: 10),
+
+        if (_isReviewLoading)
+          const Text('분석 중이에요.', style: TextStyle(fontSize: 12, color: muted))
+        else if (_reviewData == null || _reviewError != null || categories.isEmpty)
+          const Text(
+            '확인할 부정 리뷰 유형이 없습니다.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
+        else
+          ...categories.map((item) {
+            final label = item['label']?.toString() ?? item['category']?.toString() ?? '기타';
+            final count = (item['count'] as num?)?.toInt() ?? 0;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: line),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ink)),
+                  ),
+                  Text('$count건', style: const TextStyle(fontSize: 12, color: muted)),
+                ],
+              ),
+            );
+          }),
+
+        if (_reviewData?['notice'] != null) ...[
+          const SizedBox(height: 14),
+          Text(
+            _reviewData!['notice'].toString(),
+            style: const TextStyle(fontSize: 11, color: muted, height: 1.5),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _metricCell(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, color: muted)),
+        const SizedBox(height: 5),
+        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ink)),
+      ],
+    );
+  }
   Widget setRecommendationPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -1607,7 +2606,7 @@ class _CafeHomeState extends State<CafeHome> {
         final selected = tab == i;
         return Expanded(
           child: InkWell(
-            onTap: () => setState(() => tab = i),
+            onTap: () => _changeTab(i),
             borderRadius: BorderRadius.circular(13),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 5),
@@ -2471,3 +3470,213 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     ),
   );
 }
+class LegendLinePainter extends CustomPainter {
+  final Color color;
+  final bool dashed;
+
+  LegendLinePainter({
+    required this.color,
+    required this.dashed,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+
+    if (dashed) {
+      const dashWidth = 4.0;
+      const gap = 3.0;
+      double x = 0;
+
+      while (x < size.width) {
+        canvas.drawLine(
+          Offset(x, size.height / 2),
+          Offset((x + dashWidth).clamp(0.0, size.width), size.height / 2),
+          paint,
+        );
+        x += dashWidth + gap;
+      }
+    } else {
+      canvas.drawLine(
+        Offset(0, size.height / 2),
+        Offset(size.width, size.height / 2),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant LegendLinePainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.dashed != dashed;
+  }
+}
+
+class WeeklySalesPainter extends CustomPainter {
+  final List<double?> actual;
+  final List<double?> forecast;
+  final int todayIndex;
+  final int hoveredIndex;
+
+  WeeklySalesPainter({
+    required this.actual,
+    required this.forecast,
+    required this.todayIndex,
+    required this.hoveredIndex,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const actualColor = Color(0xFF3978D5);
+    const forecastColor = Color(0xFFF59E0B);
+
+    const left = 8.0;
+    const right = 8.0;
+    const top = 12.0;
+    const bottom = 12.0;
+
+    final chartWidth = size.width - left - right;
+    final chartHeight = size.height - top - bottom;
+
+    if (chartWidth <= 0 || chartHeight <= 0) return;
+
+    final allValues = [
+      ...actual.whereType<double>(),
+      ...forecast.whereType<double>(),
+    ];
+
+    final maxValue = allValues.isEmpty
+        ? 1.0
+        : allValues.reduce((a, b) => a > b ? a : b);
+
+    final scaleMax = maxValue <= 0 ? 1.0 : maxValue * 1.15;
+
+    Offset pointAt(int index, double value) {
+      final x = left + chartWidth * index / 6;
+      final y = top + chartHeight * (1 - value / scaleMax);
+      return Offset(x, y);
+    }
+
+    final gridPaint = Paint()
+      ..color = const Color(0xFFEAEFF5)
+      ..strokeWidth = 1;
+
+    for (var i = 0; i < 4; i++) {
+      final y = top + chartHeight * i / 3;
+      canvas.drawLine(
+        Offset(left, y),
+        Offset(size.width - right, y),
+        gridPaint,
+      );
+    }
+
+    if (hoveredIndex >= 0 && hoveredIndex < 7) {
+      final x = left + chartWidth * hoveredIndex / 6;
+
+      final hoverPaint = Paint()
+        ..color = const Color(0xFFB8C8DC)
+        ..strokeWidth = 1;
+
+      canvas.drawLine(
+        Offset(x, top),
+        Offset(x, size.height - bottom),
+        hoverPaint,
+      );
+    }
+
+    void drawSeries(
+      List<double?> values,
+      Color color, {
+      required bool dashed,
+    }) {
+      final linePaint = Paint()
+        ..color = color
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+
+      for (var i = 0; i < values.length - 1; i++) {
+        final startValue = values[i];
+        final endValue = values[i + 1];
+
+        if (startValue == null || endValue == null) continue;
+
+        final start = pointAt(i, startValue);
+        final end = pointAt(i + 1, endValue);
+
+        if (!dashed) {
+          canvas.drawLine(start, end, linePaint);
+        } else {
+          final distance = (end - start).distance;
+          const dashLength = 6.0;
+          const gapLength = 4.0;
+
+          var position = 0.0;
+
+          while (position < distance) {
+            final next = (position + dashLength).clamp(0.0, distance);
+
+            final from = Offset(
+              start.dx + (end.dx - start.dx) * position / distance,
+              start.dy + (end.dy - start.dy) * position / distance,
+            );
+
+            final to = Offset(
+              start.dx + (end.dx - start.dx) * next / distance,
+              start.dy + (end.dy - start.dy) * next / distance,
+            );
+
+            canvas.drawLine(from, to, linePaint);
+            position += dashLength + gapLength;
+          }
+        }
+      }
+
+      final dotPaint = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
+
+      for (var i = 0; i < values.length; i++) {
+        final value = values[i];
+        if (value == null) continue;
+
+        canvas.drawCircle(
+          pointAt(i, value),
+          3.5,
+          dotPaint,
+        );
+      }
+    }
+
+    drawSeries(
+      forecast,
+      forecastColor,
+      dashed: true,
+    );
+
+    drawSeries(
+      actual,
+      actualColor,
+      dashed: false,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant WeeklySalesPainter oldDelegate) {
+    return oldDelegate.actual != actual ||
+        oldDelegate.forecast != forecast ||
+        oldDelegate.todayIndex != todayIndex ||
+        oldDelegate.hoveredIndex != hoveredIndex;
+  }
+}
+
+
+
+
+
+
+
+

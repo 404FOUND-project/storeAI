@@ -19,6 +19,8 @@ from sales.ml.forecast_engine import generate_forecasts
 from .models import ForecastRun, ForecastValue, Sales, SalesItem
 from .services import analytics, forecasting, queries
 from django.utils import timezone
+from .services.daily_insights import build_daily_insights
+from .services.monthly_report import build_monthly_report
 
 MAX_RANGE_DAYS = 1100
 
@@ -91,21 +93,20 @@ class StoreAnalysisView(APIView):
 
         return start, end
 
+
 class HomeSummaryView(StoreAnalysisView):
     """GET /sales/stores/<store_id>/home/"""
 
     def get(self, request, store_id):
         store = self.get_store(store_id)
 
-        # 한국 시간 기준 날짜
         today = timezone.localdate()
         yesterday = today - timedelta(days=1)
         day_before_yesterday = today - timedelta(days=2)
 
-        # 최근 2일 실제 매출 조회
         daily = queries.daily_totals(
             store,
-            day_before_yesterday,
+            yesterday - timedelta(days=7),
             yesterday,
         )
 
@@ -122,50 +123,53 @@ class HomeSummaryView(StoreAnalysisView):
             previous_sales,
         )
 
-        # 가장 최근 성공적으로 저장된 예측 실행
-        latest_run = (
-            ForecastRun.objects
-            .filter(
-                store=store,
-                status=ForecastRun.Status.COMPLETED,
-            )
-            .order_by("-generated_at", "-pk")
-            .first()
+        daily_insights = build_daily_insights(
+            store,
+            yesterday,
+            daily,
         )
 
-        today_forecast = None
-
-        if latest_run is not None:
-            today_forecast = (
-                ForecastValue.objects
-                .filter(
-                    run=latest_run,
-                    series_key="daily:sales",
-                    granularity=ForecastValue.Granularity.DAILY,
-                    metric=ForecastValue.Metric.SALES,
-                    target_date=today,
-                )
-                .first()
+        # 오늘 날짜를 예측한 가장 최신 성공 기록을 조회한다.
+        # 최신 실행에 오늘 예측값이 없더라도 이전 실행에서
+        # 오늘 날짜를 예측한 값이 있으면 해당 값을 찾는다.
+        today_forecast = (
+            ForecastValue.objects
+            .filter(
+                run__store=store,
+                run__status=ForecastRun.Status.COMPLETED,
+                series_key="daily:sales",
+                granularity=ForecastValue.Granularity.DAILY,
+                metric=ForecastValue.Metric.SALES,
+                target_date=today,
             )
+            .select_related("run")
+            .order_by("-run__generated_at", "-run_id")
+            .first()
+        )
 
         return Response({
             "store_id": store.pk,
             "today": today.isoformat(),
+
             "yesterday_sales": yesterday_sales,
             "day_before_yesterday_sales": previous_sales,
             "sales_change_amount": comparison["change"],
             "sales_change_percent": comparison["change_pct"],
+
             "today_predicted_sales": (
                 today_forecast.predicted_value
                 if today_forecast else None
             ),
             "forecast_run_id": (
-                latest_run.pk if latest_run else None
+                today_forecast.run_id
+                if today_forecast else None
             ),
             "forecast_status": (
                 "AVAILABLE"
                 if today_forecast else "UNAVAILABLE"
             ),
+
+            "daily_insights": daily_insights,
         })
 
 class SalesSeriesView(StoreAnalysisView):
@@ -309,6 +313,86 @@ def _forecast_value(values, granularity, metric, target_date):
         None,
     )
 
+def _latest_saved_forecast(store, as_of=None):
+    """
+    저장된 최신 성공 예측을 조회한다.
+
+    as_of가 전달되면 해당 기준일의 예측만 조회한다.
+    전달되지 않으면 가장 최근에 성공한 예측을 조회한다.
+    """
+
+    runs = ForecastRun.objects.filter(
+        store=store,
+        status=ForecastRun.Status.COMPLETED,
+    )
+
+    if as_of is not None:
+        runs = runs.filter(as_of=as_of)
+
+    run = (
+        runs
+        .order_by("-generated_at", "-pk")
+        .first()
+    )
+
+    if run is None:
+        return None
+
+    records = (
+        ForecastValue.objects
+        .filter(run=run)
+        .select_related("menu")
+        .order_by(
+            "target_date",
+            "granularity",
+            "target_hour",
+            "series_key",
+        )
+    )
+
+    values = [
+        {
+            "series_key": item.series_key,
+            "granularity": item.granularity,
+            "metric": item.metric,
+            "target_date": item.target_date.isoformat(),
+            "target_hour": item.target_hour,
+            "menu_id": item.menu_id,
+            "menu_name": (
+                item.menu.name if item.menu_id else None
+            ),
+            "serving_temperature": item.serving_temperature,
+            "predicted_value": float(item.predicted_value),
+            "lower_bound": (
+                float(item.lower_bound)
+                if item.lower_bound is not None else None
+            ),
+            "upper_bound": (
+                float(item.upper_bound)
+                if item.upper_bound is not None else None
+            ),
+        }
+        for item in records
+    ]
+
+    metadata = run.metadata or {}
+    metrics = run.metrics or {}
+
+    target_dates = metadata.get("target_dates") or sorted({
+        item["target_date"] for item in values
+    })
+
+    return {
+        "run_id": run.pk,
+        "status": run.status,
+        "store_id": store.pk,
+        "as_of": run.as_of.isoformat(),
+        "target_dates": target_dates,
+        "metadata": metadata,
+        "metrics": metrics,
+        "values": values,
+    }
+
 
 class NextDaySalesForecastView(ForecastView):
     """GET /sales/stores/<store_id>/forecast/next-day/"""
@@ -317,10 +401,22 @@ class NextDaySalesForecastView(ForecastView):
         store = self.get_store(store_id)
         params = self.parse(AsOfSerializer, request)
 
-        result = self.run_forecast(
-            store,
-            self.resolve_as_of(store, params),
+        as_of = (
+            clamp_as_of(params["as_of"])
+            if params.get("as_of")
+            else None
         )
+
+        result = _latest_saved_forecast(
+            store,
+            as_of=as_of,
+        )
+
+        if result is None or not result["target_dates"]:
+            return Response(
+                {"detail": "저장된 예측 결과가 없습니다."},
+                status=404,
+            )
 
         target_date = result["target_dates"][0]
         values = result["values"]
@@ -336,9 +432,15 @@ class NextDaySalesForecastView(ForecastView):
         )
 
         if sales is None or orders is None:
-            raise serializers.ValidationError({
-                "detail": "다음 날 매출 및 주문 수 예측값을 생성하지 못했습니다."
-            })
+            return Response(
+                {
+                    "detail": (
+                        "저장된 다음 날 매출 또는 "
+                        "주문 수 예측값이 없습니다."
+                    )
+                },
+                status=404,
+            )
 
         return Response({
             "store_id": store.pk,
@@ -348,7 +450,8 @@ class NextDaySalesForecastView(ForecastView):
             "predicted_sales": sales["predicted_value"],
             "predicted_order_count": orders["predicted_value"],
             "predicted_quantity": (
-                quantity["predicted_value"] if quantity else None
+                quantity["predicted_value"]
+                if quantity else None
             ),
             "predicted_sales_lower": sales["lower_bound"],
             "predicted_sales_upper": sales["upper_bound"],
@@ -366,10 +469,22 @@ class MenuQuantityForecastView(ForecastView):
         store = self.get_store(store_id)
         params = self.parse(AsOfSerializer, request)
 
-        result = self.run_forecast(
-            store,
-            self.resolve_as_of(store, params),
+        as_of = (
+            clamp_as_of(params["as_of"])
+            if params.get("as_of")
+            else None
         )
+
+        result = _latest_saved_forecast(
+            store,
+            as_of=as_of,
+        )
+
+        if result is None or not result["target_dates"]:
+            return Response(
+                {"detail": "저장된 예측 결과가 없습니다."},
+                status=404,
+            )
 
         target_date = result["target_dates"][0]
 
@@ -396,7 +511,8 @@ class MenuQuantityForecastView(ForecastView):
             "as_of": result["as_of"],
             "target_date": target_date,
             "total_expected_quantity": sum(
-                item["expected_quantity"] for item in menus
+                item["expected_quantity"]
+                for item in menus
             ),
             "menus": menus,
             "forecast_run_id": result["run_id"],
@@ -404,16 +520,31 @@ class MenuQuantityForecastView(ForecastView):
 
 
 class SevenDayForecastView(ForecastView):
-    """GET: 예측 계산 / POST: 새 예측 생성 및 저장"""
+    """
+    GET: 저장된 최신 7일 예측 조회
+    POST: 새 예측 실행 및 DB 저장
+    """
 
     def get(self, request, store_id):
         store = self.get_store(store_id)
         params = self.parse(AsOfSerializer, request)
 
-        result = self.run_forecast(
-            store,
-            self.resolve_as_of(store, params),
+        as_of = (
+            clamp_as_of(params["as_of"])
+            if params.get("as_of")
+            else None
         )
+
+        result = _latest_saved_forecast(
+            store,
+            as_of=as_of,
+        )
+
+        if result is None:
+            return Response(
+                {"detail": "저장된 예측 결과가 없습니다."},
+                status=404,
+            )
 
         return Response({
             "store_id": store.pk,
@@ -428,6 +559,7 @@ class SevenDayForecastView(ForecastView):
     def post(self, request, store_id):
         store = self.get_store(store_id)
         params = self.parse(AsOfSerializer, request)
+
         as_of = self.resolve_as_of(store, params)
 
         try:
@@ -860,6 +992,39 @@ class ForecastAccuracyView(StoreAnalysisView):
             "metrics": metrics,
             "comparisons": comparisons,
         })
+
+
+class MonthlyReportQuerySerializer(serializers.Serializer):
+    year = serializers.IntegerField(required=False, min_value=2000, max_value=2100)
+    month = serializers.IntegerField(required=False, min_value=1, max_value=12)
+
+    def validate(self, attrs):
+        if ("year" in attrs) != ("month" in attrs):
+            raise serializers.ValidationError(
+                "year와 month는 함께 입력해야 합니다."
+            )
+        return attrs
+
+
+class MonthlyReportView(StoreAnalysisView):
+    """GET /sales/stores/<store_id>/analysis/monthly-report/"""
+
+    def get(self, request, store_id):
+        store = self.get_store(store_id)
+        params = self.parse(MonthlyReportQuerySerializer, request)
+
+        if "year" in params:
+            year = params["year"]
+            month = params["month"]
+        else:
+            today = timezone.localdate()
+            first_day = today.replace(day=1)
+            previous_month = first_day - timedelta(days=1)
+            year = previous_month.year
+            month = previous_month.month
+
+        report = build_monthly_report(store, year, month)
+        return Response(report)
 
 
 class SalesSummaryView(APIView):

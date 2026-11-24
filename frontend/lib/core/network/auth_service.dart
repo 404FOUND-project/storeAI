@@ -7,7 +7,6 @@ import '../constants/api_constants.dart';
 class AuthService {
   static const Duration _timeout = Duration(seconds: 15);
 
-  // 회원가입
   Future<void> signup({
     required String email,
     required String password,
@@ -32,7 +31,6 @@ class AuthService {
     }
   }
 
-  // 로그인
   Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -41,7 +39,10 @@ class AuthService {
         .post(
           Uri.parse('${ApiConstants.baseUrl}${ApiConstants.login}'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({'email': email, 'password': password}),
+          body: jsonEncode({
+            'email': email,
+            'password': password,
+          }),
         )
         .timeout(_timeout);
 
@@ -52,7 +53,6 @@ class AuthService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  // 로그인한 회원 정보 조회
   Future<Map<String, dynamic>> getMe(String token) async {
     final response = await http
         .get(
@@ -71,7 +71,6 @@ class AuthService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  // 로그아웃
   Future<void> logout(String token) async {
     final response = await http
         .post(
@@ -88,7 +87,6 @@ class AuthService {
     }
   }
 
-  // 서버 오류 메시지 처리
   String _errorMessage(http.Response response) {
     try {
       final data = jsonDecode(response.body);
