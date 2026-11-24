@@ -8,14 +8,23 @@ from store.models import Store
 
 # 회원가입 검증 및 사용자 생성
 class SignupSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=False, allow_blank=True)
+
     class Meta:
         model = User
         # 중복 아이디 자동 검증
-        fields = ['username', 'password', 'nickname', 'phone']
+        fields = ['username', 'email', 'password', 'nickname', 'phone']
         extra_kwargs = {
             # 비밀번호 응답 제외 및 공백 보존
             'password': {'write_only': True, 'trim_whitespace': False}
         }
+
+    def to_internal_value(self, data):
+        # The Flutter form labels the account field "email", while the user
+        # model authenticates with username. Accept both request contracts.
+        if isinstance(data, dict) and "username" not in data and "email" in data:
+            data = {**data, "username": data["email"]}
+        return super().to_internal_value(data)
 
     def validate(self, attrs):
         # 유사성 검증용 사용자 정보
@@ -32,6 +41,7 @@ class SignupSerializer(serializers.ModelSerializer):
         # 비밀번호 해시 저장
         user = User.objects.create_user(
             username=validated_data['username'],
+            email=validated_data.get('email', ''),
             password=validated_data['password'],
             nickname=validated_data.get('nickname', ''),
             phone=validated_data.get('phone', '')
@@ -52,8 +62,21 @@ class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True, trim_whitespace=False)
 
+    def to_internal_value(self, data):
+        # Keep older clients sending username working, and accept the current
+        # Flutter client's email field as an alias for username.
+        if isinstance(data, dict) and "username" not in data and "email" in data:
+            data = {**data, "username": data["email"]}
+        return super().to_internal_value(data)
+
     def validate(self, attrs):
         # 비밀번호 확인 및 비활성 계정 차단
+        identifier = attrs['username']
+        user = User.objects.filter(username=identifier).first()
+        if user is None:
+            user = User.objects.filter(email__iexact=identifier).first()
+        if user is not None:
+            attrs['username'] = user.get_username()
         user = authenticate(request=self.context.get('request'), **attrs)
         # 인증 실패 메시지 통일
         if user is None:

@@ -22,5 +22,5 @@
 - `flag`: `check_quality`(판매 많은데 부정 40%↑), `promote`(판매 적은데 긍정 50%↑), `null`
 - 메뉴당 리뷰 3건 미만은 제외. 네이버 블로그 글(제목만)은 감정 분석에서 제외.
 - 규칙 기반 집계이며 매출과의 인과관계를 확정하지 않음.
-- 챗봇 문장형 답변은 `POST /chat/faq/answer/` (`review_*` 질문).
+- 챗봇 문장형 답변은 `GET /api/chatbot/faq/answer/?id=review_worst&store_id=2` (`review_*` 질문).
 - 리뷰 CRUD(목록·등록·수정·삭제)는 미구현.

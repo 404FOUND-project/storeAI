@@ -9,8 +9,7 @@ class MyStoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
         fields = [
-            "id", "name", "industry", "address", "phone", "business_number",
-            "business_hours", "closed_days", "operating_status",
+            "id", "name", "address", "phone", "business_number",
             "latitude", "longitude", "created_at",
         ]
         read_only_fields = ["id", "created_at"]
@@ -19,7 +18,7 @@ class MyStoreSerializer(serializers.ModelSerializer):
 class MenuSerializer(serializers.ModelSerializer):
     class Meta:
         model = Menu
-        fields = ["id", "source_menu_id", "name", "category", "price", "cost", "is_active"]
+        fields = ["id", "pos_code", "name", "category", "price", "cost", "is_active"]
         read_only_fields = ["id"]
 
     def validate_price(self, value):
