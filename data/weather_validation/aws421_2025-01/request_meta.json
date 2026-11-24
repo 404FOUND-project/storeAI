@@ -1,0 +1,13 @@
+{
+  "endpoint": "https://apis.data.go.kr/1360000/AwsMtlyInfoService/getDailyAwsData",
+  "params": {
+    "pageNo": 1,
+    "numOfRows": 40,
+    "dataType": "JSON",
+    "year": 2025,
+    "month": "01",
+    "station": 421
+  },
+  "http_status": 200,
+  "bytes": 5364
+}
