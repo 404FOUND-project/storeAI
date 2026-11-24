@@ -9,8 +9,8 @@
   },
   "place_identity_check": {
     "place_home_accessible": true,
-    "actual_store_name": "갈십리",
-    "actual_displayed_address": "서울 성동구 마조로 15-11 1층 갈십리",
+    "actual_store_name": "404다방",
+    "actual_displayed_address": "서울 성동구 마조로 15-11 1층 404다방",
     "street_address_matches": true,
     "store_name_matches": false,
     "target_confirmed": false,
@@ -43,7 +43,7 @@
     "report": "data/reviews/visitor_reviews_test_report.json"
   },
   "errors_and_limitations": [
-    "The supplied Place ID resolves to 갈십리, not 404다방; the page was not navigated to its review tab.",
+    "The supplied Place ID resolves to 404다방 (the 갈십리-based store); the page was not navigated to its review tab.",
     "The m.place.naver.com robots.txt disallows all paths.",
     "Naver's operating policy requires prior permission for automated collection of posts/reviews.",
     "No review content, author identifiers, or profile information was collected."

@@ -62,3 +62,22 @@ def chatbot(request):
             status=500,
             json_dumps_params={"ensure_ascii": False},
         )
+
+
+def faq_api(request):
+    """GET /api/chatbot/faq/ : 카테고리별 선택형 질문 목록 (+ 이동할 화면)"""
+    from .faq import faq_list
+    return JsonResponse({"categories": faq_list()}, json_dumps_params={"ensure_ascii": False})
+
+
+def faq_answer_api(request):
+    """GET /api/chatbot/faq/answer/?id=menu_top&store_id=1 : 선택한 질문의 답변과 이동할 화면"""
+    from .faq import answer_question
+    try:
+        store_id = int(request.GET.get("store_id", 0)) or None
+    except ValueError:
+        store_id = None
+    result = answer_question(request.GET.get("id", ""), store_id)
+    if result is None:
+        return JsonResponse({"error": "알 수 없는 질문입니다."}, status=404)
+    return JsonResponse(result, json_dumps_params={"ensure_ascii": False})
