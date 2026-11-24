@@ -1,4 +1,3 @@
-
 from django.urls import path
 from .views import chatbot, faq_answer_api, faq_api
 

@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     HomeSummaryView,
     MonthlyReportView,
+    SalesSummaryView,
     MenuQuantityForecastView,
     NextDaySalesForecastView,
     SalesComparisonView,
@@ -16,6 +17,7 @@ from .views import (
 app_name = 'sales'
 
 urlpatterns = [
+    path('summary/', SalesSummaryView.as_view(), name='sales-summary'),
     path('stores/<int:store_id>/analysis/sales/', SalesSeriesView.as_view(), name='analysis-sales'),
     path('stores/<int:store_id>/analysis/patterns/', SalesPatternView.as_view(), name='analysis-patterns'),
     path('stores/<int:store_id>/analysis/comparison/', SalesComparisonView.as_view(), name='analysis-comparison'),

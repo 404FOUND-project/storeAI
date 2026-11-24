@@ -994,7 +994,6 @@ class ForecastAccuracyView(StoreAnalysisView):
         })
 
 
-
 class MonthlyReportQuerySerializer(serializers.Serializer):
     year = serializers.IntegerField(required=False, min_value=2000, max_value=2100)
     month = serializers.IntegerField(required=False, min_value=1, max_value=12)
@@ -1002,7 +1001,7 @@ class MonthlyReportQuerySerializer(serializers.Serializer):
     def validate(self, attrs):
         if ("year" in attrs) != ("month" in attrs):
             raise serializers.ValidationError(
-                "year? month? ?? ???? ???."
+                "year와 month는 함께 입력해야 합니다."
             )
         return attrs
 
@@ -1026,3 +1025,40 @@ class MonthlyReportView(StoreAnalysisView):
 
         report = build_monthly_report(store, year, month)
         return Response(report)
+
+
+class SalesSummaryView(APIView):
+    """Return today's sales totals and the last seven days for the owner."""
+
+    permission_classes = [permissions.IsAuthenticated]
+    authentication_classes = [TokenAuthentication]
+
+    def get(self, request):
+        store = Store.objects.filter(owner=request.user).first()
+        if store is None:
+            return Response({'detail': '등록된 매장이 없습니다.'}, status=404)
+
+        today = timezone.localtime().date()
+        sales = Sales.objects.filter(store=store)
+        today_sales = sales.filter(sold_at__date=today)
+        today_total = today_sales.aggregate(total=Sum('total_amount'))['total'] or 0
+        today_count = today_sales.count()
+        seven_days_ago = today - timedelta(days=6)
+        weekly_sales = (
+            sales.filter(sold_at__date__gte=seven_days_ago, sold_at__date__lte=today)
+            .annotate(date=TruncDate('sold_at'))
+            .values('date')
+            .annotate(total=Sum('total_amount'))
+            .order_by('date')
+        )
+
+        return Response({
+            'store_name': store.name,
+            'today_total': today_total,
+            'today_count': today_count,
+            'average_amount': round(today_total / today_count) if today_count else 0,
+            'weekly_sales': [
+                {'date': item['date'].isoformat(), 'total': item['total']}
+                for item in weekly_sales
+            ],
+        })
