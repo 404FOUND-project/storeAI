@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -10,17 +9,17 @@ class AuthService {
 
   // 회원가입
   Future<void> signup({
-    required String username,
+    required String email,
     required String password,
     String nickname = '',
     String phone = '',
   }) async {
     final response = await http
         .post(
-          Uri.parse(ApiConstants.signup),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.signup}'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            'username': username,
+            'email': email,
             'password': password,
             'nickname': nickname,
             'phone': phone,
@@ -35,17 +34,14 @@ class AuthService {
 
   // 로그인
   Future<Map<String, dynamic>> login({
-    required String username,
+    required String email,
     required String password,
   }) async {
     final response = await http
         .post(
-          Uri.parse(ApiConstants.login),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.login}'),
           headers: {'Content-Type': 'application/json'},
-          body: jsonEncode({
-            'username': username,
-            'password': password,
-          }),
+          body: jsonEncode({'email': email, 'password': password}),
         )
         .timeout(_timeout);
 
@@ -60,7 +56,7 @@ class AuthService {
   Future<Map<String, dynamic>> getMe(String token) async {
     final response = await http
         .get(
-          Uri.parse(ApiConstants.me),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.me}'),
           headers: {
             'Authorization': 'Token $token',
             'Content-Type': 'application/json',
@@ -79,7 +75,7 @@ class AuthService {
   Future<void> logout(String token) async {
     final response = await http
         .post(
-          Uri.parse(ApiConstants.logout),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.logout}'),
           headers: {
             'Authorization': 'Token $token',
             'Content-Type': 'application/json',
