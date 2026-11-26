@@ -1,4 +1,5 @@
-﻿import 'dart:convert';
+﻿
+import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
@@ -88,5 +89,38 @@ class BusinessDataService {
     );
     return Map<String, dynamic>.from(data);
   }
-}
 
+  // 재고 목록 조회
+  Future<Map<String, dynamic>> getInventory(int storeId) async {
+    final data = await get(ApiConstants.inventory(storeId));
+    return Map<String, dynamic>.from(data);
+  }
+
+  // 발주 추천 조회
+  Future<Map<String, dynamic>> getReorderRecommendation(
+    int storeId, {
+    int targetDays = 7,
+  }) async {
+    final data = await get(
+      ApiConstants.inventoryReorder(
+        storeId,
+        targetDays: targetDays,
+      ),
+    );
+    return Map<String, dynamic>.from(data);
+  }
+
+  // 실제 주문 기반 세트 메뉴 추천 조회
+  Future<Map<String, dynamic>> getSetMenuRecommendation(
+    int storeId, {
+    int top = 10,
+  }) async {
+    final data = await get(
+      ApiConstants.setMenuRecommend(
+        storeId,
+        top: top,
+      ),
+    );
+    return Map<String, dynamic>.from(data);
+  }
+}

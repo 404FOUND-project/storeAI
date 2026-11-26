@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/network/auth_service.dart';
@@ -3417,7 +3417,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                             : selectedCategory == '메뉴 분석'
                             ? 3
                             : selectedCategory == '재고 관리'
-                            ? 4
+                            ? 2
                             : 2;
                         Navigator.pop(context);
                         widget.onNavigate(destination);
