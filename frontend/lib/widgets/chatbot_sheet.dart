@@ -5,8 +5,9 @@ import '../core/network/backend_api.dart';
 
 class ChatbotSheet extends StatefulWidget {
   final ValueChanged<int> onNavigate;
+  final int? storeId;
 
-  const ChatbotSheet({super.key, required this.onNavigate});
+  const ChatbotSheet({super.key, required this.onNavigate, this.storeId});
 
   @override
   State<ChatbotSheet> createState() => _ChatbotSheetState();
@@ -398,7 +399,10 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     FutureBuilder<String>(
-                      future: BackendApi.instance.askChatbot(question),
+                      future: BackendApi.instance.askChatbot(
+  question,
+  storeId: widget.storeId,
+),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
                             ConnectionState.waiting) {

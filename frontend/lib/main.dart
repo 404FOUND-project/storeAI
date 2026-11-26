@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/network/backend_api.dart';
 import 'core/network/auth_service.dart';
 import 'features/auth/login_screen.dart';
 
@@ -35,6 +36,7 @@ class _CafeOnAppState extends State<CafeOnApp> {
   Future<void> _checkLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final savedToken = prefs.getString('auth_token');
+    BackendApi.instance.setToken(savedToken);
 
     if (savedToken != null) {
       try {
@@ -48,6 +50,7 @@ class _CafeOnAppState extends State<CafeOnApp> {
         });
       } catch (_) {
         await prefs.remove('auth_token');
+    BackendApi.instance.setToken(null);
       }
     }
 
@@ -67,6 +70,7 @@ class _CafeOnAppState extends State<CafeOnApp> {
       throw Exception('로그인 응답 형식이 올바르지 않습니다.');
     }
 
+    BackendApi.instance.setToken(token);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
 
@@ -92,6 +96,7 @@ class _CafeOnAppState extends State<CafeOnApp> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
+    BackendApi.instance.setToken(null);
 
     if (!mounted) return;
 
@@ -309,12 +314,123 @@ class _CafeHomeState extends State<CafeHome> {
   // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
   Offset chatbotOffset = const Offset(20, 80);
 
-  final labels = ['홈', '매출 분석', 'AI 분석', '세트 추천', '마이'];
-  final icons = [
+  int? storeId;
+  bool storeLoading = true;
+  // 재고 및 발주 데이터
+  Map<String, dynamic>? inventoryData;
+  Map<String, dynamic>? reorderData;
+  bool inventoryLoading = false;
+  String? inventoryError;
+
+  // 세트 추천 데이터
+  Map<String, dynamic>? setRecommendationData;
+  bool setRecommendationLoading = false;
+  String? setRecommendationError;
+
+  // AI 분석 하위 메뉴: 0 운영 진단 / 1 세트 추천
+  int aiSubTab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStore();
+  }
+
+
+  Future<void> _loadStore() async {
+    try {
+      final stores = await BackendApi.instance.stores();
+
+      final id = stores.isNotEmpty
+          ? int.tryParse(stores.first['id'].toString())
+          : null;
+
+      if (!mounted) return;
+
+      setState(() {
+        storeId = id;
+        storeLoading = false;
+      });
+
+      if (id != null) {
+        _loadInventoryData(id);
+        _loadSetRecommendationData(id);
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        storeLoading = false;
+      });
+
+      debugPrint('매장 조회 실패: $e');
+    }
+  }
+
+  final labels = ['홈', '매출 분석', 'AI 분석', '재고 및 발주', '마이'];
+  // 실제 재고 목록과 발주 추천 데이터 조회
+  Future<void> _loadInventoryData(int id) async {
+    setState(() {
+      inventoryLoading = true;
+      inventoryError = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        BackendApi.instance.inventory(id),
+        BackendApi.instance.inventoryReorder(id, targetDays: 7),
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        inventoryData = results[0];
+        reorderData = results[1];
+        inventoryLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        inventoryError = e.toString();
+        inventoryLoading = false;
+      });
+    }
+  }
+
+  // 실제 주문 내역 기반 세트 추천 데이터 조회
+  Future<void> _loadSetRecommendationData(int id) async {
+    setState(() {
+      setRecommendationLoading = true;
+      setRecommendationError = null;
+    });
+
+    try {
+      final result = await BackendApi.instance.setMenuRecommend(
+        id,
+        top: 10,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        setRecommendationData = result;
+        setRecommendationLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        setRecommendationError = e.toString();
+        setRecommendationLoading = false;
+      });
+    }
+  }
+final icons = [
     Icons.home_rounded,
     Icons.bar_chart_rounded,
     Icons.auto_awesome_rounded,
-    Icons.storefront_rounded,
+    Icons.inventory_2_rounded,
     Icons.person_outline_rounded,
   ];
 
@@ -327,6 +443,7 @@ class _CafeHomeState extends State<CafeHome> {
       barrierColor: const Color(0x990B1728),
       builder: (context) => ChatbotSheet(
         onNavigate: (destination) => setState(() => tab = destination),
+        storeId: storeId,
       ),
     );
   }
@@ -883,7 +1000,7 @@ class _CafeHomeState extends State<CafeHome> {
   Widget otherPage() {
     if (tab == 1) return salesPage();
     if (tab == 2) return aiAnalysisPage();
-    if (tab == 3) return setRecommendationPage();
+    if (tab == 3) return inventoryPage();
     return myPage();
   }
 
@@ -1190,7 +1307,67 @@ class _CafeHomeState extends State<CafeHome> {
     ],
   );
 
+
   Widget aiAnalysisPage() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Row(
+        children: [
+          _aiMenuButton('운영 진단', 0),
+          const SizedBox(width: 8),
+          _aiMenuButton('세트 추천', 1),
+        ],
+      ),
+      const SizedBox(height: 20),
+      if (aiSubTab == 0)
+        _aiDiagnosisPage()
+      else
+        setRecommendationPage(),
+    ],
+  );
+
+  Widget _aiMenuButton(String label, int index) {
+    final selected = aiSubTab == index;
+
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            aiSubTab = index;
+          });
+
+          if (index == 1 &&
+              setRecommendationData == null &&
+              storeId != null &&
+              !setRecommendationLoading) {
+            _loadSetRecommendationData(storeId!);
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            color: selected ? blue : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selected ? blue : line,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: selected ? Colors.white : muted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _aiDiagnosisPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const Text(
@@ -1298,62 +1475,729 @@ class _CafeHomeState extends State<CafeHome> {
     ],
   );
 
-  Widget setRecommendationPage() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        '세트메뉴 추천',
-        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
-      ),
-      const SizedBox(height: 5),
-      const Text(
-        '실제 주문 조합에서 잘 맞는 메뉴를 찾아요',
-        style: TextStyle(fontSize: 12, color: muted),
-      ),
-      const SizedBox(height: 18),
-      section('시간대별 추천', null, null),
-      const SizedBox(height: 10),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: ['전체', '아침', '점심', '오후']
-            .map(
-              (e) => Chip(
-                label: Text(e),
-                backgroundColor: e == '전체' ? blue : Colors.white,
-                labelStyle: TextStyle(color: e == '전체' ? Colors.white : ink),
+
+  Widget setRecommendationPage() {
+    final sets = (setRecommendationData?['sets'] as List?) ?? [];
+
+    if (setRecommendationLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: CircularProgressIndicator(color: blue),
+        ),
+      );
+    }
+
+    if (setRecommendationError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '세트메뉴 추천',
+            style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+          ),
+          const SizedBox(height: 15),
+          Text(
+            '추천 데이터를 불러오지 못했어요.\n$setRecommendationError',
+            style: const TextStyle(color: muted, fontSize: 12),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: storeId == null
+                ? null
+                : () => _loadSetRecommendationData(storeId!),
+            child: const Text('다시 불러오기'),
+          ),
+        ],
+      );
+    }
+
+    final totalOrders =
+        int.tryParse('${setRecommendationData?['total_orders'] ?? 0}') ?? 0;
+    final multiOrders =
+        int.tryParse('${setRecommendationData?['multi_item_orders'] ?? 0}') ?? 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '세트메뉴 추천',
+          style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          '실제 주문 내역에서 자주 함께 선택된 메뉴 조합이에요',
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 18),
+
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: line),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('전체 주문', style: TextStyle(fontSize: 11, color: muted)),
+                    const SizedBox(height: 5),
+                    Text(
+                      '$totalOrders건',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: ink),
+                    ),
+                  ],
+                ),
               ),
-            )
-            .toList(),
+              Container(width: 1, height: 38, color: line),
+              const SizedBox(width: 18),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('2개 이상 주문', style: TextStyle(fontSize: 11, color: muted)),
+                    const SizedBox(height: 5),
+                    Text(
+                      '$multiOrders건',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: blue),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        section('실제 주문 기반 추천 조합', null, null),
+        const SizedBox(height: 10),
+
+        if (sets.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: line),
+            ),
+            child: const Text(
+              '아직 추천할 수 있는 메뉴 조합이 없어요.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: muted, fontSize: 12),
+            ),
+          ),
+
+        ...sets.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = Map<String, dynamic>.from(entry.value as Map);
+          final menus = (item['menus'] as List?) ?? [];
+
+          final menuNames = menus
+              .map((menu) => Map<String, dynamic>.from(menu as Map)['name']?.toString() ?? '')
+              .where((name) => name.isNotEmpty)
+              .toList();
+
+          final orders = item['orders_together'] ?? 0;
+          final totalPrice = item['total_price'] ?? 0;
+          final setPrice = item['set_price'] ?? 0;
+          final discount = item['discount'] ?? 0;
+
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEEF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '추천 ${index + 1}',
+                        style: const TextStyle(fontSize: 10, color: blue, fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '함께 주문 $orders회',
+                      style: const TextStyle(fontSize: 11, color: muted, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 13),
+                Text(
+                  menuNames.join(' + '),
+                  style: const TextStyle(fontSize: 16, color: ink, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 10),
+                const SizedBox(height: 14),
+                const Divider(height: 1, color: line),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('기존 합계', style: TextStyle(fontSize: 10, color: muted)),
+                          Text(
+                            '₩${_formatWon(totalPrice)}',
+                            style: const TextStyle(fontSize: 12, color: muted, decoration: TextDecoration.lineThrough),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('세트 제안가', style: TextStyle(fontSize: 10, color: muted)),
+                          Text(
+                            '₩${_formatWon(setPrice)}',
+                            style: const TextStyle(fontSize: 19, color: blue, fontWeight: FontWeight.w800),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      '${_formatWon(discount)}원 할인',
+                      style: const TextStyle(fontSize: 11, color: green, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  String _formatWon(dynamic value) {
+    final number = num.tryParse(value.toString())?.toInt() ?? 0;
+    return number.toString().replaceAllMapped(
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (match) => ',',
+    );
+  }
+
+
+  Widget inventoryPage() {
+    final inventoryResults =
+        (inventoryData?['results'] as List?) ?? [];
+    final reorderResults =
+        (reorderData?['results'] as List?) ?? [];
+
+    final reorderById = <int, Map<String, dynamic>>{};
+
+    for (final raw in reorderResults) {
+      final item = Map<String, dynamic>.from(raw as Map);
+      final id = int.tryParse('${item['inventory_id']}');
+      if (id != null) {
+        reorderById[id] = item;
+      }
+    }
+
+    final items = <Map<String, dynamic>>[];
+
+    for (final raw in inventoryResults) {
+      final item = Map<String, dynamic>.from(raw as Map);
+      final id = int.tryParse('${item['id']}');
+      final reorder = id == null ? null : reorderById[id];
+
+      items.add({
+        ...item,
+        if (reorder != null) ...reorder,
+      });
+    }
+
+    final expiredCount = items
+        .where((e) => e['expiry_status'] == 'expired')
+        .length;
+    final expiringCount = items
+        .where((e) => e['expiry_status'] == 'expiring')
+        .length;
+    final dangerCount = items
+        .where((e) => e['stock_status'] == 'danger')
+        .length;
+    final lowCount = items
+        .where((e) => e['stock_status'] == 'low')
+        .length;
+
+    String quantityText(dynamic value) {
+      final number = num.tryParse('${value ?? 0}') ?? 0;
+      return number.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+    }
+
+    String stockLabel(dynamic status) {
+      switch (status) {
+        case 'danger':
+          return '재고 부족';
+        case 'low':
+          return '발주 권장';
+        case 'ok':
+          return '재고 적정';
+        default:
+          return '사용량 확인 필요';
+      }
+    }
+
+    Color stockColor(dynamic status) {
+      switch (status) {
+        case 'danger':
+          return const Color(0xFFE5484D);
+        case 'low':
+          return const Color(0xFFE69A24);
+        case 'ok':
+          return green;
+        default:
+          return muted;
+      }
+    }
+
+    String expiryLabel(dynamic status) {
+      switch (status) {
+        case 'expired':
+          return '유통기한 경과';
+        case 'expiring':
+          return '유통기한 임박';
+        case 'ok':
+          return '유통기한 정상';
+        default:
+          return '유통기한 미등록';
+      }
+    }
+
+    Color expiryColor(dynamic status) {
+      switch (status) {
+        case 'expired':
+          return const Color(0xFFE5484D);
+        case 'expiring':
+          return const Color(0xFFE69A24);
+        default:
+          return muted;
+      }
+    }
+
+    if (inventoryLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40),
+          child: CircularProgressIndicator(color: blue),
+        ),
+      );
+    }
+
+    if (inventoryError != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '재고 및 발주',
+            style: TextStyle(
+              fontSize: 25,
+              fontWeight: FontWeight.w800,
+              color: ink,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            '재고 데이터를 불러오지 못했어요.\n${inventoryError}',
+            style: const TextStyle(fontSize: 12, color: muted),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: storeId == null
+                ? null
+                : () => _loadInventoryData(storeId!),
+            child: const Text('다시 불러오기'),
+          ),
+        ],
+      );
+    }
+
+    final basis = reorderData?['basis']?.toString() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '재고 및 발주',
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          '현재 재고와 유통기한을 확인하고 필요한 발주량을 살펴보세요',
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 18),
+
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 1.65,
+          children: [
+            _inventorySummaryCard(
+              '전체 재료',
+              '${items.length}개',
+              blue,
+              Icons.inventory_2_outlined,
+            ),
+            _inventorySummaryCard(
+              '재고 부족',
+              '$dangerCount개',
+              const Color(0xFFE5484D),
+              Icons.warning_amber_rounded,
+            ),
+            _inventorySummaryCard(
+              '유통기한 경과',
+              '$expiredCount개',
+              const Color(0xFFE5484D),
+              Icons.error_outline_rounded,
+            ),
+            _inventorySummaryCard(
+              '유통기한 임박',
+              '$expiringCount개',
+              const Color(0xFFE69A24),
+              Icons.schedule_rounded,
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 20),
+
+        section('발주 현황', null, null),
+        const SizedBox(height: 10),
+
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: line),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.shopping_cart_outlined, color: blue, size: 19),
+                  const SizedBox(width: 7),
+                  const Text(
+                    '7일 기준 권장 발주',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: ink,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '발주가 필요한 재료 ${items.where((e) => (num.tryParse('${e['recommended_order_qty'] ?? 0}') ?? 0) > 0).length}개',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: blue,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                basis,
+                style: const TextStyle(fontSize: 10, color: muted),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        section('재료별 재고 목록', null, null),
+        const SizedBox(height: 10),
+
+        if (items.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(25),
+            child: Center(
+              child: Text(
+                '등록된 재고가 없습니다.',
+                style: TextStyle(color: muted),
+              ),
+            ),
+          ),
+
+        ...items.map((item) {
+          final name = item['ingredient_name']?.toString() ?? '이름 없음';
+          final unit = item['unit']?.toString() ?? '';
+          final quantity = item['quantity'];
+          final dailyUsage = item['daily_usage'];
+          final daysLeft = item['days_left'];
+          final recommended = item['recommended_order_qty'] ?? 0;
+          final stockStatus = item['stock_status'];
+          final expiryStatus = item['expiry_status'];
+          final expiryDays = item['days_to_expiry'];
+          final note = item['note']?.toString() ?? '';
+
+          final expired = expiryStatus == 'expired';
+          final orderQty =
+              num.tryParse('$recommended') ?? 0;
+
+          return Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 11),
+            padding: const EdgeInsets.all(15),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: ink,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: stockColor(stockStatus).withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        stockLabel(stockStatus),
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          color: stockColor(stockStatus),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _inventoryInfo(
+                        '현재 재고',
+                        '${quantityText(quantity)} $unit',
+                      ),
+                    ),
+                    Expanded(
+                      child: _inventoryInfo(
+                        '하루 사용량',
+                        dailyUsage == null
+                            ? '계산 불가'
+                            : '${quantityText(dailyUsage)} $unit',
+                      ),
+                    ),
+                    Expanded(
+                      child: _inventoryInfo(
+                        '남은 일수',
+                        daysLeft == null
+                            ? '-'
+                            : '${quantityText(daysLeft)}일',
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: line),
+                const SizedBox(height: 11),
+
+                Row(
+                  children: [
+                    Icon(
+                      expired
+                          ? Icons.error_outline
+                          : expiryStatus == 'expiring'
+                              ? Icons.schedule
+                              : Icons.event_available_outlined,
+                      size: 15,
+                      color: expiryColor(expiryStatus),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      expiryLabel(expiryStatus),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: expiryColor(expiryStatus),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Spacer(),
+                    if (expiryDays != null)
+                      Text(
+                        expired
+                            ? '${quantityText(expiryDays.abs())}일 지남'
+                            : expiryStatus == 'expiring'
+                                ? '${expiryDays}일 남음'
+                                : '',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: expiryColor(expiryStatus),
+                        ),
+                      ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
+                Container(
+                  padding: const EdgeInsets.all(11),
+                  decoration: BoxDecoration(
+                    color: bg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '권장 발주량',
+                              style: TextStyle(fontSize: 10, color: muted),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              expired
+                                  ? '유통기한 확인 필요'
+                                  : '${quantityText(recommended)} $unit',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: expired
+                                    ? const Color(0xFFE5484D)
+                                    : orderQty > 0
+                                        ? blue
+                                        : ink,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (note.isNotEmpty)
+                        Flexible(
+                          child: Text(
+                            note,
+                            textAlign: TextAlign.right,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: muted,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _inventorySummaryCard(
+    String title,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: line),
       ),
-      const SizedBox(height: 14),
-      _recommendCard(
-        '아메리카노 + 버터 크루아상',
-        '함께 주문 1위',
-        '38%',
-        '두 메뉴 중 하나를 주문한 고객의 38%가 함께 선택했어요.',
-        '7,900원 제안',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 17),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 11, color: muted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
       ),
-      const SizedBox(height: 14),
-      section('다른 추천 조합', null, null),
-      const SizedBox(height: 10),
-      _recommendCard(
-        '카페라떼 + 버터 쿠키',
-        '오후 인기 조합',
-        '31%',
-        '오후 시간대에 함께 선택되는 조합이에요.',
-        '추천 조합',
-      ),
-      const SizedBox(height: 10),
-      _recommendCard(
-        '아메리카노 + 샌드위치',
-        '점심 추천 조합',
-        '27%',
-        '간단한 식사 메뉴와 음료를 함께 제안해 보세요.',
-        '추천 조합',
-      ),
-    ],
-  );
+    );
+  }
+
+  Widget _inventoryInfo(String title, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 10, color: muted),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: ink,
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget myPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1973,17 +2817,52 @@ class _StatusRow extends StatelessWidget {
 
 class ChatbotSheet extends StatefulWidget {
   final ValueChanged<int> onNavigate;
+  final int? storeId;
 
-  const ChatbotSheet({super.key, required this.onNavigate});
+  const ChatbotSheet({super.key, required this.onNavigate, this.storeId});
 
   @override
   State<ChatbotSheet> createState() => _ChatbotSheetState();
 }
 
 class _ChatbotSheetState extends State<ChatbotSheet> {
+  final TextEditingController _questionController = TextEditingController();
   String? selectedCategory;
   String? selectedQuestion;
+  String? selectedQuestionId;
+  Future<String>? _answerFuture;
   bool showAllCategories = false;
+
+  final List<List<String>> _faqQuestionIds = const [
+    ['sales_month', 'sales_compare', 'sales_bestday', 'sales_hour', 'sales_goal'],
+    ['pred_tomorrow', 'pred_weekday', 'pred_basis', 'pred_promo'],
+    ['menu_top', 'menu_together', 'menu_new', 'menu_low'],
+    ['stock_check', 'stock_tomorrow', 'stock_alert', 'stock_proper'],
+    ['area_where', 'area_trait', 'area_rival', 'area_menu'],
+  ];
+
+  Future<String> _loadFaqAnswer(String questionId) async {
+    final result = await BackendApi.instance.answerFaq(questionId, storeId: widget.storeId);
+    return result['answer']?.toString() ?? '답변을 받지 못했습니다.';
+  }
+
+  @override
+  void dispose() {
+    _questionController.dispose();
+    super.dispose();
+  }
+
+  void _sendFreeformQuestion() {
+    final question = _questionController.text.trim();
+    if (question.isEmpty) return;
+
+    setState(() {
+      selectedQuestion = question;
+      selectedQuestionId = null;
+      _answerFuture = BackendApi.instance.askChatbot(question, storeId: widget.storeId);
+    });
+    _questionController.clear();
+  }
 
   final Map<String, IconData> categories = const {
     '이번 달 매출': Icons.bar_chart_rounded,
@@ -2262,14 +3141,23 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
             ],
           ),
           const SizedBox(height: 5),
-          ...questions[selectedCategory]!.map(
-            (question) => Padding(
+          ...questions[selectedCategory]!.asMap().entries.map(
+            (entry) => Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Material(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(13),
                 child: InkWell(
-                  onTap: () => setState(() => selectedQuestion = question),
+                  onTap: () {
+                    final categoryIndex =
+                        categories.keys.toList().indexOf(selectedCategory!);
+                    final questionId = _faqQuestionIds[categoryIndex][entry.key];
+                    setState(() {
+                      selectedQuestion = entry.value;
+                      selectedQuestionId = questionId;
+                      _answerFuture = _loadFaqAnswer(questionId);
+                    });
+                  },
                   borderRadius: BorderRadius.circular(13),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -2284,7 +3172,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                       children: [
                         Expanded(
                           child: Text(
-                            question,
+                            entry.value,
                             style: const TextStyle(
                               fontSize: 11,
                               color: ink,
@@ -2305,6 +3193,55 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
             ),
           ),
         ],
+        const SizedBox(height: 18),
+        const Divider(color: line),
+        const SizedBox(height: 10),
+        const Text(
+          '다른 질문도 직접 물어보세요',
+          style: TextStyle(color: ink, fontSize: 12, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _questionController,
+                minLines: 1,
+                maxLines: 3,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _sendFreeformQuestion(),
+                decoration: InputDecoration(
+                  hintText: '궁금한 내용을 입력해 주세요',
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: line),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: line),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton.filled(
+              onPressed: _sendFreeformQuestion,
+              icon: const Icon(Icons.send_rounded),
+              style: IconButton.styleFrom(
+                backgroundColor: blue,
+                foregroundColor: Colors.white,
+              ),
+              tooltip: '질문 보내기',
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -2365,28 +3302,44 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      answerFor(question),
-                      style: const TextStyle(
-                        color: ink,
-                        fontSize: 12,
-                        height: 1.7,
-                      ),
+                    FutureBuilder<String>(
+                      future: _answerFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        }
+
+                        return Text(
+                          snapshot.hasError
+                              ? snapshot.error.toString()
+                              : snapshot.data ?? '답변을 받지 못했습니다.',
+                          style: const TextStyle(
+                            color: ink,
+                            fontSize: 12,
+                            height: 1.7,
+                          ),
+                        );
+                      },
                     ),
                     const SizedBox(height: 13),
                     const Divider(height: 1, color: line),
                     const SizedBox(height: 8),
                     InkWell(
                       onTap: () {
-                        final destination =
-                            selectedCategory == '매출 예측' ||
+                        final destination = selectedCategory == '매출 예측' ||
                                 selectedCategory == '이번 달 매출'
                             ? 1
                             : selectedCategory == '메뉴 분석'
-                            ? 3
-                            : selectedCategory == '재고 관리'
-                            ? 4
-                            : 2;
+                                ? 2
+                                : selectedCategory == '재고 관리'
+                                    ? 3
+                                    : 2;
                         Navigator.pop(context);
                         widget.onNavigate(destination);
                       },
@@ -2424,6 +3377,8 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
               OutlinedButton(
                 onPressed: () => setState(() {
                   selectedQuestion = null;
+                  selectedQuestionId = null;
+                  _answerFuture = null;
                 }),
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
@@ -2436,6 +3391,8 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
               OutlinedButton(
                 onPressed: () => setState(() {
                   selectedQuestion = null;
+                  selectedQuestionId = null;
+                  _answerFuture = null;
                   selectedCategory = null;
                 }),
                 style: OutlinedButton.styleFrom(

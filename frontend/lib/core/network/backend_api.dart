@@ -23,6 +23,10 @@ class BackendApi {
 
   bool get isAuthenticated => _token != null;
 
+  void setToken(String? token) {
+    _token = token;
+  }
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json',
         if (_token != null) 'Authorization': 'Token $_token',
@@ -203,12 +207,12 @@ class BackendApi {
   }
 
   // 챗봇 질문
-  Future<String> askChatbot(String question) async {
+  Future<String> askChatbot(String question, {int? storeId}) async {
     final body = await _request(
       (uri, headers) => http.post(
         uri,
         headers: headers,
-        body: jsonEncode({'question': question}),
+        body: jsonEncode({'question': question, 'store_id': storeId}),
       ),
       ApiConstants.chatbot,
     );
@@ -217,5 +221,57 @@ class BackendApi {
 
     return result['answer']?.toString() ??
         '백엔드에서 답변을 받지 못했습니다.';
+  }
+
+  Future<Map<String, dynamic>> answerFaq(String questionId, {int? storeId}) async {
+    final query = 'id=${Uri.encodeQueryComponent(questionId)}'
+        '${storeId == null ? '' : '&store_id=$storeId'}';
+    final body = await _request(
+      (uri, headers) => http.get(uri, headers: headers),
+      '${ApiConstants.chatbot}faq/answer/?$query',
+    );
+
+    return Map<String, dynamic>.from(body as Map);
+  }
+  // 재고 목록 조회
+  Future<Map<String, dynamic>> inventory(int storeId) async {
+    final result = await _request(
+      (uri, headers) => http.get(uri, headers: headers),
+      ApiConstants.inventory(storeId),
+    );
+
+    return Map<String, dynamic>.from(result as Map);
+  }
+
+  // 발주 추천 조회
+  Future<Map<String, dynamic>> inventoryReorder(
+    int storeId, {
+    int targetDays = 7,
+  }) async {
+    final result = await _request(
+      (uri, headers) => http.get(uri, headers: headers),
+      ApiConstants.inventoryReorder(
+        storeId,
+        targetDays: targetDays,
+      ),
+    );
+
+    return Map<String, dynamic>.from(result as Map);
+  }
+
+  // 세트 메뉴 추천 조회
+  Future<Map<String, dynamic>> setMenuRecommend(
+    int storeId, {
+    int top = 10,
+  }) async {
+    final result = await _request(
+      (uri, headers) => http.get(uri, headers: headers),
+      ApiConstants.setMenuRecommend(
+        storeId,
+        top: top,
+      ),
+    );
+
+    return Map<String, dynamic>.from(result as Map);
   }
 }

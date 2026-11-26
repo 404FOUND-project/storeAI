@@ -31,6 +31,7 @@ class _MainScreenState extends State<MainScreen> {
   Offset chatbotOffset = const Offset(20, 80);
 
   final labels = ['홈', '매출 분석', 'AI 분석', '세트 추천', '마이'];
+
   final icons = [
     Icons.home_rounded,
     Icons.bar_chart_rounded,
@@ -46,8 +47,12 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> loadStores() async {
+    print('STORE LOAD START');
+
     try {
       final stores = await BackendApi.instance.stores();
+
+      print('STORE LIST: $stores');
 
       if (!mounted) return;
 
@@ -73,7 +78,11 @@ class _MainScreenState extends State<MainScreen> {
         storeLoading = false;
         storeError = null;
       });
+
+      print('SELECTED STORE ID: $storeId');
     } catch (e) {
+      print('STORE LOAD ERROR: $e');
+
       if (!mounted) return;
 
       setState(() {
@@ -94,6 +103,7 @@ class _MainScreenState extends State<MainScreen> {
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x990B1728),
       builder: (context) => ChatbotSheet(
+        storeId: storeId,
         onNavigate: (destination) => setState(() => tab = destination),
       ),
     );
@@ -119,10 +129,12 @@ class _MainScreenState extends State<MainScreen> {
                             ? NotificationScreen(
                                 notificationsRead: notificationsRead,
                                 readNotifications: readNotifications,
-                                onBack: () =>
-                                    setState(() => showNotifications = false),
-                                onReadAll: () =>
-                                    setState(() => notificationsRead = true),
+                                onBack: () => setState(
+                                  () => showNotifications = false,
+                                ),
+                                onReadAll: () => setState(
+                                  () => notificationsRead = true,
+                                ),
                                 onRead: (index) => setState(
                                   () => readNotifications.add(index),
                                 ),
@@ -141,7 +153,6 @@ class _MainScreenState extends State<MainScreen> {
                     bottomNav(),
                   ],
                 ),
-
                 Positioned(
                   right: chatbotOffset.dx,
                   bottom: chatbotOffset.dy,
@@ -245,8 +256,10 @@ class _MainScreenState extends State<MainScreen> {
         storeError: storeError,
       );
     }
+
     if (tab == 2) return const AiAnalysisScreen();
     if (tab == 3) return const RecommendationScreen();
+
     return const MyPageScreen();
   }
 
@@ -259,6 +272,7 @@ class _MainScreenState extends State<MainScreen> {
         child: Row(
           children: List.generate(labels.length, (i) {
             final selected = tab == i;
+
             return Expanded(
               child: InkWell(
                 onTap: () => setState(() => tab = i),
