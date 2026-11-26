@@ -17,4 +17,16 @@ class ApiConstants {
 
   static String savedForecast(int storeId, int runId) =>
       '/sales/stores/$storeId/forecast/saved/?run_id=$runId';
+
+  // 재고 목록
+  static String inventory(int storeId) =>
+      '/store/$storeId/inventory/';
+
+  // 발주 추천
+  static String inventoryReorder(int storeId, {int targetDays = 7}) =>
+      '/store/$storeId/inventory/reorder/?target_days=$targetDays';
+
+  // 세트 메뉴 추천
+  static String setMenuRecommend(int storeId, {int top = 10}) =>
+      '/store/$storeId/menus/set-recommend/?top=$top';
 }
