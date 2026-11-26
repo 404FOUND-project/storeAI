@@ -1,6 +1,7 @@
 
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Count, Sum
 from django.db.models.functions import ExtractHour, TruncDate
 from django.http import Http404
@@ -12,8 +13,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from store.models import Store
+from sales.ml.boundary import clamp_as_of, default_as_of, local_today
 
-from sales.ml.boundary import clamp_as_of, default_as_of
 from sales.ml.forecast_engine import generate_forecasts
 
 from .models import ForecastRun, ForecastValue, Sales, SalesItem
@@ -222,6 +223,8 @@ class SalesPatternView(StoreAnalysisView):
         params = self.parse(RangeSerializer, request)
 
         latest = queries.latest_sales_date(store)
+        today = timezone.localdate()
+        today_weekday = today.weekday()
 
         if latest is None:
             return Response({
@@ -231,20 +234,39 @@ class SalesPatternView(StoreAnalysisView):
                 "days_with_data": 0,
                 "weekday": [],
                 "hourly": [],
+                "weekday_hourly": {
+                    "weekday": today_weekday,
+                    "days": 0,
+                    "hours": [],
+                },
             })
 
-        start, end = self.resolve_range(params, latest, "month")
+        start, end = self.resolve_range(params, today, "day")
 
         daily = queries.daily_totals(store, start, end)
         hourly = queries.hourly_totals(store, start, end)
+
+        calendar_days = {
+            weekday: sum(
+                1
+                for offset in range((end - start).days + 1)
+                if (start + timedelta(days=offset)).weekday() == weekday
+            )
+            for weekday in range(7)
+        }
+
+        weekday_hourly = queries.weekday_hourly_totals(
+            store, start, end, today_weekday
+        )
 
         return Response({
             "store_id": store.pk,
             "start": start.isoformat(),
             "end": end.isoformat(),
             "days_with_data": len(daily),
-            "weekday": analytics.weekday_pattern(daily),
+            "weekday": analytics.weekday_pattern(daily, calendar_days),
             "hourly": analytics.hourly_pattern(hourly, len(daily)),
+            "weekday_hourly": weekday_hourly,
         })
 
 
@@ -527,23 +549,44 @@ class SevenDayForecastView(ForecastView):
 
     def get(self, request, store_id):
         store = self.get_store(store_id)
-        params = self.parse(AsOfSerializer, request)
 
-        as_of = (
-            clamp_as_of(params["as_of"])
-            if params.get("as_of")
-            else None
-        )
+        # 현재 주의 월요일 계산 (월요일 시작)
+        today = local_today()
+        monday = today - timedelta(days=today.weekday())
 
-        result = _latest_saved_forecast(
-            store,
-            as_of=as_of,
-        )
+        # 전 주 일요일을 예측 기준일로 설정
+        as_of = clamp_as_of(monday - timedelta(days=1))
+
+        # 매장 단위 잠금으로 동일 주 예측의 중복 생성을 방지
+        with transaction.atomic():
+            Store.objects.select_for_update().get(pk=store.pk)
+
+            # 해당 기준일에 완료된 예측이 있는지 확인
+            result = _latest_saved_forecast(
+                store,
+                as_of=as_of,
+            )
+
+            # 완료된 예측이 없을 때만 새로 생성하고 저장
+            if result is None:
+                generate_forecasts(
+                    store.pk,
+                    as_of=as_of,
+                    persist=True,
+                )
+
+                # 생성된 예측 결과 다시 조회
+                result = _latest_saved_forecast(
+                    store,
+                    as_of=as_of,
+                )
 
         if result is None:
             return Response(
-                {"detail": "저장된 예측 결과가 없습니다."},
-                status=404,
+                {
+                    "detail": "예측 결과를 생성하거나 조회하지 못했습니다."
+                },
+                status=500,
             )
 
         return Response({
