@@ -334,62 +334,59 @@ class _CafeHomeState extends State<CafeHome> {
     return 'month';
   }
 
+  Future<void> _loadSalesData() async {
+    if (_storeId == null) return;
 
-Future<void> _loadSalesData({int? periodIndex}) async {
-  if (_storeId == null) return;
-
-  if (periodIndex != null) {
     setState(() {
-      _salesPeriodIndex = periodIndex;
+      _isSalesLoading = true;
+      _salesError = null;
     });
-  }
 
-  setState(() {
-    _isSalesLoading = true;
-    _salesError = null;
-  });
+    try {
+      final results = await Future.wait([
+        _businessService.getSales(_storeId!, granularity: 'day'),
+        _businessService.getPatterns(_storeId!),
+      ]);
 
-  try {
-    final results = await Future.wait([
-      _businessService.getSales(
-        _storeId!,
-        granularity: _salesGranularity,
-      ),
-      _businessService.getPatterns(_storeId!),
-    ]);
+      final patternsDebug = results[1];
 
-    Map<String, dynamic>? dailyData;
+      debugPrint('===== PATTERNS DEBUG =====');
+      debugPrint('PATTERNS KEYS: ${patternsDebug.keys.toList()}');
 
-    if (_salesPeriodIndex == 1) {
-      try {
-        dailyData = await _businessService.getSales(
-          _storeId!,
-          granularity: 'day',
+      final weekdayHourlyDebug = patternsDebug['weekday_hourly'];
+
+      debugPrint('WEEKDAY HOURLY TYPE: ${weekdayHourlyDebug.runtimeType}');
+      debugPrint('WEEKDAY HOURLY DATA: $weekdayHourlyDebug');
+
+      if (weekdayHourlyDebug is Map) {
+        final hoursDebug = weekdayHourlyDebug['hours'];
+        debugPrint('HOURS TYPE: ${hoursDebug.runtimeType}');
+        debugPrint(
+          'HOURS COUNT: ${hoursDebug is List ? hoursDebug.length : "NOT LIST"}',
         );
-      } catch (_) {
-        dailyData = null;
+        debugPrint('HOURS DATA: $hoursDebug');
       }
+
+      debugPrint('===== END PATTERNS DEBUG =====');
+
+      if (!mounted) return;
+
+      setState(() {
+        _salesData = results[0];
+        _dailySalesData = results[0];
+        _patternsData = results[1];
+        _hoveredWeekIndex = null;
+        _isSalesLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        _salesError = error.toString();
+        _isSalesLoading = false;
+      });
     }
-
-    if (!mounted) return;
-
-    setState(() {
-      _salesData = results[0];
-      _patternsData = results[1];
-      _dailySalesData = dailyData;
-      _hoveredWeekIndex = null;
-      _isSalesLoading = false;
-    });
-  } catch (error) {
-    if (!mounted) return;
-
-    setState(() {
-      _salesError = error.toString();
-      _isSalesLoading = false;
-    });
   }
-}
-
 
   @override
   void initState() {
@@ -429,7 +426,6 @@ Future<void> _loadSalesData({int? periodIndex}) async {
     }
   }
 
-
   Future<void> _loadSavedForecast() async {
     if (_storeId == null) return;
 
@@ -440,6 +436,21 @@ Future<void> _loadSalesData({int? periodIndex}) async {
 
     try {
       final result = await _businessService.getSavedForecast(_storeId!);
+
+      debugPrint('===== FORECAST DEBUG =====');
+      debugPrint('result keys: ${result.keys.toList()}');
+      debugPrint('forecast as_of: ${result['as_of']}');
+      debugPrint('forecast target_dates: ${result['target_dates']}');
+
+      final values = result['values'];
+      if (values is List) {
+        debugPrint('forecast values count: ${values.length}');
+        for (final item in values.take(10)) {
+          debugPrint('forecast item: $item');
+        }
+      } else {
+        debugPrint('forecast values is not a List: ${values.runtimeType}');
+      }
 
       if (!mounted) return;
 
@@ -456,6 +467,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       });
     }
   }
+
   Future<void> _loadReviewAnalysis() async {
     if (_storeId == null) return;
 
@@ -481,6 +493,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       });
     }
   }
+
   void _changeTab(int destination) {
     setState(() {
       tab = destination;
@@ -490,7 +503,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       if (_salesData == null && !_isSalesLoading) {
         _loadSalesData();
       }
-      if (_forecastData == null && !_isForecastLoading) {
+      if (!_isForecastLoading) {
         _loadSavedForecast();
       }
     }
@@ -501,6 +514,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       _loadReviewAnalysis();
     }
   }
+
   // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
   Offset chatbotOffset = const Offset(20, 80);
 
@@ -520,9 +534,8 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x990B1728),
-      builder: (context) => ChatbotSheet(
-        onNavigate: (destination) => _changeTab(destination),
-      ),
+      builder: (context) =>
+          ChatbotSheet(onNavigate: (destination) => _changeTab(destination)),
     );
   }
 
@@ -643,15 +656,11 @@ Future<void> _loadSalesData({int? periodIndex}) async {
     ),
   );
 
-
   String _formatWon(dynamic value) {
     if (value == null) return '데이터 없음';
     final number = num.tryParse(value.toString());
     if (number == null) return '데이터 없음';
-    return '${number.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (match) => '${match[1]},',
-    )}원';
+    return '${number.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (match) => '${match[1]},')}원';
   }
 
   String _formatPercent(dynamic value) {
@@ -676,21 +685,21 @@ Future<void> _loadSalesData({int? periodIndex}) async {
     final forecast = data?['today_predicted_sales'];
     final change = data?['sales_change_percent'];
 
-    final salesChangeForCondition =
-        metrics['sales_change_percent'] is num
-            ? (metrics['sales_change_percent'] as num).toDouble()
-            : null;
+    final salesChangeForCondition = metrics['sales_change_percent'] is num
+        ? (metrics['sales_change_percent'] as num).toDouble()
+        : null;
     final reviewForCondition = reviewRating is num
         ? (reviewRating as num).toDouble()
         : null;
-    final hasDailySales = metrics['sales'] != null &&
-        daily['status'] != 'INSUFFICIENT_DATA';
+    final hasDailySales =
+        metrics['sales'] != null && daily['status'] != 'INSUFFICIENT_DATA';
 
-    final conditionBad = hasDailySales &&
-        (salesChangeForCondition != null &&
-                salesChangeForCondition <= -10 ||
+    final conditionBad =
+        hasDailySales &&
+        (salesChangeForCondition != null && salesChangeForCondition <= -10 ||
             reviewForCondition != null && reviewForCondition <= 2.5);
-    final conditionCaution = hasDailySales &&
+    final conditionCaution =
+        hasDailySales &&
         !conditionBad &&
         (salesChangeForCondition == null ||
             salesChangeForCondition < 0 ||
@@ -699,26 +708,26 @@ Future<void> _loadSalesData({int? periodIndex}) async {
     final conditionColor = !hasDailySales
         ? const Color(0xFF718096)
         : conditionBad
-            ? const Color(0xFFD94343)
-            : conditionCaution
-                ? const Color(0xFFE98A22)
-                : const Color(0xFF287FF0);
+        ? const Color(0xFFD94343)
+        : conditionCaution
+        ? const Color(0xFFE98A22)
+        : const Color(0xFF287FF0);
 
     final conditionTitle = !hasDailySales
         ? '오늘의 가게 컨디션은 진단 불가예요.'
         : conditionBad
-            ? '오늘의 가게 컨디션은 나쁨이에요.'
-            : conditionCaution
-                ? '오늘의 가게 컨디션은 주의예요.'
-                : '오늘의 가게 컨디션은 좋음이에요!';
+        ? '오늘의 가게 컨디션은 나쁨이에요.'
+        : conditionCaution
+        ? '오늘의 가게 컨디션은 주의예요.'
+        : '오늘의 가게 컨디션은 좋음이에요!';
 
     final conditionDescription = !hasDailySales
         ? '운영 데이터를 더 모으면 진단할 수 있어요.'
         : conditionBad
-            ? '매출과 리뷰 등 주요 운영 지표를 점검해 보세요.'
-            : conditionCaution
-                ? '일부 운영 지표를 확인해 보세요.'
-                : '매출과 리뷰 흐름이 양호해요.';
+        ? '매출과 리뷰 등 주요 운영 지표를 점검해 보세요.'
+        : conditionCaution
+        ? '일부 운영 지표를 확인해 보세요.'
+        : '매출과 리뷰 흐름이 양호해요.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -759,10 +768,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
               children: [
                 const Text(
                   '매장 데이터를 불러오지 못했습니다.',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: ink,
-                  ),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: ink),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -944,9 +950,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
               Expanded(
                 child: metric(
                   '리뷰 평균 평점',
-                  reviewRating == null
-                      ? '데이터 없음'
-                      : '${reviewRating}점',
+                  reviewRating == null ? '데이터 없음' : '${reviewRating}점',
                   '${reviewCount ?? 0}개 · 테스트 리뷰 기준',
                   Icons.star_rounded,
                   blue,
@@ -1002,11 +1006,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Text(
                   '• $value',
-                  style: const TextStyle(
-                    color: ink,
-                    fontSize: 12,
-                    height: 1.5,
-                  ),
+                  style: const TextStyle(color: ink, fontSize: 12, height: 1.5),
                 ),
               ),
             ),
@@ -1158,138 +1158,206 @@ Future<void> _loadSalesData({int? periodIndex}) async {
     ),
   );
 
-  Widget chart() {
-    if (_salesPeriodIndex == 1) {
-      return weeklyComparisonChart();
-    }
+  Widget averageBarChart({
+    required String title,
+    required String subtitle,
+    required List<Map<String, dynamic>> items,
+    required String labelKey,
+    required String valueKey,
+    required Color barColor,
+    required bool horizontalScroll,
+    int labelInterval = 1,
+  }) {
+    final values = items.map((item) {
+      final raw = item[valueKey];
+      return raw is num ? raw.toDouble() : 0.0;
+    }).toList();
 
-    final rawSeries = _salesData?['series'];
-    final allItems = rawSeries is List
-        ? rawSeries
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList()
-        : <Map<String, dynamic>>[];
-
-    final items = _salesPeriodIndex == 0 && allItems.length > 14
-        ? allItems.sublist(allItems.length - 14)
-        : allItems;
-
-    final salesValues = items
-        .map((item) => (item['sales'] as num?)?.toDouble() ?? 0)
-        .toList();
-
-    final maxSales = salesValues.isEmpty
+    final maxValue = values.isEmpty
         ? 0.0
-        : salesValues.reduce((a, b) => a > b ? a : b);
+        : values.reduce((a, b) => a > b ? a : b);
 
-    String labelFor(Map<String, dynamic> item) {
-      final rawDate = item['period_start']?.toString();
-      final date = rawDate == null ? null : DateTime.tryParse(rawDate);
-      if (date == null) return '-';
+    final bestIndex = values.isEmpty ? -1 : values.indexOf(maxValue);
 
-      if (_salesPeriodIndex == 2) return '${date.month}월';
-      return '${date.month}/${date.day}';
+    debugPrint('===== AVERAGE BAR CHART DEBUG =====');
+    debugPrint('TITLE: $title');
+    debugPrint('ITEM COUNT: ${items.length}');
+    debugPrint('VALUES: $values');
+    debugPrint('MAX VALUE: $maxValue');
+    debugPrint('HORIZONTAL SCROLL: $horizontalScroll');
+    debugPrint('BEST INDEX: $bestIndex');
+    debugPrint('===== END CHART DEBUG =====');
+
+    String compactWon(double value) {
+      if (value == 0) return '0원';
+      if (value >= 10000) {
+        return '${(value / 10000).toStringAsFixed(1)}만';
+      }
+      if (value >= 1000) {
+        return '${(value / 1000).toStringAsFixed(0)}천';
+      }
+      return '${value.toStringAsFixed(0)}원';
     }
 
-    final summary = _salesData?['summary'] is Map
-        ? Map<String, dynamic>.from(_salesData!['summary'])
-        : <String, dynamic>{};
+    final bars = Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: List.generate(items.length, (index) {
+        final value = values[index];
+        final isBest = index == bestIndex && maxValue > 0;
+        final ratio = maxValue > 0 ? value / maxValue : 0.0;
+        final label = items[index][labelKey]?.toString() ?? '';
 
-    final title = [
-      '최근 매출 흐름',
-      '주별 매출 흐름',
-      '월별 매출 흐름',
-    ][_salesPeriodIndex];
+        return SizedBox(
+          width: horizontalScroll ? 48 : null,
+          height: horizontalScroll ? 155 : null,
+          child: horizontalScroll
+              ? Tooltip(
+                  message: '$label\n평균 매출: ${value.toStringAsFixed(0)}원',
+                  waitDuration: const Duration(milliseconds: 300),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      SizedBox(
+                        height: 18,
+                        child: Text(
+                          value > 0 ? compactWon(value) : '',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: isBest ? barColor : muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Container(
+                        width: 22,
+                        height: 105 * ratio < 4 && value > 0 ? 4 : 105 * ratio,
+                        decoration: BoxDecoration(
+                          color: isBest
+                              ? barColor
+                              : barColor.withValues(alpha: 0.28),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      SizedBox(
+                        height: 15,
+                        child: Text(
+                          index % labelInterval == 0 ? label : '',
+                          style: const TextStyle(fontSize: 9, color: muted),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      height: 18,
+                      child: FittedBox(
+                        child: Text(
+                          value > 0 ? compactWon(value) : '',
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: isBest ? barColor : muted,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Container(
+                      width: 24,
+                      height: 105 * ratio < 4 && value > 0 ? 4 : 105 * ratio,
+                      decoration: BoxDecoration(
+                        color: isBest
+                            ? barColor
+                            : barColor.withValues(alpha: 0.28),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isBest ? barColor : muted,
+                        fontWeight: isBest ? FontWeight.w800 : FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+        );
+      }),
+    );
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(17, 17, 17, 14),
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(19),
         border: Border.all(color: line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: muted, fontSize: 12)),
-          const SizedBox(height: 5),
           Text(
-            _formatWon(summary['sales']),
+            title,
             style: const TextStyle(
-              color: ink,
-              fontSize: 23,
+              fontSize: 14,
               fontWeight: FontWeight.w800,
+              color: ink,
             ),
           ),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(fontSize: 10, color: muted)),
           const SizedBox(height: 18),
           if (items.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
+            const SizedBox(
+              height: 130,
               child: Center(
-                child: Text('표시할 매출 데이터가 없습니다.', style: TextStyle(color: muted)),
+                child: Text(
+                  '분석할 매출 데이터가 없습니다.',
+                  style: TextStyle(fontSize: 12, color: muted),
+                ),
               ),
             )
           else
             SizedBox(
-              height: 110,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(items.length, (i) {
-                  final value = salesValues[i];
-                  final heightFactor = maxSales > 0
-                      ? (value / maxSales).clamp(0.04, 1.0).toDouble()
-                      : 0.0;
-
-                  final highlighted = i == salesValues.length - 1;
-
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.bottomCenter,
-                              child: FractionallySizedBox(
-                                heightFactor: heightFactor,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: highlighted
-                                        ? blue
-                                        : const Color(0xFFD9E8FF),
-                                    borderRadius: BorderRadius.circular(7),
-                                  ),
-                                ),
-                              ),
-                            ),
+              height: 155,
+              child: horizontalScroll
+                  ? SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: bars,
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: List.generate(items.length, (index) {
+                        return Expanded(
+                          child: SizedBox(
+                            height: 155,
+                            child: bars.children[index],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            labelFor(items[i]),
-                            maxLines: 1,
-                            overflow: TextOverflow.clip,
-                            style: TextStyle(
-                              fontSize: _salesPeriodIndex == 0 ? 8 : 10,
-                              color: highlighted ? blue : muted,
-                              fontWeight: highlighted
-                                  ? FontWeight.w800
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
+                        );
+                      }),
                     ),
-                  );
-                }),
-              ),
             ),
         ],
       ),
     );
   }
-    Widget weeklyComparisonChart() {
+
+  Widget chart() {
+    return weeklyComparisonChart();
+  }
+
+  Widget weeklyComparisonChart() {
     final today = DateUtils.dateOnly(DateTime.now());
     final monday = today.subtract(
       Duration(days: today.weekday - DateTime.monday),
@@ -1317,8 +1385,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
         final date = rawDate == null ? null : DateTime.tryParse(rawDate);
 
         if (date != null) {
-          actualMap[dateKey(date)] =
-              (data['sales'] as num?)?.toDouble() ?? 0;
+          actualMap[dateKey(date)] = (data['sales'] as num?)?.toDouble() ?? 0;
         }
       }
     }
@@ -1330,8 +1397,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       for (final item in rawForecastValues.whereType<Map>()) {
         final data = Map<String, dynamic>.from(item);
 
-        if (data['metric'] != 'SALES' ||
-            data['granularity'] != 'day') {
+        if (data['metric'] != 'SALES' || data['granularity'] != 'DAILY') {
           continue;
         }
 
@@ -1339,8 +1405,8 @@ Future<void> _loadSalesData({int? periodIndex}) async {
         final date = rawDate == null ? null : DateTime.tryParse(rawDate);
 
         if (date != null && data['predicted_value'] is num) {
-          forecastMap[dateKey(date)] =
-              (data['predicted_value'] as num).toDouble();
+          forecastMap[dateKey(date)] = (data['predicted_value'] as num)
+              .toDouble();
         }
       }
     }
@@ -1349,6 +1415,11 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       if (!date.isBefore(today)) return null;
       return actualMap[dateKey(date)];
     }).toList();
+
+    final weeklyActualTotal = actualValues.fold<double>(
+      0,
+      (total, value) => total + (value ?? 0),
+    );
 
     final forecastValues = dates.map((date) {
       return forecastMap[dateKey(date)];
@@ -1384,14 +1455,12 @@ Future<void> _loadSalesData({int? periodIndex}) async {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '이번 주 매출 비교',
+            '이번 주 매출 합계',
             style: TextStyle(color: muted, fontSize: 12),
           ),
           const SizedBox(height: 5),
           Text(
-            _formatWon(_salesData?['summary'] is Map
-                ? (_salesData!['summary'] as Map)['sales']
-                : null),
+            _formatWon(weeklyActualTotal),
             style: const TextStyle(
               color: ink,
               fontSize: 23,
@@ -1403,11 +1472,7 @@ Future<void> _loadSalesData({int? periodIndex}) async {
             children: [
               _chartLegend(blue, '실제 매출', dashed: false),
               const SizedBox(width: 18),
-              _chartLegend(
-                const Color(0xFFF59E0B),
-                '예측 매출',
-                dashed: true,
-              ),
+              _chartLegend(const Color(0xFFF59E0B), '예측 매출', dashed: true),
             ],
           ),
           const SizedBox(height: 12),
@@ -1415,11 +1480,10 @@ Future<void> _loadSalesData({int? periodIndex}) async {
             builder: (context, constraints) {
               return MouseRegion(
                 onHover: (event) {
-                  final index = ((event.localPosition.dx /
-                              constraints.maxWidth) *
-                          7)
-                      .floor()
-                      .clamp(0, 6);
+                  final index =
+                      ((event.localPosition.dx / constraints.maxWidth) * 7)
+                          .floor()
+                          .clamp(0, 6);
 
                   if (_hoveredWeekIndex != index) {
                     setState(() {
@@ -1495,32 +1559,20 @@ Future<void> _loadSalesData({int? periodIndex}) async {
     );
   }
 
-    Widget _chartLegend(
-    Color color,
-    String label, {
-    required bool dashed,
-  }) {
+  Widget _chartLegend(Color color, String label, {required bool dashed}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         CustomPaint(
           size: const Size(24, 10),
-          painter: LegendLinePainter(
-            color: color,
-            dashed: dashed,
-          ),
+          painter: LegendLinePainter(color: color, dashed: dashed),
         ),
         const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 11,
-            color: muted,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 11, color: muted)),
       ],
     );
   }
+
   Widget otherPage() {
     if (tab == 1) return salesPage();
     if (tab == 2) return aiAnalysisPage();
@@ -1706,17 +1758,20 @@ Future<void> _loadSalesData({int? periodIndex}) async {
     final rawValues = _forecastData?['values'];
     final values = rawValues is List
         ? rawValues
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .where((item) =>
-                item['metric'] == 'SALES' &&
-                item['granularity'] == 'day')
-            .toList()
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .where(
+                (item) =>
+                    item['metric'] == 'SALES' && item['granularity'] == 'day',
+              )
+              .toList()
         : <Map<String, dynamic>>[];
 
-    values.sort((a, b) =>
-        (a['target_date']?.toString() ?? '')
-            .compareTo(b['target_date']?.toString() ?? ''));
+    values.sort(
+      (a, b) => (a['target_date']?.toString() ?? '').compareTo(
+        b['target_date']?.toString() ?? '',
+      ),
+    );
 
     return Container(
       width: double.infinity,
@@ -1731,7 +1786,11 @@ Future<void> _loadSalesData({int? periodIndex}) async {
         children: [
           const Text(
             '저장된 7일 매출 예측',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: ink),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: ink,
+            ),
           ),
           const SizedBox(height: 5),
           const Text(
@@ -1808,96 +1867,60 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       ),
     );
   }
+
   Widget salesPage() {
-    final summary = _salesData?['summary'] is Map
-        ? Map<String, dynamic>.from(_salesData!['summary'])
-        : <String, dynamic>{};
-
-    final hasData = (summary['days_with_data'] as num?)?.toInt() != null &&
-        (summary['days_with_data'] as num).toInt() > 0;
-
     final patterns = _patternsData ?? <String, dynamic>{};
+
     final weekdayItems = patterns['weekday'] is List
         ? (patterns['weekday'] as List)
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .where((item) => item['total_sales'] is num)
-            .toList()
-        : <Map<String, dynamic>>[];
-    final hourlyItems = patterns['hourly'] is List
-        ? (patterns['hourly'] as List)
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .where((item) => item['total_sales'] is num)
-            .toList()
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .where((item) => item['avg_daily_sales'] is num)
+              .toList()
         : <Map<String, dynamic>>[];
 
-    final bestWeekday = weekdayItems.isEmpty
-        ? null
-        : weekdayItems.reduce((a, b) =>
-            (a['total_sales'] as num) >= (b['total_sales'] as num) ? a : b);
-    final bestHour = hourlyItems.isEmpty
-        ? null
-        : hourlyItems.reduce((a, b) =>
-            (a['total_sales'] as num) >= (b['total_sales'] as num) ? a : b);
+    final weekdayHourly = patterns['weekday_hourly'] is Map
+        ? Map<String, dynamic>.from(patterns['weekday_hourly'])
+        : <String, dynamic>{};
 
-    final periodLabels = ['오늘', '이번 주', '이번 달'];
-    final periodTitle = [
-      '최근 30일 일별 총매출',
-      '최근 12주 주별 총매출',
-      '최근 365일 월별 총매출',
-    ][_salesPeriodIndex];
+    final weekdayHourlyDays = (weekdayHourly['days'] as num?)?.toInt() ?? 0;
+
+    final hourlyItems = weekdayHourly['hours'] is List
+        ? (weekdayHourly['hours'] as List)
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .map(
+                (item) => {
+                  'hour': item['hour'],
+                  'label': '${item['hour']}시',
+                  'avg_sales': item['avg_sales'],
+                },
+              )
+              .where(
+                (item) =>
+                    item['avg_sales'] is num && (item['avg_sales'] as num) > 0,
+              )
+              .toList()
+        : <Map<String, dynamic>>[];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
           '매출 분석',
-          style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
         ),
         const SizedBox(height: 5),
         const Text(
           '매장 실적과 변화를 한눈에',
           style: TextStyle(fontSize: 12, color: muted),
         ),
-        const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(5),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8EDF4),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Row(
-            children: periodLabels.asMap().entries.map((entry) {
-              final selected = entry.key == _salesPeriodIndex;
-              return Expanded(
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: selected || _isSalesLoading
-                      ? null
-                      : () => _loadSalesData(periodIndex: entry.key),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      color: selected ? Colors.white : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      entry.value,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: selected ? ink : muted,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-        ),
         const SizedBox(height: 18),
+
         if (_isSalesLoading)
           const Center(
             child: Padding(
@@ -1922,7 +1945,10 @@ Future<void> _loadSalesData({int? periodIndex}) async {
                   style: TextStyle(fontWeight: FontWeight.w700, color: ink),
                 ),
                 const SizedBox(height: 8),
-                Text(_salesError!, style: const TextStyle(fontSize: 11, color: muted)),
+                Text(
+                  _salesError!,
+                  style: const TextStyle(fontSize: 11, color: muted),
+                ),
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: _loadSalesData,
@@ -1934,123 +1960,56 @@ Future<void> _loadSalesData({int? periodIndex}) async {
         else if (_salesData == null)
           const Center(child: Text('매출 데이터를 불러오는 중입니다.'))
         else ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
-              ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  periodTitle,
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  hasData ? _formatWon(summary['sales']) : '데이터 없음',
-                  style: const TextStyle(
-                    fontSize: 27,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  hasData
-                      ? '매출 기록 ${summary['days_with_data']}일 기준'
-                      : '해당 기간에 확인할 매출 기록이 없습니다.',
-                  style: const TextStyle(fontSize: 12, color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: metric(
-                  '주문 건수',
-                  hasData ? '${summary['order_count']}건' : '-',
-                  '조회 기간 합계',
-                  Icons.shopping_bag_rounded,
-                  blue,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: metric(
-                  '평균 주문 금액',
-                  hasData ? _formatWon(summary['average_ticket']) : '-',
-                  '주문당 평균',
-                  Icons.receipt_long_rounded,
-                  green,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          section('매출 흐름', null, null),
-          const SizedBox(height: 10),
           chart(),
-          const SizedBox(height: 18),
-          savedForecastCard(),
+
           const SizedBox(height: 22),
+
           section('매출 분석 인사이트', null, null),
           const SizedBox(height: 10),
-          if (bestWeekday != null)
-            insight(
-              Icons.calendar_today_rounded,
-              green,
-              const Color(0xFFE9F8F2),
-              '${bestWeekday['weekday_name']} 매출이 가장 높아요',
-              '요일별 누적 매출은 ${_formatWon(bestWeekday['total_sales'])}입니다. 요일별 운영 계획을 세울 때 참고해 보세요.',
-              '요일 분석',
-            )
-          else
-            const Text(
-              '요일별 매출 데이터가 없어 분석할 수 없습니다.',
-              style: TextStyle(fontSize: 12, color: muted),
-            ),
-          const SizedBox(height: 10),
-          if (bestHour != null)
-            insight(
-              Icons.access_time_rounded,
-              blue,
-              const Color(0xFFEEF6FF),
-              '${bestHour['hour']}시 매출이 가장 높아요',
-              '해당 시간대 누적 매출은 ${_formatWon(bestHour['total_sales'])}이며, 전체 매출의 ${(bestHour['sales_share_pct'] as num?)?.toStringAsFixed(1) ?? '-'}%입니다.',
-              '시간대 분석',
-            )
-          else
-            const Text(
-              '시간대별 매출 데이터가 없어 분석할 수 없습니다.',
-              style: TextStyle(fontSize: 12, color: muted),
-            ),
 
+          averageBarChart(
+            title: '\uC694\uC77C\uBCC4 \uD3C9\uADE0 \uB9E4\uCD9C',
+            subtitle: '\uCD5C\uADFC 30\uC77C \u00B7 \uC694\uC77C\uBCC4 \uD558\uB8E8 \uD3C9\uADE0 \uB9E4\uCD9C',
+            items: weekdayItems,
+            labelKey: 'weekday_name',
+            valueKey: 'avg_daily_sales',
+            barColor: green,
+            horizontalScroll: false,
+          ),
+
+          const SizedBox(height: 12),
+
+          averageBarChart(
+            title: '\uC624\uB298\uACFC \uAC19\uC740 \uC694\uC77C\uC758 \uC2DC\uAC04\uB300\uBCC4 \uD3C9\uADE0 \uB9E4\uCD9C',
+            subtitle:
+                '\uCD5C\uADFC 30\uC77C \uC911 \uAC19\uC740 \uC694\uC77C $weekdayHourlyDays\uC77C \uAE30\uC900',
+            items: hourlyItems,
+            labelKey: 'label',
+            valueKey: 'avg_sales',
+            barColor: blue,
+            horizontalScroll: true,
+            labelInterval: 3,
+          ),
         ],
       ],
     );
   }
+
   Widget aiAnalysisPage() {
     final rawMenus = _reviewData?['menus'];
     final menus = rawMenus is List
         ? rawMenus
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList()
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
         : <Map<String, dynamic>>[];
 
     final rawCategories = _reviewData?['negative_categories'];
     final categories = rawCategories is List
         ? rawCategories
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList()
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
         : <Map<String, dynamic>>[];
 
     final rawSources = _reviewData?['sources'];
@@ -2068,7 +2027,11 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       children: [
         const Text(
           'AI 운영 진단',
-          style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
         ),
         const SizedBox(height: 5),
         const Text(
@@ -2088,7 +2051,10 @@ Future<void> _loadSalesData({int? periodIndex}) async {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('리뷰 분석 현황', style: TextStyle(fontSize: 12, color: muted)),
+              const Text(
+                '리뷰 분석 현황',
+                style: TextStyle(fontSize: 12, color: muted),
+              ),
               const SizedBox(height: 8),
               if (_isReviewLoading)
                 const Center(
@@ -2103,7 +2069,11 @@ Future<void> _loadSalesData({int? periodIndex}) async {
                   children: [
                     const Text(
                       '리뷰 분석 데이터를 불러오지 못했어요.',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: ink),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: ink,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -2124,18 +2094,20 @@ Future<void> _loadSalesData({int? periodIndex}) async {
                 )
               else ...[
                 Text(
-                  menus.isEmpty ? '분석 가능한 메뉴가 없어요.' : '분석 기준을 충족한 메뉴 ${menus.length}개',
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: ink),
+                  menus.isEmpty
+                      ? '분석 가능한 메뉴가 없어요.'
+                      : '분석 기준을 충족한 메뉴 ${menus.length}개',
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: ink,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Expanded(
-                      child: _metricCell('분석 메뉴', '${menus.length}개'),
-                    ),
-                    Expanded(
-                      child: _metricCell('메뉴별 리뷰 합계', '$totalReviews건'),
-                    ),
+                    Expanded(child: _metricCell('분석 메뉴', '${menus.length}개')),
+                    Expanded(child: _metricCell('메뉴별 리뷰 합계', '$totalReviews건')),
                   ],
                 ),
                 if (sources.isNotEmpty) ...[
@@ -2155,9 +2127,15 @@ Future<void> _loadSalesData({int? periodIndex}) async {
         const SizedBox(height: 10),
 
         if (_isReviewLoading)
-          const Text('리뷰 데이터를 불러오는 중이에요.', style: TextStyle(fontSize: 12, color: muted))
+          const Text(
+            '리뷰 데이터를 불러오는 중이에요.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
         else if (_reviewError != null)
-          const Text('리뷰 데이터를 확인할 수 없어요.', style: TextStyle(fontSize: 12, color: muted))
+          const Text(
+            '리뷰 데이터를 확인할 수 없어요.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
         else if (_reviewData != null && menus.isEmpty)
           const Text(
             '메뉴별 리뷰가 최소 ${3}건 이상 쌓인 데이터가 없어 분석할 수 없습니다.',
@@ -2189,13 +2167,31 @@ Future<void> _loadSalesData({int? periodIndex}) async {
                       Expanded(
                         child: Text(
                           name,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: ink),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: ink,
+                          ),
                         ),
                       ),
                       if (flag == 'check_quality')
-                        const Text('품질 점검 후보', style: TextStyle(fontSize: 10, color: Color(0xFFE58A00), fontWeight: FontWeight.w700))
+                        const Text(
+                          '품질 점검 후보',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Color(0xFFE58A00),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        )
                       else if (flag == 'promote')
-                        const Text('홍보 검토 후보', style: TextStyle(fontSize: 10, color: blue, fontWeight: FontWeight.w700)),
+                        const Text(
+                          '홍보 검토 후보',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: blue,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -2209,13 +2205,21 @@ Future<void> _loadSalesData({int? periodIndex}) async {
                       Expanded(
                         child: Text(
                           '긍정 ${(positive * 100).round()}%',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF29966A), fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF29966A),
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                       Expanded(
                         child: Text(
                           '부정 ${(negative * 100).round()}%',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFFE36B6B), fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFFE36B6B),
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
                     ],
@@ -2227,11 +2231,17 @@ Future<void> _loadSalesData({int? periodIndex}) async {
                       children: [
                         Expanded(
                           flex: (positive * 1000).round().clamp(1, 1000),
-                          child: Container(height: 7, color: const Color(0xFF55B88B)),
+                          child: Container(
+                            height: 7,
+                            color: const Color(0xFF55B88B),
+                          ),
                         ),
                         Expanded(
                           flex: (negative * 1000).round().clamp(1, 1000),
-                          child: Container(height: 7, color: const Color(0xFFE58A8A)),
+                          child: Container(
+                            height: 7,
+                            color: const Color(0xFFE58A8A),
+                          ),
                         ),
                       ],
                     ),
@@ -2247,14 +2257,19 @@ Future<void> _loadSalesData({int? periodIndex}) async {
 
         if (_isReviewLoading)
           const Text('분석 중이에요.', style: TextStyle(fontSize: 12, color: muted))
-        else if (_reviewData == null || _reviewError != null || categories.isEmpty)
+        else if (_reviewData == null ||
+            _reviewError != null ||
+            categories.isEmpty)
           const Text(
             '확인할 부정 리뷰 유형이 없습니다.',
             style: TextStyle(fontSize: 12, color: muted),
           )
         else
           ...categories.map((item) {
-            final label = item['label']?.toString() ?? item['category']?.toString() ?? '기타';
+            final label =
+                item['label']?.toString() ??
+                item['category']?.toString() ??
+                '기타';
             final count = (item['count'] as num?)?.toInt() ?? 0;
 
             return Container(
@@ -2268,9 +2283,19 @@ Future<void> _loadSalesData({int? periodIndex}) async {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: ink)),
+                    child: Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: ink,
+                      ),
+                    ),
                   ),
-                  Text('$count건', style: const TextStyle(fontSize: 12, color: muted)),
+                  Text(
+                    '$count건',
+                    style: const TextStyle(fontSize: 12, color: muted),
+                  ),
                 ],
               ),
             );
@@ -2293,10 +2318,18 @@ Future<void> _loadSalesData({int? periodIndex}) async {
       children: [
         Text(label, style: const TextStyle(fontSize: 11, color: muted)),
         const SizedBox(height: 5),
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: ink)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
+        ),
       ],
     );
   }
+
   Widget setRecommendationPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -3470,14 +3503,12 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     ),
   );
 }
+
 class LegendLinePainter extends CustomPainter {
   final Color color;
   final bool dashed;
 
-  LegendLinePainter({
-    required this.color,
-    required this.dashed,
-  });
+  LegendLinePainter({required this.color, required this.dashed});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -3510,8 +3541,7 @@ class LegendLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant LegendLinePainter oldDelegate) {
-    return oldDelegate.color != color ||
-        oldDelegate.dashed != dashed;
+    return oldDelegate.color != color || oldDelegate.dashed != dashed;
   }
 }
 
@@ -3587,11 +3617,7 @@ class WeeklySalesPainter extends CustomPainter {
       );
     }
 
-    void drawSeries(
-      List<double?> values,
-      Color color, {
-      required bool dashed,
-    }) {
+    void drawSeries(List<double?> values, Color color, {required bool dashed}) {
       final linePaint = Paint()
         ..color = color
         ..strokeWidth = 2.5
@@ -3643,25 +3669,13 @@ class WeeklySalesPainter extends CustomPainter {
         final value = values[i];
         if (value == null) continue;
 
-        canvas.drawCircle(
-          pointAt(i, value),
-          3.5,
-          dotPaint,
-        );
+        canvas.drawCircle(pointAt(i, value), 3.5, dotPaint);
       }
     }
 
-    drawSeries(
-      forecast,
-      forecastColor,
-      dashed: true,
-    );
+    drawSeries(forecast, forecastColor, dashed: true);
 
-    drawSeries(
-      actual,
-      actualColor,
-      dashed: false,
-    );
+    drawSeries(actual, actualColor, dashed: false);
   }
 
   @override
@@ -3672,11 +3686,3 @@ class WeeklySalesPainter extends CustomPainter {
         oldDelegate.hoveredIndex != hoveredIndex;
   }
 }
-
-
-
-
-
-
-
-

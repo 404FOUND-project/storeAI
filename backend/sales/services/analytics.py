@@ -82,28 +82,39 @@ def rollup(daily, granularity, start, end):
     return series
 
 
-def weekday_pattern(daily):
-    """Per weekday: totals and per-day averages over days that have data."""
+def weekday_pattern(daily, calendar_days=None):
+    """Per weekday: totals and per-day averages over the selected period."""
     agg = {wd: [0, 0, 0] for wd in range(7)}
+
     for day, row in daily.items():
         a = agg[day.weekday()]
         a[0] += row["sales"]
         a[1] += row["orders"]
         a[2] += 1
+
     out = []
     for wd in range(7):
-        sales, orders, days = agg[wd]
+        sales, orders, days_with_data = agg[wd]
+        average_days = (
+            calendar_days.get(wd, 0)
+            if calendar_days is not None
+            else days_with_data
+        )
+
         out.append({
             "weekday": wd,
             "weekday_name": WEEKDAY_NAMES[wd],
-            "days_with_data": days,
+            "days_with_data": days_with_data,
             "total_sales": sales,
             "total_orders": orders,
-            "avg_daily_sales": round(sales / days) if days else None,
-            "avg_daily_orders": round(orders / days, 1) if days else None,
+            "avg_daily_sales": round(sales / average_days) if average_days else None,
+            "avg_daily_orders": round(orders / average_days, 1) if average_days else None,
             "average_ticket": average_ticket(sales, orders),
         })
+
     return out
+
+    
 
 
 def hourly_pattern(hourly, days_with_data):
