@@ -603,8 +603,11 @@ class _CafeHomeState extends State<CafeHome> {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x990B1728),
-      builder: (context) =>
-          ChatbotSheet(onNavigate: (destination) => _changeTab(destination)),
+      builder: (context) => ChatbotSheet(
+        onNavigate: (destination) => _changeTab(destination),
+        storeId: _storeId,
+        token: widget.token,
+      ),
     );
   }
 
@@ -944,13 +947,18 @@ class _CafeHomeState extends State<CafeHome> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ReportScreen(),
-                        ),
-                      );
-                    },
+                    onPressed: _storeId == null
+                        ? null
+                        : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ReportScreen(
+                                  storeId: _storeId!,
+                                  businessService: _businessService,
+                                ),
+                              ),
+                            );
+                          },
                     icon: const Icon(
                       Icons.arrow_forward,
                       color: Colors.white,
@@ -2447,16 +2455,31 @@ class _CafeHomeState extends State<CafeHome> {
 
     int stockPriority(dynamic raw) {
       if (raw is! Map) return 4;
-      final status = (raw['stock_status'] ?? raw['status'] ?? '').toString().trim().toLowerCase();
-      final expiry = (raw['expiry_status'] ?? '').toString().trim().toLowerCase();
-      if (status == 'danger' || status == 'critical' || status.contains('위험') || expiry == 'expired') return 0;
-      if (status == 'low' || status == 'warning' || status.contains('부족') || expiry == 'expiring') return 1;
+      final status = (raw['stock_status'] ?? raw['status'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      final expiry = (raw['expiry_status'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      if (status == 'danger' ||
+          status == 'critical' ||
+          status.contains('위험') ||
+          expiry == 'expired')
+        return 0;
+      if (status == 'low' ||
+          status == 'warning' ||
+          status.contains('부족') ||
+          expiry == 'expiring')
+        return 1;
       final days = double.tryParse(raw['days_left']?.toString() ?? '');
       if (days != null && days <= 1) return 0;
       if (days != null && days <= 3) return 1;
       if (status == 'ok' || status == 'normal' || status == '정상') return 2;
       return 3;
     }
+
     double daysLeft(dynamic raw) {
       if (raw is! Map) return double.infinity;
       return double.tryParse(raw['days_left']?.toString() ?? '') ??
@@ -2516,17 +2539,20 @@ class _CafeHomeState extends State<CafeHome> {
             final quantity = item['quantity']?.toString() ?? '-';
             final unit = item['unit']?.toString() ?? '';
             final days = item['days_left']?.toString() ?? '-';
-            final status = (item['stock_status'] ?? item['status'] ?? '').toString().trim().toLowerCase();
+            final status = (item['stock_status'] ?? item['status'] ?? '')
+                .toString()
+                .trim()
+                .toLowerCase();
             final priority = stockPriority(item);
             final statusLabel = priority == 0
                 ? '재고 위험'
                 : priority == 1
-                    ? '재고 부족'
-                    : priority == 2
-                        ? '정상'
-                        : status.isEmpty
-                            ? '상태 확인'
-                            : status;
+                ? '재고 부족'
+                : priority == 2
+                ? '정상'
+                : status.isEmpty
+                ? '상태 확인'
+                : status;
             return Container(
               margin: const EdgeInsets.only(bottom: 9),
               padding: const EdgeInsets.all(14),
@@ -2677,10 +2703,12 @@ class _CafeHomeState extends State<CafeHome> {
       if (text.isEmpty || text == '-') return '-';
       final number = num.tryParse(text);
       if (number == null) return text;
-      return number.toStringAsFixed(0).replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-        (match) => '${match[1]},',
-      );
+      return number
+          .toStringAsFixed(0)
+          .replaceAllMapped(
+            RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+            (match) => '${match[1]},',
+          );
     }
 
     final sets = (_setRecommendationData?['sets'] as List?) ?? [];
@@ -3095,8 +3123,93 @@ class _CafeHomeState extends State<CafeHome> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
-class ReportScreen extends StatelessWidget {
-  const ReportScreen({super.key});
+class ReportScreen extends StatefulWidget {
+  final int storeId;
+  final BusinessDataService businessService;
+
+  const ReportScreen({
+    super.key,
+    required this.storeId,
+    required this.businessService,
+  });
+
+  @override
+  State<ReportScreen> createState() => _ReportScreenState();
+}
+
+class _ReportScreenState extends State<ReportScreen> {
+  bool _isLoading = true;
+  String? _error;
+  DateTime? _reportDate;
+  int? _sales;
+  int? _orders;
+  int? _averageTicket;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReportData();
+  }
+
+  Future<void> _loadReportData() async {
+    try {
+      final data = await widget.businessService.getSales(
+        widget.storeId,
+        granularity: 'day',
+      );
+
+      final series = data['series'];
+      Map<String, dynamic>? latest;
+
+      if (series is List && series.isNotEmpty) {
+        latest = Map<String, dynamic>.from(series.last as Map);
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        if (latest != null) {
+          _reportDate = DateTime.tryParse(
+            latest['period_start']?.toString() ?? '',
+          );
+          _sales = int.tryParse(latest['sales']?.toString() ?? '');
+          _orders = int.tryParse(latest['order_count']?.toString() ?? '');
+          _averageTicket = int.tryParse(
+            latest['average_ticket']?.toString() ?? '',
+          );
+        }
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _won(int? value) {
+    if (value == null) return '—';
+    final digits = value.abs().toString();
+    final formatted = digits.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+    return '${value < 0 ? '-' : ''}₩$formatted';
+  }
+
+  String get _dateLabel {
+    if (_isLoading) return '실제 매출 데이터 불러오는 중';
+    if (_error != null) return '매출 데이터를 불러오지 못했습니다';
+    if (_reportDate == null) return '등록된 매출 기록이 없습니다';
+
+    const weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+    final d = _reportDate!;
+    return '${d.year}년 ${d.month}월 ${d.day}일 ${weekdays[d.weekday - 1]} 매출 기록';
+  }
+
+  String get _loadingValue => _isLoading ? '불러오는 중' : '—';
 
   @override
   Widget build(BuildContext context) {
@@ -3140,9 +3253,9 @@ class ReportScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '2026년 11월 1일 일요일',
-                      style: TextStyle(color: muted, fontSize: 12),
+                    Text(
+                      _dateLabel,
+                      style: const TextStyle(color: muted, fontSize: 12),
                     ),
                     const SizedBox(height: 20),
                     Container(
@@ -3163,31 +3276,50 @@ class ReportScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: const Text(
                                   'AI DAILY REPORT',
-                                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                               const Text(
                                 '\uC11C\uC6B8 \u00B7 \uAC15\uC218\uD655\uB960 0%',
-                                style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 18),
                           const Text(
                             '\uC624\uB298 \uB0A0\uC528 \u00B7 \uCD5C\uC800 -2\u00B0C / \uCD5C\uACE0 4\u00B0C',
-                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 4),
                           const Text(
                             '\uB9D1\uACE0 \uC0B4\uC9DD \uC300\uC300\uD574\uC694! \u2600\uFE0F',
-                            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                           const SizedBox(height: 18),
                           Container(
@@ -3202,23 +3334,40 @@ class ReportScreen extends StatelessWidget {
                               children: [
                                 const Text(
                                   '\u2728 \uC624\uB298 \uC798 \uB098\uAC08 \uCD94\uCC9C \uBA54\uB274',
-                                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                                 const SizedBox(height: 10),
                                 Wrap(
                                   spacing: 6,
                                   runSpacing: 6,
                                   children: [
-                                    for (final m in ['\u2615 \uB530\uB73B\uD55C \uC544\uBA54\uB9AC\uCE74\uB178', '\uD83E\uDD5B \uCE74\uD398\uB77C\uB5BC', '\uD83C\uDF6F \uBC14\uB2D0\uB77C\uB77C\uB5BC'])
+                                    for (final m in [
+                                      '\u2615 \uB530\uB73B\uD55C \uC544\uBA54\uB9AC\uCE74\uB178',
+                                      '\uD83E\uDD5B \uCE74\uD398\uB77C\uB5BC',
+                                      '\uD83C\uDF6F \uBC14\uB2D0\uB77C\uB77C\uB5BC',
+                                    ])
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                         ),
                                         child: Text(
                                           m,
-                                          style: const TextStyle(color: Color(0xFF1E5EC2), fontSize: 12, fontWeight: FontWeight.w700),
+                                          style: const TextStyle(
+                                            color: Color(0xFF1E5EC2),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
                                         ),
                                       ),
                                   ],
@@ -3239,44 +3388,59 @@ class ReportScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 15),
-                    const Row(
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          '매출 데이터 조회 오류: $_error',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    Row(
                       children: [
                         Expanded(
                           child: _ReportMetric(
                             icon: Icons.payments_rounded,
-                            label: '오늘 매출',
-                            value: '₩428,500',
-                            caption: '+12.8%',
+                            label: '매출액',
+                            value: _isLoading ? _loadingValue : _won(_sales),
+                            caption: '최근 매출 기록',
                           ),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: _ReportMetric(
                             icon: Icons.shopping_bag_rounded,
                             label: '주문 건수',
-                            value: '68건',
-                            caption: '+8.2%',
+                            value: _isLoading
+                                ? _loadingValue
+                                : (_orders == null ? '—' : '$_orders건'),
+                            caption: '실제 주문 기록',
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Row(
+                    Row(
                       children: [
                         Expanded(
                           child: _ReportMetric(
                             icon: Icons.receipt_long_rounded,
                             label: '평균 주문 금액',
-                            value: '₩6,301',
+                            value: _isLoading
+                                ? _loadingValue
+                                : _won(_averageTicket),
                           ),
                         ),
-                        SizedBox(width: 10),
-                        Expanded(
+                        const SizedBox(width: 10),
+                        const Expanded(
                           child: _ReportMetric(
                             icon: Icons.flag_rounded,
                             label: '목표 달성률',
-                            value: '71.4%',
-                            caption: '목표 ₩600,000',
+                            value: '—',
+                            caption: '목표 금액 미등록',
                           ),
                         ),
                       ],
@@ -3463,127 +3627,162 @@ class _StatusRow extends StatelessWidget {
 
 class ChatbotSheet extends StatefulWidget {
   final ValueChanged<int> onNavigate;
+  final int? storeId;
+  final String token;
 
-  const ChatbotSheet({super.key, required this.onNavigate});
+  const ChatbotSheet({
+    super.key,
+    required this.onNavigate,
+    required this.token,
+    this.storeId,
+  });
 
   @override
   State<ChatbotSheet> createState() => _ChatbotSheetState();
 }
 
 class _ChatbotSheetState extends State<ChatbotSheet> {
+  late final BusinessDataService _dataService;
+
+  final TextEditingController _questionController = TextEditingController();
+
   String? selectedCategory;
   String? selectedQuestion;
-  bool showAllCategories = false;
+  String? selectedQuestionId;
 
-  final Map<String, IconData> categories = const {
-    '이번 달 매출': Icons.bar_chart_rounded,
-    '매출 예측': Icons.auto_awesome_rounded,
-    '메뉴 분석': Icons.storefront_outlined,
-    '재고 관리': Icons.inventory_2_outlined,
-    '주변 상권 분석': Icons.location_on_outlined,
-  };
+  Future<Map<String, dynamic>>? _answerFuture;
 
-  final Map<String, List<String>> questions = const {
-    '이번 달 매출': [
-      '이번 달 현재까지 매출은 얼마인가요?',
-      '지난달 같은 기간보다 매출이 얼마나 변했나요?',
-      '이번 달 매출이 가장 높았던 날은 언제인가요?',
-      '시간대별 매출은 어떻게 다른가요?',
-      '이번 달 매출 목표를 달성할 수 있을까요?',
-    ],
-    '매출 예측': [
-      '내일 매출은 얼마나 예상되나요?',
-      '이번 주 매출이 가장 높을 요일은 언제인가요?',
-      '매출 예측은 어떤 데이터를 기반으로 하나요?',
-      '매출을 높이려면 언제 프로모션을 해야 하나요?',
-    ],
-    '메뉴 분석': [
-      '가장 많이 팔린 메뉴는 무엇인가요?',
-      '함께 주문되는 메뉴는 무엇인가요?',
-      '새롭게 추가하면 좋을 메뉴가 있나요?',
-      '판매가 저조한 메뉴를 알려주세요.',
-    ],
-    '재고 관리': [
-      '재고 확인이 필요한 메뉴가 있나요?',
-      '내일 준비할 원재료를 추천해 주세요.',
-      '재고 부족을 미리 알 수 있나요?',
-      '판매량 기준으로 적정 재고를 알려주세요.',
-    ],
-    '주변 상권 분석': [
-      '주변에 카페 고객이 많은 장소는 어디인가요?',
-      '우리 가게 주변 상권의 특징은 무엇인가요?',
-      '주변 경쟁 카페를 분석해 주세요.',
-      '상권에 맞는 추천 메뉴가 있나요?',
-    ],
-  };
+  List<Map<String, dynamic>> _faqCategories = [];
 
-  String answerFor(String question) {
-    if (question.contains('현재까지 매출')) {
-      return '시연용 데이터 기준으로 이번 달 현재까지 매출은 2,482만원이에요. 실제 POS 연동 시 최신 수치로 바뀌도록 연결할 수 있어요.';
+  bool _faqLoading = true;
+  String? _faqError;
+
+  @override
+  void initState() {
+    super.initState();
+    _dataService = BusinessDataService(token: widget.token);
+    _loadFaqCategories();
+  }
+
+  // 서버에서 FAQ 카테고리와 질문 목록 가져오기
+  Future<void> _loadFaqCategories() async {
+    setState(() {
+      _faqLoading = true;
+      _faqError = null;
+    });
+
+    try {
+      final result = await _dataService.getFaq();
+      final rawCategories = result['categories'];
+
+      if (rawCategories is! List) {
+        throw Exception('FAQ 응답 형식이 올바르지 않습니다.');
+      }
+
+      final categories = rawCategories
+          .whereType<Map>()
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        _faqCategories = categories;
+        _faqLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _faqError = e.toString();
+        _faqLoading = false;
+      });
     }
-    if (question.contains('지난달')) {
-      return '시연용 예시에서는 지난달 같은 기간보다 매출이 12% 증가했어요. 요일별 매출과 주문 건수를 함께 확인하면 변화 원인을 파악하는 데 도움이 돼요.';
+  }
+
+  // 서버의 실제 FAQ 답변 가져오기
+  Future<Map<String, dynamic>> _loadFaqAnswer(String questionId) async {
+    return await _dataService.getFaqAnswer(questionId, storeId: widget.storeId);
+  }
+
+  // 기존 자유 질문 기능 유지
+  Future<Map<String, dynamic>> _loadFreeformAnswer(String question) async {
+    final answer = await _dataService.askChatbot(
+      question,
+      storeId: widget.storeId,
+    );
+
+    return {'answer': answer};
+  }
+
+  // 카테고리별 아이콘
+  IconData _categoryIcon(String category) {
+    switch (category) {
+      case '이번 달 매출':
+        return Icons.bar_chart_rounded;
+      case '매출 예측':
+        return Icons.auto_awesome_rounded;
+      case '메뉴 분석':
+        return Icons.storefront_outlined;
+      case '재고 관리':
+        return Icons.inventory_2_outlined;
+      case '고객 리뷰':
+        return Icons.rate_review_outlined;
+      case '주변 상권 분석':
+        return Icons.location_on_outlined;
+      default:
+        return Icons.help_outline_rounded;
     }
-    if (question.contains('가장 높았던 날')) {
-      return '예시 데이터에서는 토요일 매출이 가장 높게 나타나요. 실제 데이터 연결 후 날짜별 매출을 비교해 확인할 수 있어요.';
+  }
+
+  Map<String, dynamic>? _selectedCategoryData() {
+    for (final category in _faqCategories) {
+      if (category['category']?.toString() == selectedCategory) {
+        return category;
+      }
     }
-    if (question.contains('시간대별')) {
-      return '일반적으로 점심 이후와 저녁 시간대의 매출을 나누어 보면 피크타임을 파악할 수 있어요. 실제 시간대별 주문 데이터를 연결하면 가게에 맞는 결과를 제공할 수 있어요.';
-    }
-    if (question.contains('목표')) {
-      return '현재 예시 목표 달성률은 71.4%예요. 남은 영업일과 하루 평균 매출을 함께 고려해 목표 달성 가능성을 확인해 보세요.';
-    }
-    if (question.contains('내일 매출')) {
-      return '시연용 답변이에요. 최근 매출, 요일, 날씨, 공휴일 데이터를 연결하면 내일 예상 매출과 예측 범위를 계산할 수 있어요.';
-    }
-    if (question.contains('요일')) {
-      return '현재 예시 주간 데이터에서는 토요일 매출이 가장 높아요. 실제 매장 데이터로 요일별 패턴을 학습하면 더 정확한 예측이 가능해요.';
-    }
-    if (question.contains('기반')) {
-      return '매출 예측에는 과거 POS 매출, 주문 건수, 요일, 날씨, 공휴일과 같은 변수를 활용할 수 있어요. 현재 화면은 예시 데이터이며 모델 연동은 별도 작업이에요.';
-    }
-    if (question.contains('프로모션')) {
-      return '매출이 상대적으로 낮은 시간대에 세트 메뉴나 디저트 추가 할인처럼 부담이 적은 프로모션을 시험해 보세요. 진행 전후의 주문 수와 객단가를 비교하는 것이 좋아요.';
-    }
-    if (question.contains('많이 팔린 메뉴')) {
-      return '실제 메뉴별 판매량 데이터가 아직 연결되지 않았어요. POS 주문 내역을 연동하면 판매량과 매출액 기준으로 인기 메뉴를 정리할 수 있어요.';
-    }
-    if (question.contains('함께 주문')) {
-      return '아메리카노와 쿠키처럼 함께 주문되는 메뉴 조합을 분석할 수 있어요. 현재는 예시이며, 실제 주문 내역을 연결하면 연관 구매 결과를 계산할 수 있어요.';
-    }
-    if (question.contains('추가하면')) {
-      return '메뉴별 판매량과 원가, 고객 반응을 함께 확인해 새로운 메뉴 도입 여부를 판단해 보세요.';
-    }
-    if (question.contains('저조한')) {
-      return '메뉴별 판매량과 이익률 데이터가 연결되면 판매가 저조한 메뉴를 찾을 수 있어요. 판매량만이 아니라 재료비와 폐기량도 함께 확인하는 것을 추천해요.';
-    }
-    if (question.contains('재고 확인')) {
-      return '현재는 실시간 재고 데이터가 연결되지 않았어요. 재고 수량과 최근 판매 속도를 연결하면 부족 가능성이 높은 품목을 우선 표시할 수 있어요.';
-    }
-    if (question.contains('원재료')) {
-      return '최근 판매량과 예약·날씨 정보를 바탕으로 원재료 준비량을 추천할 수 있어요. 현재는 실제 재고와 판매 데이터가 연결되지 않아 구체적인 수량은 예측하지 않아요.';
-    }
-    if (question.contains('미리 알')) {
-      return '가능해요. 재고 수량, 일평균 사용량, 납품 소요일을 연결하면 재고가 기준치 아래로 내려갈 때 알림을 표시하도록 구현할 수 있어요.';
-    }
-    if (question.contains('적정 재고')) {
-      return '적정 재고는 최근 판매량과 납품 소요일, 안전 재고를 기준으로 계산할 수 있어요. 실제 원재료별 사용량 데이터가 연결되면 품목별로 추천할 수 있어요.';
-    }
-    if (question.contains('장소')) {
-      return '주변 대학, 지하철역, 오피스와 같은 시설의 위치와 유동 인구 관련 데이터를 함께 살펴보면 고객 유입 가능성을 분석할 수 있어요.';
-    }
-    if (question.contains('상권의 특징')) {
-      return '상권 분석에서는 주변 시설, 경쟁 카페 수, 주요 고객층과 시간대별 수요를 함께 살펴보는 것이 좋아요. 실제 위치와 상권 데이터 연결 후 매장에 맞는 분석을 제공할 수 있어요.';
-    }
-    if (question.contains('경쟁 카페')) {
-      return '주변 카페의 위치, 메뉴 가격, 리뷰 키워드와 평점을 비교해 볼 수 있어요. 현재는 상권 데이터가 연결되지 않아 실제 경쟁 매장 분석 결과는 아니에요.';
-    }
-    return '주변 상권과 메뉴별 판매량, 원가를 함께 확인해 매장에 맞는 운영 방안을 검토해 보세요. 이 화면의 답변은 시연용 예시이며 실제 데이터 분석 결과는 아니에요.';
+    return null;
+  }
+
+  // FAQ 질문 선택
+  void _selectFaqQuestion(Map<String, dynamic> question) {
+    final questionId = question['id']?.toString() ?? '';
+    final questionText = question['question']?.toString() ?? '';
+
+    if (questionId.isEmpty || questionText.isEmpty) return;
+
+    setState(() {
+      selectedQuestion = questionText;
+      selectedQuestionId = questionId;
+      _answerFuture = _loadFaqAnswer(questionId);
+    });
+  }
+
+  // 자유 질문 전송
+  void _sendFreeformQuestion() {
+    final question = _questionController.text.trim();
+
+    if (question.isEmpty) return;
+
+    setState(() {
+      selectedQuestion = question;
+      selectedQuestionId = null;
+      _answerFuture = _loadFreeformAnswer(question);
+    });
+
+    _questionController.clear();
+  }
+
+  @override
+  void dispose() {
+    _questionController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
+
     return Container(
       height: height * 0.84,
       decoration: const BoxDecoration(
@@ -3670,12 +3869,168 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     );
   }
 
+  // 카테고리 목록
+  Widget _buildCategoryList() {
+    if (_faqLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (_faqError != null) {
+      return Column(
+        children: [
+          Text(
+            '질문 목록을 불러오지 못했습니다.\n$_faqError',
+            style: const TextStyle(color: muted, fontSize: 11, height: 1.6),
+          ),
+          TextButton(
+            onPressed: _loadFaqCategories,
+            child: const Text('다시 불러오기'),
+          ),
+        ],
+      );
+    }
+
+    if (_faqCategories.isEmpty) {
+      return const Text(
+        '등록된 질문이 없습니다.',
+        style: TextStyle(color: muted, fontSize: 11),
+      );
+    }
+
+    return Column(
+      children: _faqCategories.map((category) {
+        final name = category['category']?.toString() ?? '';
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                setState(() {
+                  selectedCategory = name;
+                });
+              },
+              style: OutlinedButton.styleFrom(
+                alignment: Alignment.centerLeft,
+                backgroundColor: Colors.white,
+                foregroundColor: ink,
+                side: const BorderSide(color: Color(0xFFDDE7F5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 15,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(_categoryIcon(name), color: blue, size: 19),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: muted,
+                    size: 18,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  // 선택한 카테고리의 실제 서버 질문 목록
+  Widget _buildFaqQuestionList() {
+    final category = _selectedCategoryData();
+    final rawQuestions = category?['questions'];
+
+    final questionItems = rawQuestions is List
+        ? rawQuestions
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
+        : <Map<String, dynamic>>[];
+
+    if (questionItems.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 15),
+        child: Text(
+          '등록된 질문이 없습니다.',
+          style: TextStyle(color: muted, fontSize: 11),
+        ),
+      );
+    }
+
+    return Column(
+      children: questionItems.map((question) {
+        final questionText = question['question']?.toString() ?? '';
+
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(13),
+            child: InkWell(
+              onTap: () => _selectFaqQuestion(question),
+              borderRadius: BorderRadius.circular(13),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(13),
+                  border: Border.all(color: line),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        questionText,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: ink,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: Color(0xFFADB8C8),
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildQuestionView() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _bubble('안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.', isBot: true),
         const SizedBox(height: 18),
+
         if (selectedCategory == null) ...[
           const Text(
             '무엇이 궁금하세요?',
@@ -3686,53 +4041,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
             ),
           ),
           const SizedBox(height: 10),
-          Column(
-            children: categories.entries.map((entry) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        setState(() => selectedCategory = entry.key),
-                    style: OutlinedButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      backgroundColor: Colors.white,
-                      foregroundColor: ink,
-                      side: const BorderSide(color: Color(0xFFDDE7F5)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 15,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(entry.value, color: blue, size: 19),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            entry.key,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          color: muted,
-                          size: 18,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+          _buildCategoryList(),
         ] else ...[
           Row(
             children: [
@@ -3746,61 +4055,80 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
               ),
               const Spacer(),
               TextButton(
-                onPressed: () => setState(() => selectedCategory = null),
+                onPressed: () {
+                  setState(() {
+                    selectedCategory = null;
+                  });
+                },
                 child: const Text('카테고리 변경', style: TextStyle(fontSize: 10)),
               ),
             ],
           ),
           const SizedBox(height: 5),
-          ...questions[selectedCategory]!.map(
-            (question) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Material(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(13),
-                child: InkWell(
-                  onTap: () => setState(() => selectedQuestion = question),
-                  borderRadius: BorderRadius.circular(13),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(color: line),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            question,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: ink,
-                              height: 1.4,
-                            ),
-                          ),
-                        ),
-                        const Icon(
-                          Icons.chevron_right_rounded,
-                          color: Color(0xFFADB8C8),
-                          size: 18,
-                        ),
-                      ],
-                    ),
+          _buildFaqQuestionList(),
+        ],
+
+        const SizedBox(height: 18),
+        const Divider(color: line),
+        const SizedBox(height: 10),
+        const Text(
+          '다른 질문도 직접 물어보세요',
+          style: TextStyle(
+            color: ink,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _questionController,
+                minLines: 1,
+                maxLines: 3,
+                textInputAction: TextInputAction.send,
+                onSubmitted: (_) => _sendFreeformQuestion(),
+                decoration: InputDecoration(
+                  hintText: '궁금한 내용을 입력해 주세요',
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: line),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: line),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 8),
+            IconButton.filled(
+              onPressed: _sendFreeformQuestion,
+              icon: const Icon(Icons.send_rounded),
+              style: IconButton.styleFrom(
+                backgroundColor: blue,
+                foregroundColor: Colors.white,
+              ),
+              tooltip: '질문 보내기',
+            ),
+          ],
+        ),
       ],
     );
   }
 
   Widget _buildAnswerView() {
     final question = selectedQuestion!;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3852,55 +4180,90 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                   border: Border.all(color: line),
                   borderRadius: BorderRadius.circular(15),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      answerFor(question),
-                      style: const TextStyle(
-                        color: ink,
-                        fontSize: 12,
-                        height: 1.7,
-                      ),
-                    ),
-                    const SizedBox(height: 13),
-                    const Divider(height: 1, color: line),
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () {
-                        final destination =
-                            selectedCategory == '매출 예측' ||
-                                selectedCategory == '이번 달 매출'
-                            ? 1
-                            : selectedCategory == '메뉴 분석'
-                            ? 3
-                            : selectedCategory == '재고 관리'
-                            ? 2
-                            : 2;
-                        Navigator.pop(context);
-                        widget.onNavigate(destination);
-                      },
-                      child: const Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '관련 분석 확인하기',
-                              style: TextStyle(
-                                color: blue,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
+                child: FutureBuilder<Map<String, dynamic>>(
+                  future: _answerFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    }
+
+                    if (snapshot.hasError) {
+                      return Text(
+                        '답변을 불러오지 못했습니다.\n${snapshot.error}',
+                        style: const TextStyle(
+                          color: muted,
+                          fontSize: 12,
+                          height: 1.7,
+                        ),
+                      );
+                    }
+
+                    final result = snapshot.data ?? {};
+                    final answer =
+                        result['answer']?.toString() ?? '답변을 받지 못했습니다.';
+
+                    final rawDestination = result['destination'];
+                    final destination = rawDestination is int
+                        ? rawDestination
+                        : int.tryParse(rawDestination?.toString() ?? '');
+
+                    final destinationName = result['destination_name']
+                        ?.toString();
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          answer,
+                          style: const TextStyle(
+                            color: ink,
+                            fontSize: 12,
+                            height: 1.7,
+                          ),
+                        ),
+
+                        if (destination != null &&
+                            destination >= 0 &&
+                            destination <= 4) ...[
+                          const SizedBox(height: 13),
+                          const Divider(height: 1, color: line),
+                          const SizedBox(height: 8),
+                          InkWell(
+                            onTap: () {
+                              Navigator.pop(context);
+                              widget.onNavigate(destination);
+                            },
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    destinationName == null
+                                        ? '관련 분석 확인하기'
+                                        : '$destinationName 화면 확인하기',
+                                    style: const TextStyle(
+                                      color: blue,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  color: blue,
+                                  size: 17,
+                                ),
+                              ],
                             ),
                           ),
-                          Icon(
-                            Icons.arrow_forward_rounded,
-                            color: blue,
-                            size: 17,
-                          ),
                         ],
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -3912,9 +4275,13 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
             spacing: 8,
             children: [
               OutlinedButton(
-                onPressed: () => setState(() {
-                  selectedQuestion = null;
-                }),
+                onPressed: () {
+                  setState(() {
+                    selectedQuestion = null;
+                    selectedQuestionId = null;
+                    _answerFuture = null;
+                  });
+                },
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: line),
@@ -3924,10 +4291,14 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                 child: const Text('다른 질문 보기', style: TextStyle(fontSize: 10)),
               ),
               OutlinedButton(
-                onPressed: () => setState(() {
-                  selectedQuestion = null;
-                  selectedCategory = null;
-                }),
+                onPressed: () {
+                  setState(() {
+                    selectedQuestion = null;
+                    selectedQuestionId = null;
+                    _answerFuture = null;
+                    selectedCategory = null;
+                  });
+                },
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: line),

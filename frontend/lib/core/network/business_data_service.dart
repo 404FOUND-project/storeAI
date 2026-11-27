@@ -1,4 +1,3 @@
-﻿
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -84,9 +83,7 @@ class BusinessDataService {
   }
 
   Future<Map<String, dynamic>> getMonthlyReport(int storeId) async {
-    final data = await get(
-      '/sales/stores/$storeId/analysis/monthly-report/',
-    );
+    final data = await get('/sales/stores/$storeId/analysis/monthly-report/');
     return Map<String, dynamic>.from(data);
   }
 
@@ -102,10 +99,7 @@ class BusinessDataService {
     int targetDays = 7,
   }) async {
     final data = await get(
-      ApiConstants.inventoryReorder(
-        storeId,
-        targetDays: targetDays,
-      ),
+      ApiConstants.inventoryReorder(storeId, targetDays: targetDays),
     );
     return Map<String, dynamic>.from(data);
   }
@@ -115,12 +109,7 @@ class BusinessDataService {
     int storeId, {
     int top = 10,
   }) async {
-    final data = await get(
-      ApiConstants.setMenuRecommend(
-        storeId,
-        top: top,
-      ),
-    );
+    final data = await get(ApiConstants.setMenuRecommend(storeId, top: top));
     return Map<String, dynamic>.from(data);
   }
 
@@ -137,28 +126,41 @@ class BusinessDataService {
   }) async {
     final encodedId = Uri.encodeQueryComponent(questionId);
 
-    final storeQuery =
-        storeId == null ? '' : '&store_id=$storeId';
+    final storeQuery = storeId == null ? '' : '&store_id=$storeId';
 
-    final data = await get(
-      '/api/chatbot/faq/answer/?id=$encodedId$storeQuery',
-    );
+    final data = await get('/api/chatbot/faq/answer/?id=$encodedId$storeQuery');
 
     return Map<String, dynamic>.from(data);
   }
 
-  Future<String> askChatbot(String question) async {
+  Future<String> askChatbot(String question, {int? storeId}) async {
     final uri = Uri.parse('${ApiConstants.baseUrl}/api/chatbot/');
-    final response = await http.post(uri, headers: {
-      'Authorization': 'Token $token',
-      'Content-Type': 'application/json',
-    }, body: jsonEncode({'question': question})).timeout(_timeout);
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'Authorization': 'Token $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'question': question,
+            if (storeId != null) 'store_id': storeId,
+          }),
+        )
+        .timeout(_timeout);
+
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw Exception('챗봇 요청 실패 (${response.statusCode}): ${utf8.decode(response.bodyBytes)}');
+      throw Exception(
+        '챗봇 요청 실패 (${response.statusCode}): '
+        '${utf8.decode(response.bodyBytes)}',
+      );
     }
+
     final result = jsonDecode(utf8.decode(response.bodyBytes));
-    if (result is! Map) throw Exception('챗봇 응답 형식이 올바르지 않습니다.');
+    if (result is! Map) {
+      throw Exception('챗봇 응답 형식이 올바르지 않습니다.');
+    }
+
     return result['answer']?.toString() ?? '답변을 받지 못했습니다.';
   }
-
 }
