@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/network/auth_service.dart';
@@ -3141,38 +3141,74 @@ class ReportScreen extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'AI DAILY REPORT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'AI DAILY REPORT',
+                                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800),
+                                ),
+                              ),
+                              const Text(
+                                '\uC11C\uC6B8 \u00B7 \uAC15\uC218\uD655\uB960 0%',
+                                style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          const Text(
+                            '\uC624\uB298 \uB0A0\uC528 \u00B7 \uCD5C\uC800 -2\u00B0C / \uCD5C\uACE0 4\u00B0C',
+                            style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            '\uB9D1\uACE0 \uC0B4\uC9DD \uC300\uC300\uD574\uC694! \u2600\uFE0F',
+                            style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ),
-                          SizedBox(height: 25),
-                          Text(
-                            '오늘의 가게 컨디션은',
-                            style: TextStyle(color: Colors.white, fontSize: 18),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            '좋음이에요!',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 29,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          SizedBox(height: 18),
-                          Text(
-                            '매출이 평소보다 좋은 흐름이에요.\n재고와 피크타임을 확인해 운영 효율을 높여 보세요.',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              height: 1.7,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '\u2728 \uC624\uB298 \uC798 \uB098\uAC08 \uCD94\uCC9C \uBA54\uB274',
+                                  style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                                ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    for (final m in ['\u2615 \uB530\uB73B\uD55C \uC544\uBA54\uB9AC\uCE74\uB178', '\uD83E\uDD5B \uCE74\uD398\uB77C\uB5BC', '\uD83C\uDF6F \uBC14\uB2D0\uB77C\uB77C\uB5BC'])
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          m,
+                                          style: const TextStyle(color: Color(0xFF1E5EC2), fontSize: 12, fontWeight: FontWeight.w700),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
