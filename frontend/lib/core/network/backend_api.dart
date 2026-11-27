@@ -25,7 +25,7 @@ class BackendApi {
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
-    if (_token != null) 'Authorization': 'Token $_token',
+    if (_token != null) 'Authorization': 'Token ',
   };
 
   Future<dynamic> _request(
@@ -35,7 +35,7 @@ class BackendApi {
   ) async {
     try {
       final response = await request(
-        Uri.parse('${ApiConstants.baseUrl}$path'),
+        Uri.parse(''),
         _headers,
       ).timeout(const Duration(seconds: 8));
 
@@ -79,16 +79,16 @@ class BackendApi {
     return null;
   }
 
-  List> _asList(dynamic body) {
+  List<Map<String, dynamic>> _asList(dynamic body) {
     final results = body is Map ? body['results'] : body;
     if (results is! List) return const [];
     return results
-        .whereType()
+        .whereType<Map>()
         .map((item) => Map<String, dynamic>.from(item))
         .toList();
   }
 
-  Future> signup({
+  Future<Map<String, dynamic>> signup({
     required String email,
     required String password,
     required String nickname,
@@ -109,7 +109,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> login({
+  Future<Map<String, dynamic>> login({
     required String email,
     required String password,
   }) async {
@@ -128,7 +128,7 @@ class BackendApi {
     return result;
   }
 
-  Future> currentUser() async {
+  Future<Map<String, dynamic>> currentUser() async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.me,
@@ -137,7 +137,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future<List>> stores() async {
+  Future<List<Map<String, dynamic>>> stores() async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.stores,
@@ -152,7 +152,7 @@ class BackendApi {
         .toList();
   }
 
-  Future> registerStore(Map<String, dynamic> store) async {
+  Future<Map<String, dynamic>> registerStore(Map<String, dynamic> store) async {
     final body = await _request(
       (uri, headers) =>
           http.post(uri, headers: headers, body: jsonEncode(store)),
@@ -161,7 +161,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> storeDetail(int storeId) async {
+  Future<Map<String, dynamic>> storeDetail(int storeId) async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.store(storeId),
@@ -169,7 +169,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> updateStore(
+  Future<Map<String, dynamic>> updateStore(
     int storeId,
     Map<String, dynamic> store,
   ) async {
@@ -181,7 +181,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> salesAnalysis(int storeId) async {
+  Future<Map<String, dynamic>> salesAnalysis(int storeId) async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.salesAnalysis(storeId),
@@ -190,7 +190,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> salesForecast(
+  Future<Map<String, dynamic>> salesForecast(
     int storeId, {
     int days = 7,
   }) async {
@@ -201,7 +201,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future<List>> menus(int storeId) async {
+  Future<List<Map<String, dynamic>>> menus(int storeId) async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.menus(storeId),
@@ -209,7 +209,7 @@ class BackendApi {
     return _asList(body);
   }
 
-  Future> createMenu(
+  Future<Map<String, dynamic>> createMenu(
     int storeId,
     Map<String, dynamic> menu,
   ) async {
@@ -221,7 +221,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> updateMenu(
+  Future<Map<String, dynamic>> updateMenu(
     int storeId,
     int menuId,
     Map<String, dynamic> menu,
@@ -241,7 +241,7 @@ class BackendApi {
     );
   }
 
-  Future<List>> menuProfitability(int storeId) async {
+  Future<List<Map<String, dynamic>>> menuProfitability(int storeId) async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.menuProfitability(storeId),
@@ -249,7 +249,7 @@ class BackendApi {
     return _asList(body);
   }
 
-  Future> setRecommendations(int storeId) async {
+  Future<Map<String, dynamic>> setRecommendations(int storeId) async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.setRecommendations(storeId),
@@ -257,7 +257,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> reviewAnalysis(int storeId) async {
+  Future<Map<String, dynamic>> reviewAnalysis(int storeId) async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.reviewAnalysis(storeId),
@@ -265,7 +265,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future<List>> inventory(int storeId) async {
+  Future<List<Map<String, dynamic>>> inventory(int storeId) async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.inventory(storeId),
@@ -273,7 +273,7 @@ class BackendApi {
     return _asList(body);
   }
 
-  Future> createInventory(
+  Future<Map<String, dynamic>> createInventory(
     int storeId,
     Map<String, dynamic> item,
   ) async {
@@ -285,7 +285,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> updateInventory(
+  Future<Map<String, dynamic>> updateInventory(
     int storeId,
     int inventoryId,
     Map<String, dynamic> item,
@@ -293,7 +293,7 @@ class BackendApi {
     final body = await _request(
       (uri, headers) =>
           http.patch(uri, headers: headers, body: jsonEncode(item)),
-      '${ApiConstants.inventory(storeId)}$inventoryId/',
+      '/',
     );
     return Map<String, dynamic>.from(body as Map);
   }
@@ -301,11 +301,11 @@ class BackendApi {
   Future<void> deleteInventory(int storeId, int inventoryId) async {
     await _request(
       (uri, headers) => http.delete(uri, headers: headers),
-      '${ApiConstants.inventory(storeId)}$inventoryId/',
+      '/',
     );
   }
 
-  Future> reorderRecommendations(
+  Future<Map<String, dynamic>> reorderRecommendations(
     int storeId, {
     int targetDays = 7,
   }) async {
@@ -325,7 +325,7 @@ class BackendApi {
     _token = null;
   }
 
-  Future<List>> notices() async {
+  Future<List<Map<String, dynamic>>> notices() async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.notices,
@@ -340,7 +340,7 @@ class BackendApi {
         .toList();
   }
 
-  Future> createNotice(Map<String, dynamic> notice) async {
+  Future<Map<String, dynamic>> createNotice(Map<String, dynamic> notice) async {
     final body = await _request(
       (uri, headers) =>
           http.post(uri, headers: headers, body: jsonEncode(notice)),
@@ -349,7 +349,7 @@ class BackendApi {
     return Map<String, dynamic>.from(body as Map);
   }
 
-  Future> updateNotice(
+  Future<Map<String, dynamic>> updateNotice(
     int noticeId,
     Map<String, dynamic> notice,
   ) async {
@@ -368,7 +368,7 @@ class BackendApi {
     );
   }
 
-  Future<List>> chatbotFaq() async {
+  Future<List<Map<String, dynamic>>> chatbotFaq() async {
     final body = await _request(
       (uri, headers) => http.get(uri, headers: headers),
       ApiConstants.chatbotFaq,
@@ -377,7 +377,7 @@ class BackendApi {
     return _asList(data['categories']);
   }
 
-  Future> chatbotFaqAnswer(
+  Future<Map<String, dynamic>> chatbotFaqAnswer(
     String questionId, {
     int? storeId,
   }) async {
