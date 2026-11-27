@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import '../../core/network/auth_service.dart';
@@ -20,7 +19,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final AuthService _authService = AuthService();
   final _formKey = GlobalKey<FormState>();
 
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
   final _nicknameController = TextEditingController();
@@ -37,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _passwordConfirmController.dispose();
     _nicknameController.dispose();
@@ -53,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       if (_isSignup) {
         await _authService.signup(
-          username: _usernameController.text.trim(),
+          email: _emailController.text.trim(),
           password: _passwordController.text,
           nickname: _nicknameController.text.trim(),
           phone: _phoneController.text.trim(),
@@ -74,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       } else {
         final result = await _authService.login(
-          username: _usernameController.text.trim(),
+          email: _emailController.text.trim(),
           password: _passwordController.text,
         );
 
@@ -237,15 +236,23 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   const SizedBox(height: 25),
 
-                  // 아이디
+                  // 이메일
                   _textField(
-                    label: '아이디',
-                    icon: Icons.person_outline_rounded,
-                    controller: _usernameController,
+                    label: '이메일',
+                    icon: Icons.email_outlined,
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return '아이디를 입력해 주세요.';
+                        return '이메일을 입력해 주세요.';
                       }
+
+                      if (!RegExp(
+                        r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                      ).hasMatch(value.trim())) {
+                        return '올바른 이메일 형식을 입력해 주세요.';
+                      }
+
                       return null;
                     },
                   ),

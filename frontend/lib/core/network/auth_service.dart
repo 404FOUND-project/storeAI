@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -8,19 +7,18 @@ import '../constants/api_constants.dart';
 class AuthService {
   static const Duration _timeout = Duration(seconds: 15);
 
-  // 회원가입
   Future<void> signup({
-    required String username,
+    required String email,
     required String password,
     String nickname = '',
     String phone = '',
   }) async {
     final response = await http
         .post(
-          Uri.parse(ApiConstants.signup),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.signup}'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            'username': username,
+            'email': email,
             'password': password,
             'nickname': nickname,
             'phone': phone,
@@ -33,17 +31,16 @@ class AuthService {
     }
   }
 
-  // 로그인
-  Future<Map<String, dynamic>> login({
-    required String username,
+  Future> login({
+    required String email,
     required String password,
   }) async {
     final response = await http
         .post(
-          Uri.parse(ApiConstants.login),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.login}'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode({
-            'username': username,
+            'email': email,
             'password': password,
           }),
         )
@@ -56,11 +53,10 @@ class AuthService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  // 로그인한 회원 정보 조회
-  Future<Map<String, dynamic>> getMe(String token) async {
+  Future> getMe(String token) async {
     final response = await http
         .get(
-          Uri.parse(ApiConstants.me),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.me}'),
           headers: {
             'Authorization': 'Token $token',
             'Content-Type': 'application/json',
@@ -75,11 +71,10 @@ class AuthService {
     return jsonDecode(response.body) as Map<String, dynamic>;
   }
 
-  // 로그아웃
   Future<void> logout(String token) async {
     final response = await http
         .post(
-          Uri.parse(ApiConstants.logout),
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.logout}'),
           headers: {
             'Authorization': 'Token $token',
             'Content-Type': 'application/json',
@@ -92,7 +87,6 @@ class AuthService {
     }
   }
 
-  // 서버 오류 메시지 처리
   String _errorMessage(http.Response response) {
     try {
       final data = jsonDecode(response.body);

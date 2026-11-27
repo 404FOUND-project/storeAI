@@ -2,27 +2,33 @@ class ApiConstants {
   const ApiConstants._();
 
   // Override with --dart-define=API_BASE_URL=... when the backend host changes.
-  static const baseUrl = String.fromEnvironment(
+  static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8001',
+    defaultValue: 'http://127.0.0.1:8010',
   );
-  static const signup = '/member/signup/';
-  static const login = '/member/login/';
-  static const me = '/member/me/';
-  static const logout = '/member/logout/';
-  static const notices = '/notices/';
+
+  static const String signup = '/member/signup/';
+  static const String login = '/member/login/';
+  static const String me = '/member/me/';
+  static const String logout = '/member/logout/';
+
+  static const String notices = '/notices/';
   static String notice(int noticeId) => '/notices/$noticeId/';
-  static const chatbot = '/api/chatbot/';
-  static const chatbotFaq = '/api/chatbot/faq/';
+
+  static const String chatbot = '/api/chatbot/';
+  static const String chatbotFaq = '/api/chatbot/faq/';
   static String chatbotFaqAnswer(String questionId, {int? storeId}) =>
       '/api/chatbot/faq/answer/?id=${Uri.encodeQueryComponent(questionId)}'
       '${storeId == null ? '' : '&store_id=$storeId'}';
-  static const stores = '/member/stores/';
+
+  static const String stores = '/member/stores/';
   static String store(int storeId) => '/store/$storeId/';
+
   static String salesAnalysis(int storeId) =>
       '/sales/stores/$storeId/analysis/sales/';
-  static String savedForecast(int storeId, {int days = 7}) =>
-      '/sales/stores/$storeId/forecast/saved/?days=$days';
+  static String savedForecast(int storeId, int runId) =>
+      '/sales/stores/$storeId/forecast/saved/?run_id=$runId';
+
   static String menus(int storeId) => '/store/$storeId/menus/';
   static String menu(int storeId, int menuId) =>
       '/store/$storeId/menus/$menuId/';

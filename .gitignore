@@ -5,3 +5,7 @@ __pycache__/
 .vscode/
 .idea/
 db.sqlite3
+backend/.env.txt
+
+frontend/build_log.txt
+frontend/lib/main_backup.dart

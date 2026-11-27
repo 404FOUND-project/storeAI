@@ -1,0 +1,158 @@
+{
+ "join": {
+  "daily_sales_rows": 669,
+  "features_rows": 669,
+  "weather_rows": 669,
+  "joined_rows": 669,
+  "date_min": "2025-01-01",
+  "date_max": "2026-10-31",
+  "temp_nulls": {
+   "avg_temp_c": 0,
+   "max_temp_c": 0,
+   "min_temp_c": 0
+  },
+  "precip_nulls": 396,
+  "menu_rows": 18063,
+  "menus": 27
+ },
+ "menu_panel_rows": 18063,
+ "total_vs_temp": {
+  "total_quantity": {
+   "pearson_raw": -0.037,
+   "spearman_raw": -0.09,
+   "partial_corr_calendar_adjusted": 0.086,
+   "p_approx(ignores autocorr)": 0.026
+  },
+  "order_count": {
+   "pearson_raw": -0.027,
+   "spearman_raw": -0.078,
+   "partial_corr_calendar_adjusted": 0.132,
+   "p_approx(ignores autocorr)": 0.00061
+  },
+  "actual_sales": {
+   "pearson_raw": -0.041,
+   "spearman_raw": -0.095,
+   "partial_corr_calendar_adjusted": 0.08,
+   "p_approx(ignores autocorr)": 0.0381
+  }
+ },
+ "hot_ice_logistic_all_BOTH_menus": {
+  "ice_share_slope_per_C": 0.1581,
+  "temp_where_ice_share_50pct_C": 14.99,
+  "temp_where_ice_share_50pct_note": "fitted on all 669 days (descriptive)"
+ },
+ "cv": {
+  "scheme": "expanding window, monthly blocks; train = all dates strictly before the block start",
+  "initial_train": [
+   "2025-01-01",
+   "2025-12-31"
+  ],
+  "n_folds": 10,
+  "folds": [
+   [
+    "2026-01-01",
+    "2026-01-31"
+   ],
+   [
+    "2026-02-01",
+    "2026-02-28"
+   ],
+   [
+    "2026-03-01",
+    "2026-03-31"
+   ],
+   [
+    "2026-04-01",
+    "2026-04-30"
+   ],
+   [
+    "2026-05-01",
+    "2026-05-31"
+   ],
+   [
+    "2026-06-01",
+    "2026-06-30"
+   ],
+   [
+    "2026-07-01",
+    "2026-07-31"
+   ],
+   [
+    "2026-08-01",
+    "2026-08-31"
+   ],
+   [
+    "2026-09-01",
+    "2026-09-30"
+   ],
+   [
+    "2026-10-01",
+    "2026-10-31"
+   ]
+  ],
+  "weather_input": "observed ASOS temperature on the target date (== perfect weather forecast; optimistic upper bound)"
+ },
+ "placebo_shifted_temperature": {
+  "daily_total_quantity|cal": {
+   "base_WAPE": 7.577,
+   "real_change_pp": 0.018,
+   "placebo_mean_change_pp": 0.164,
+   "placebo_min": -0.1,
+   "placebo_max": 0.416,
+   "share_placebo_as_good_or_better": 0.05,
+   "n_placebo": 40
+  },
+  "daily_total_quantity|cal+month": {
+   "base_WAPE": 8.023,
+   "real_change_pp": -0.071,
+   "placebo_mean_change_pp": 0.144,
+   "placebo_min": -0.125,
+   "placebo_max": 0.598,
+   "share_placebo_as_good_or_better": 0.1,
+   "n_placebo": 40
+  },
+  "hot_BOTH|cal": {
+   "base_WAPE": 74.987,
+   "real_change_pp": -58.006,
+   "placebo_mean_change_pp": -11.292,
+   "placebo_min": -45.536,
+   "placebo_max": 9.866,
+   "share_placebo_as_good_or_better": 0.0,
+   "n_placebo": 40
+  },
+  "hot_BOTH|cal+month": {
+   "base_WAPE": 24.5,
+   "real_change_pp": -6.862,
+   "placebo_mean_change_pp": 0.921,
+   "placebo_min": -0.55,
+   "placebo_max": 3.002,
+   "share_placebo_as_good_or_better": 0.0,
+   "n_placebo": 40
+  },
+  "ice_BOTH|cal": {
+   "base_WAPE": 51.897,
+   "real_change_pp": -34.892,
+   "placebo_mean_change_pp": -5.68,
+   "placebo_min": -23.505,
+   "placebo_max": 7.748,
+   "share_placebo_as_good_or_better": 0.0,
+   "n_placebo": 40
+  },
+  "ice_BOTH|cal+month": {
+   "base_WAPE": 22.154,
+   "real_change_pp": -5.01,
+   "placebo_mean_change_pp": 1.657,
+   "placebo_min": -0.026,
+   "placebo_max": 5.203,
+   "share_placebo_as_good_or_better": 0.0,
+   "n_placebo": 40
+  }
+ },
+ "test_period": {
+  "start": "2026-01-01",
+  "end": "2026-10-31",
+  "days": 304,
+  "menu_day_rows": 8208,
+  "train_rows_first_fold": 365
+ }
+}

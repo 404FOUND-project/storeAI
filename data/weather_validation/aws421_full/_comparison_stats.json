@@ -1,0 +1,1588 @@
+{
+ "temp": {
+  "avg": {
+   "n": 638,
+   "mean_diff": 0.293,
+   "MAE": 0.393,
+   "RMSE": 0.481,
+   "max_abs": 1.6,
+   "min": -0.9,
+   "max": 1.6,
+   "median_diff": 0.3
+  },
+  "max": {
+   "n": 638,
+   "mean_diff": 0.074,
+   "MAE": 0.483,
+   "RMSE": 0.613,
+   "max_abs": 2.5,
+   "min": -1.6,
+   "max": 2.5,
+   "median_diff": 0.1
+  },
+  "min": {
+   "n": 638,
+   "mean_diff": 0.628,
+   "MAE": 0.818,
+   "RMSE": 0.994,
+   "max_abs": 2.5,
+   "min": -1.4,
+   "max": 2.5,
+   "median_diff": 0.65
+  }
+ },
+ "temp_by_month": {
+  "2025-01": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.43,
+    "MAE": 0.47
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": -0.21,
+    "MAE": 0.45
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 0.76,
+    "MAE": 0.8
+   }
+  },
+  "2025-02": {
+   "avg": {
+    "n": 28,
+    "mean_diff": 0.5,
+    "MAE": 0.52
+   },
+   "max": {
+    "n": 28,
+    "mean_diff": -0.07,
+    "MAE": 0.36
+   },
+   "min": {
+    "n": 28,
+    "mean_diff": 1.05,
+    "MAE": 1.12
+   }
+  },
+  "2025-03": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.32,
+    "MAE": 0.38
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": -0.04,
+    "MAE": 0.44
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 0.79,
+    "MAE": 0.87
+   }
+  },
+  "2025-04": {
+   "avg": {
+    "n": 30,
+    "mean_diff": 0.41,
+    "MAE": 0.43
+   },
+   "max": {
+    "n": 30,
+    "mean_diff": 0.25,
+    "MAE": 0.37
+   },
+   "min": {
+    "n": 30,
+    "mean_diff": 0.92,
+    "MAE": 0.98
+   }
+  },
+  "2025-05": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.22,
+    "MAE": 0.32
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.44,
+    "MAE": 0.54
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 0.4,
+    "MAE": 0.65
+   }
+  },
+  "2025-06": {
+   "avg": {
+    "n": 30,
+    "mean_diff": -0.03,
+    "MAE": 0.19
+   },
+   "max": {
+    "n": 30,
+    "mean_diff": 0.14,
+    "MAE": 0.41
+   },
+   "min": {
+    "n": 30,
+    "mean_diff": -0.08,
+    "MAE": 0.31
+   }
+  },
+  "2025-07": {
+   "avg": {
+    "n": 31,
+    "mean_diff": -0.16,
+    "MAE": 0.25
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.32,
+    "MAE": 0.52
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": -0.3,
+    "MAE": 0.49
+   }
+  },
+  "2025-08": {
+   "avg": {
+    "n": 31,
+    "mean_diff": -0.12,
+    "MAE": 0.31
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.32,
+    "MAE": 0.55
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": -0.25,
+    "MAE": 0.55
+   }
+  },
+  "2025-09": {
+   "avg": {
+    "n": 30,
+    "mean_diff": 0.21,
+    "MAE": 0.27
+   },
+   "max": {
+    "n": 30,
+    "mean_diff": 0.42,
+    "MAE": 0.51
+   },
+   "min": {
+    "n": 30,
+    "mean_diff": 0.23,
+    "MAE": 0.55
+   }
+  },
+  "2025-10": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.42,
+    "MAE": 0.43
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.31,
+    "MAE": 0.66
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 0.57,
+    "MAE": 0.64
+   }
+  },
+  "2025-11": {
+   "avg": {
+    "n": 30,
+    "mean_diff": 0.44,
+    "MAE": 0.48
+   },
+   "max": {
+    "n": 30,
+    "mean_diff": -0.26,
+    "MAE": 0.44
+   },
+   "min": {
+    "n": 30,
+    "mean_diff": 0.92,
+    "MAE": 1.02
+   }
+  },
+  "2025-12": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.45,
+    "MAE": 0.53
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.05,
+    "MAE": 0.4
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 1.0,
+    "MAE": 1.05
+   }
+  },
+  "2026-01": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.66,
+    "MAE": 0.66
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": -0.02,
+    "MAE": 0.33
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 1.26,
+    "MAE": 1.26
+   }
+  },
+  "2026-02": {
+   "avg": {
+    "n": 28,
+    "mean_diff": 0.38,
+    "MAE": 0.41
+   },
+   "max": {
+    "n": 28,
+    "mean_diff": -0.28,
+    "MAE": 0.54
+   },
+   "min": {
+    "n": 28,
+    "mean_diff": 1.05,
+    "MAE": 1.1
+   }
+  },
+  "2026-03": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.33,
+    "MAE": 0.39
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": -0.46,
+    "MAE": 0.55
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 1.07,
+    "MAE": 1.08
+   }
+  },
+  "2026-04": {
+   "avg": {
+    "n": 30,
+    "mean_diff": 0.07,
+    "MAE": 0.21
+   },
+   "max": {
+    "n": 30,
+    "mean_diff": -0.52,
+    "MAE": 0.55
+   },
+   "min": {
+    "n": 30,
+    "mean_diff": 0.77,
+    "MAE": 0.86
+   }
+  },
+  "2026-05": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.51,
+    "MAE": 0.56
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.26,
+    "MAE": 0.41
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 0.95,
+    "MAE": 1.03
+   }
+  },
+  "2026-06": {
+   "avg": {
+    "n": 30,
+    "mean_diff": 0.27,
+    "MAE": 0.31
+   },
+   "max": {
+    "n": 30,
+    "mean_diff": -0.05,
+    "MAE": 0.47
+   },
+   "min": {
+    "n": 30,
+    "mean_diff": 0.82,
+    "MAE": 0.83
+   }
+  },
+  "2026-07": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.14,
+    "MAE": 0.2
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.53,
+    "MAE": 0.54
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": -0.06,
+    "MAE": 0.36
+   }
+  },
+  "2026-08": {
+   "avg": {
+    "n": 31,
+    "mean_diff": 0.15,
+    "MAE": 0.35
+   },
+   "max": {
+    "n": 31,
+    "mean_diff": 0.2,
+    "MAE": 0.66
+   },
+   "min": {
+    "n": 31,
+    "mean_diff": 0.18,
+    "MAE": 0.45
+   }
+  },
+  "2026-09": {
+   "avg": {
+    "n": 30,
+    "mean_diff": 0.58,
+    "MAE": 0.58
+   },
+   "max": {
+    "n": 30,
+    "mean_diff": 0.15,
+    "MAE": 0.45
+   },
+   "min": {
+    "n": 30,
+    "mean_diff": 1.22,
+    "MAE": 1.24
+   }
+  }
+ },
+ "temp_by_season": {
+  "겨울(12-2)": {
+   "avg": {
+    "n": 149,
+    "mean_diff": 0.49,
+    "MAE": 0.52
+   },
+   "max": {
+    "n": 149,
+    "mean_diff": -0.1,
+    "MAE": 0.41
+   },
+   "min": {
+    "n": 149,
+    "mean_diff": 1.02,
+    "MAE": 1.07
+   }
+  },
+  "봄(3-5)": {
+   "avg": {
+    "n": 184,
+    "mean_diff": 0.31,
+    "MAE": 0.38
+   },
+   "max": {
+    "n": 184,
+    "mean_diff": -0.01,
+    "MAE": 0.48
+   },
+   "min": {
+    "n": 184,
+    "mean_diff": 0.82,
+    "MAE": 0.91
+   }
+  },
+  "여름(6-8)": {
+   "avg": {
+    "n": 184,
+    "mean_diff": 0.04,
+    "MAE": 0.27
+   },
+   "max": {
+    "n": 184,
+    "mean_diff": 0.25,
+    "MAE": 0.52
+   },
+   "min": {
+    "n": 184,
+    "mean_diff": 0.05,
+    "MAE": 0.5
+   }
+  },
+  "가을(9-11)": {
+   "avg": {
+    "n": 121,
+    "mean_diff": 0.41,
+    "MAE": 0.44
+   },
+   "max": {
+    "n": 121,
+    "mean_diff": 0.16,
+    "MAE": 0.51
+   },
+   "min": {
+    "n": 121,
+    "mean_diff": 0.73,
+    "MAE": 0.86
+   }
+  }
+ },
+ "rain": {
+  "asos_rows_matched": 638,
+  "aws_rain_valid": 253,
+  "asos_rain_blank_days": 376,
+  "asos_rain_value_days": 262,
+  "both_value_days": 175,
+  "rain_diff_on_both": {
+   "n": 175,
+   "mean_diff": -0.994,
+   "MAE": 3.069,
+   "RMSE": 6.704,
+   "max_abs": 42.2,
+   "min": -42.2,
+   "max": 31.1,
+   "median_diff": -0.1
+  },
+  "aws_zero_on_asos_blank": 76,
+  "aws_positive_on_asos_blank": [
+   [
+    "2025-07-28",
+    2.0
+   ],
+   [
+    "2026-08-05",
+    1.5
+   ]
+  ],
+  "aws_missing_on_asos_blank": 298,
+  "asos_value_on_aws_missing": 87,
+  "rain_day_thresholds": {
+   "0.1": {
+    "aws_days": 152,
+    "asos_days": 188,
+    "both": 146,
+    "aws_only": 6,
+    "asos_only": 42,
+    "agree_on_both_value_days": 163,
+    "n_both_value_days": 175
+   },
+   "0.5": {
+    "aws_days": 152,
+    "asos_days": 159,
+    "both": 139,
+    "aws_only": 13,
+    "asos_only": 20,
+    "agree_on_both_value_days": 163,
+    "n_both_value_days": 175
+   },
+   "1.0": {
+    "aws_days": 132,
+    "asos_days": 139,
+    "both": 120,
+    "aws_only": 12,
+    "asos_only": 19,
+    "agree_on_both_value_days": 159,
+    "n_both_value_days": 175
+   }
+  },
+  "asos_is_rain_counts": {
+   "true": 188,
+   "false": 74,
+   "": 376
+  },
+  "aws_positive_days": 152,
+  "aws_total_mm": 2074.0,
+  "asos_total_mm_on_both": 2244.4,
+  "aws_total_mm_on_both": 2070.5,
+  "aws_nonmultiple_of_0.5": 0,
+  "monthly": {
+   "2025-01": {
+    "aws_mm": 12.0,
+    "asos_mm": 19.5,
+    "aws_pos_days": 5,
+    "asos_pos_days": 9,
+    "asos_blank": 17
+   },
+   "2025-02": {
+    "aws_mm": 3.0,
+    "asos_mm": 5.2,
+    "aws_pos_days": 2,
+    "asos_pos_days": 3,
+    "asos_blank": 23
+   },
+   "2025-03": {
+    "aws_mm": 31.5,
+    "asos_mm": 38.2,
+    "aws_pos_days": 6,
+    "asos_pos_days": 8,
+    "asos_blank": 17
+   },
+   "2025-04": {
+    "aws_mm": 83.0,
+    "asos_mm": 94.6,
+    "aws_pos_days": 6,
+    "asos_pos_days": 7,
+    "asos_blank": 19
+   },
+   "2025-05": {
+    "aws_mm": 127.0,
+    "asos_mm": 123.6,
+    "aws_pos_days": 11,
+    "asos_pos_days": 12,
+    "asos_blank": 16
+   },
+   "2025-06": {
+    "aws_mm": 63.5,
+    "asos_mm": 98.1,
+    "aws_pos_days": 5,
+    "asos_pos_days": 12,
+    "asos_blank": 13
+   },
+   "2025-07": {
+    "aws_mm": 237.5,
+    "asos_mm": 293.9,
+    "aws_pos_days": 9,
+    "asos_pos_days": 10,
+    "asos_blank": 16
+   },
+   "2025-08": {
+    "aws_mm": 198.0,
+    "asos_mm": 290.3,
+    "aws_pos_days": 15,
+    "asos_pos_days": 12,
+    "asos_blank": 14
+   },
+   "2025-09": {
+    "aws_mm": 286.5,
+    "asos_mm": 370.7,
+    "aws_pos_days": 10,
+    "asos_pos_days": 13,
+    "asos_blank": 14
+   },
+   "2025-10": {
+    "aws_mm": 182.5,
+    "asos_mm": 186.3,
+    "aws_pos_days": 12,
+    "asos_pos_days": 15,
+    "asos_blank": 13
+   },
+   "2025-11": {
+    "aws_mm": 22.0,
+    "asos_mm": 20.8,
+    "aws_pos_days": 5,
+    "asos_pos_days": 6,
+    "asos_blank": 23
+   },
+   "2025-12": {
+    "aws_mm": 45.0,
+    "asos_mm": 41.2,
+    "aws_pos_days": 8,
+    "asos_pos_days": 10,
+    "asos_blank": 20
+   },
+   "2026-01": {
+    "aws_mm": 3.0,
+    "asos_mm": 7.6,
+    "aws_pos_days": 3,
+    "asos_pos_days": 4,
+    "asos_blank": 21
+   },
+   "2026-02": {
+    "aws_mm": 2.0,
+    "asos_mm": 3.2,
+    "aws_pos_days": 1,
+    "asos_pos_days": 2,
+    "asos_blank": 21
+   },
+   "2026-03": {
+    "aws_mm": 29.5,
+    "asos_mm": 43.9,
+    "aws_pos_days": 5,
+    "asos_pos_days": 7,
+    "asos_blank": 22
+   },
+   "2026-04": {
+    "aws_mm": 28.0,
+    "asos_mm": 29.8,
+    "aws_pos_days": 5,
+    "asos_pos_days": 7,
+    "asos_blank": 21
+   },
+   "2026-05": {
+    "aws_mm": 106.5,
+    "asos_mm": 123.4,
+    "aws_pos_days": 8,
+    "asos_pos_days": 11,
+    "asos_blank": 16
+   },
+   "2026-06": {
+    "aws_mm": 89.5,
+    "asos_mm": 86.0,
+    "aws_pos_days": 5,
+    "asos_pos_days": 7,
+    "asos_blank": 19
+   },
+   "2026-07": {
+    "aws_mm": 361.0,
+    "asos_mm": 385.8,
+    "aws_pos_days": 17,
+    "asos_pos_days": 19,
+    "asos_blank": 8
+   },
+   "2026-08": {
+    "aws_mm": 131.0,
+    "asos_mm": 104.9,
+    "aws_pos_days": 11,
+    "asos_pos_days": 10,
+    "asos_blank": 20
+   },
+   "2026-09": {
+    "aws_mm": 32.0,
+    "asos_mm": 34.4,
+    "aws_pos_days": 3,
+    "asos_pos_days": 4,
+    "asos_blank": 23
+   }
+  },
+  "aws_token_counts": {
+   "value": 253,
+   "null": 369,
+   "x": 16
+  },
+  "asos_category_by_aws_token": {
+   "value": {
+    "asos_blank": 78,
+    "asos_zero": 21,
+    "asos_positive": 154,
+    "no_asos_row": 0
+   },
+   "null": {
+    "asos_blank": 294,
+    "asos_zero": 52,
+    "asos_positive": 23,
+    "no_asos_row": 0
+   },
+   "x": {
+    "asos_blank": 4,
+    "asos_zero": 1,
+    "asos_positive": 11,
+    "no_asos_row": 0
+   }
+  },
+  "asos_category_when_aws_value": {
+   "aws_zero": {
+    "asos_blank": 76,
+    "asos_zero": 17,
+    "asos_positive": 8
+   },
+   "aws_positive": {
+    "asos_blank": 2,
+    "asos_zero": 4,
+    "asos_positive": 146
+   }
+  },
+  "asos_positive_on_aws_null_or_x": [
+   [
+    "2025-05-24",
+    "x",
+    4.3
+   ],
+   [
+    "2025-06-07",
+    "null",
+    0.1
+   ],
+   [
+    "2025-06-08",
+    "null",
+    0.6
+   ],
+   [
+    "2025-06-15",
+    "x",
+    11.8
+   ],
+   [
+    "2025-06-16",
+    "x",
+    20.0
+   ],
+   [
+    "2025-06-19",
+    "null",
+    0.8
+   ],
+   [
+    "2025-06-21",
+    "x",
+    0.2
+   ],
+   [
+    "2025-06-26",
+    "x",
+    1.1
+   ],
+   [
+    "2025-07-08",
+    "null",
+    11.8
+   ],
+   [
+    "2025-07-22",
+    "null",
+    0.1
+   ],
+   [
+    "2025-09-07",
+    "null",
+    0.2
+   ],
+   [
+    "2025-09-13",
+    "x",
+    63.7
+   ],
+   [
+    "2025-09-25",
+    "null",
+    0.3
+   ],
+   [
+    "2025-10-12",
+    "null",
+    0.1
+   ],
+   [
+    "2025-10-16",
+    "x",
+    1.3
+   ],
+   [
+    "2025-10-26",
+    "null",
+    0.5
+   ],
+   [
+    "2025-10-31",
+    "null",
+    0.1
+   ],
+   [
+    "2025-11-29",
+    "null",
+    0.1
+   ],
+   [
+    "2025-12-14",
+    "null",
+    0.1
+   ],
+   [
+    "2025-12-20",
+    "null",
+    0.3
+   ],
+   [
+    "2026-01-19",
+    "null",
+    1.0
+   ],
+   [
+    "2026-02-10",
+    "null",
+    0.8
+   ],
+   [
+    "2026-03-15",
+    "null",
+    0.1
+   ],
+   [
+    "2026-03-31",
+    "x",
+    8.2
+   ],
+   [
+    "2026-04-20",
+    "null",
+    0.8
+   ],
+   [
+    "2026-04-28",
+    "null",
+    0.2
+   ],
+   [
+    "2026-05-02",
+    "null",
+    1.4
+   ],
+   [
+    "2026-05-04",
+    "x",
+    1.8
+   ],
+   [
+    "2026-05-12",
+    "x",
+    18.1
+   ],
+   [
+    "2026-06-09",
+    "null",
+    0.1
+   ],
+   [
+    "2026-06-25",
+    "null",
+    0.3
+   ],
+   [
+    "2026-07-01",
+    "null",
+    0.8
+   ],
+   [
+    "2026-07-07",
+    "x",
+    5.7
+   ],
+   [
+    "2026-09-13",
+    "null",
+    0.2
+   ]
+  ],
+  "asos_positive_sum_on_aws_null_or_x": 157.0,
+  "aws_null_by_month": {
+   "2025-01": {
+    "value": 31,
+    "null": 0,
+    "x": 0
+   },
+   "2025-02": {
+    "value": 28,
+    "null": 0,
+    "x": 0
+   },
+   "2025-03": {
+    "value": 31,
+    "null": 0,
+    "x": 0
+   },
+   "2025-04": {
+    "value": 30,
+    "null": 0,
+    "x": 0
+   },
+   "2025-05": {
+    "value": 11,
+    "null": 19,
+    "x": 1
+   },
+   "2025-06": {
+    "value": 5,
+    "null": 20,
+    "x": 5
+   },
+   "2025-07": {
+    "value": 9,
+    "null": 21,
+    "x": 1
+   },
+   "2025-08": {
+    "value": 15,
+    "null": 16,
+    "x": 0
+   },
+   "2025-09": {
+    "value": 10,
+    "null": 19,
+    "x": 1
+   },
+   "2025-10": {
+    "value": 12,
+    "null": 18,
+    "x": 1
+   },
+   "2025-11": {
+    "value": 5,
+    "null": 25,
+    "x": 0
+   },
+   "2025-12": {
+    "value": 8,
+    "null": 23,
+    "x": 0
+   },
+   "2026-01": {
+    "value": 3,
+    "null": 28,
+    "x": 0
+   },
+   "2026-02": {
+    "value": 1,
+    "null": 27,
+    "x": 0
+   },
+   "2026-03": {
+    "value": 5,
+    "null": 25,
+    "x": 1
+   },
+   "2026-04": {
+    "value": 5,
+    "null": 24,
+    "x": 1
+   },
+   "2026-05": {
+    "value": 8,
+    "null": 21,
+    "x": 2
+   },
+   "2026-06": {
+    "value": 5,
+    "null": 25,
+    "x": 0
+   },
+   "2026-07": {
+    "value": 17,
+    "null": 13,
+    "x": 1
+   },
+   "2026-08": {
+    "value": 11,
+    "null": 18,
+    "x": 2
+   },
+   "2026-09": {
+    "value": 3,
+    "null": 27,
+    "x": 0
+   }
+  },
+  "ten_day_check": [
+   {
+    "month": "2025-01",
+    "period": "상순",
+    "summary": "6.5",
+    "sum_of_daily_values": 6.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-01",
+    "period": "중순",
+    "summary": "0.5",
+    "sum_of_daily_values": 0.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-01",
+    "period": "하순",
+    "summary": "5.0",
+    "sum_of_daily_values": 5.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-01",
+    "period": "월합계",
+    "summary": "12.0",
+    "sum_of_daily_values": 12.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-02",
+    "period": "상순",
+    "summary": "1.5",
+    "sum_of_daily_values": 1.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-02",
+    "period": "중순",
+    "summary": "1.5",
+    "sum_of_daily_values": 1.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-02",
+    "period": "하순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-02",
+    "period": "월합계",
+    "summary": "3.0",
+    "sum_of_daily_values": 3.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-03",
+    "period": "상순",
+    "summary": "23.0",
+    "sum_of_daily_values": 23.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-03",
+    "period": "중순",
+    "summary": "8.5",
+    "sum_of_daily_values": 8.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-03",
+    "period": "하순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-03",
+    "period": "월합계",
+    "summary": "31.5",
+    "sum_of_daily_values": 31.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-04",
+    "period": "상순",
+    "summary": "19.5",
+    "sum_of_daily_values": 19.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-04",
+    "period": "중순",
+    "summary": "29.5",
+    "sum_of_daily_values": 29.5,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-04",
+    "period": "하순",
+    "summary": "34.0",
+    "sum_of_daily_values": 34.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-04",
+    "period": "월합계",
+    "summary": "83.0",
+    "sum_of_daily_values": 83.0,
+    "n_daily_null_or_x": 0
+   },
+   {
+    "month": "2025-05",
+    "period": "상순",
+    "summary": "51.5",
+    "sum_of_daily_values": 51.5,
+    "n_daily_null_or_x": 6
+   },
+   {
+    "month": "2025-05",
+    "period": "중순",
+    "summary": "73.0",
+    "sum_of_daily_values": 73.0,
+    "n_daily_null_or_x": 5
+   },
+   {
+    "month": "2025-05",
+    "period": "하순",
+    "summary": "null",
+    "sum_of_daily_values": 2.5,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2025-05",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 127.0,
+    "n_daily_null_or_x": 20
+   },
+   {
+    "month": "2025-06",
+    "period": "상순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2025-06",
+    "period": "중순",
+    "summary": "null",
+    "sum_of_daily_values": 52.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2025-06",
+    "period": "하순",
+    "summary": "null",
+    "sum_of_daily_values": 11.0,
+    "n_daily_null_or_x": 7
+   },
+   {
+    "month": "2025-06",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 63.5,
+    "n_daily_null_or_x": 25
+   },
+   {
+    "month": "2025-07",
+    "period": "상순",
+    "summary": "1.0",
+    "sum_of_daily_values": 1.0,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2025-07",
+    "period": "중순",
+    "summary": "null",
+    "sum_of_daily_values": 234.5,
+    "n_daily_null_or_x": 3
+   },
+   {
+    "month": "2025-07",
+    "period": "하순",
+    "summary": "2.0",
+    "sum_of_daily_values": 2.0,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2025-07",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 237.5,
+    "n_daily_null_or_x": 22
+   },
+   {
+    "month": "2025-08",
+    "period": "상순",
+    "summary": "18.5",
+    "sum_of_daily_values": 18.5,
+    "n_daily_null_or_x": 5
+   },
+   {
+    "month": "2025-08",
+    "period": "중순",
+    "summary": "126.0",
+    "sum_of_daily_values": 126.0,
+    "n_daily_null_or_x": 5
+   },
+   {
+    "month": "2025-08",
+    "period": "하순",
+    "summary": "53.5",
+    "sum_of_daily_values": 53.5,
+    "n_daily_null_or_x": 6
+   },
+   {
+    "month": "2025-08",
+    "period": "월합계",
+    "summary": "198.0",
+    "sum_of_daily_values": 198.0,
+    "n_daily_null_or_x": 16
+   },
+   {
+    "month": "2025-09",
+    "period": "상순",
+    "summary": "83.5",
+    "sum_of_daily_values": 83.5,
+    "n_daily_null_or_x": 7
+   },
+   {
+    "month": "2025-09",
+    "period": "중순",
+    "summary": "null",
+    "sum_of_daily_values": 129.0,
+    "n_daily_null_or_x": 5
+   },
+   {
+    "month": "2025-09",
+    "period": "하순",
+    "summary": "74.0",
+    "sum_of_daily_values": 74.0,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2025-09",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 286.5,
+    "n_daily_null_or_x": 20
+   },
+   {
+    "month": "2025-10",
+    "period": "상순",
+    "summary": "112.5",
+    "sum_of_daily_values": 112.5,
+    "n_daily_null_or_x": 4
+   },
+   {
+    "month": "2025-10",
+    "period": "중순",
+    "summary": "null",
+    "sum_of_daily_values": 70.0,
+    "n_daily_null_or_x": 4
+   },
+   {
+    "month": "2025-10",
+    "period": "하순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0,
+    "n_daily_null_or_x": 11
+   },
+   {
+    "month": "2025-10",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 182.5,
+    "n_daily_null_or_x": 19
+   },
+   {
+    "month": "2025-11",
+    "period": "상순",
+    "summary": "2.5",
+    "sum_of_daily_values": 2.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2025-11",
+    "period": "중순",
+    "summary": "2.5",
+    "sum_of_daily_values": 2.5,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2025-11",
+    "period": "하순",
+    "summary": "17.0",
+    "sum_of_daily_values": 17.0,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2025-11",
+    "period": "월합계",
+    "summary": "22.0",
+    "sum_of_daily_values": 22.0,
+    "n_daily_null_or_x": 25
+   },
+   {
+    "month": "2025-12",
+    "period": "상순",
+    "summary": "3.5",
+    "sum_of_daily_values": 3.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2025-12",
+    "period": "중순",
+    "summary": "28.5",
+    "sum_of_daily_values": 28.5,
+    "n_daily_null_or_x": 7
+   },
+   {
+    "month": "2025-12",
+    "period": "하순",
+    "summary": "13.0",
+    "sum_of_daily_values": 13.0,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2025-12",
+    "period": "월합계",
+    "summary": "45.0",
+    "sum_of_daily_values": 45.0,
+    "n_daily_null_or_x": 23
+   },
+   {
+    "month": "2026-01",
+    "period": "상순",
+    "summary": "1.0",
+    "sum_of_daily_values": 1.0,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2026-01",
+    "period": "중순",
+    "summary": "1.0",
+    "sum_of_daily_values": 1.0,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2026-01",
+    "period": "하순",
+    "summary": "1.0",
+    "sum_of_daily_values": 1.0,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2026-01",
+    "period": "월합계",
+    "summary": "3.0",
+    "sum_of_daily_values": 3.0,
+    "n_daily_null_or_x": 28
+   },
+   {
+    "month": "2026-02",
+    "period": "상순",
+    "summary": "2.0",
+    "sum_of_daily_values": 2.0,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2026-02",
+    "period": "중순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2026-02",
+    "period": "하순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2026-02",
+    "period": "월합계",
+    "summary": "2.0",
+    "sum_of_daily_values": 2.0,
+    "n_daily_null_or_x": 27
+   },
+   {
+    "month": "2026-03",
+    "period": "상순",
+    "summary": "23.5",
+    "sum_of_daily_values": 23.5,
+    "n_daily_null_or_x": 7
+   },
+   {
+    "month": "2026-03",
+    "period": "중순",
+    "summary": "4.5",
+    "sum_of_daily_values": 4.5,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2026-03",
+    "period": "하순",
+    "summary": "null",
+    "sum_of_daily_values": 1.5,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2026-03",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 29.5,
+    "n_daily_null_or_x": 26
+   },
+   {
+    "month": "2026-04",
+    "period": "상순",
+    "summary": "26.5",
+    "sum_of_daily_values": 26.5,
+    "n_daily_null_or_x": 6
+   },
+   {
+    "month": "2026-04",
+    "period": "중순",
+    "summary": "null",
+    "sum_of_daily_values": 0,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2026-04",
+    "period": "하순",
+    "summary": "1.5",
+    "sum_of_daily_values": 1.5,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2026-04",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 28.0,
+    "n_daily_null_or_x": 25
+   },
+   {
+    "month": "2026-05",
+    "period": "상순",
+    "summary": "null",
+    "sum_of_daily_values": 17.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2026-05",
+    "period": "중순",
+    "summary": "null",
+    "sum_of_daily_values": 69.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2026-05",
+    "period": "하순",
+    "summary": "19.5",
+    "sum_of_daily_values": 19.5,
+    "n_daily_null_or_x": 7
+   },
+   {
+    "month": "2026-05",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 106.5,
+    "n_daily_null_or_x": 23
+   },
+   {
+    "month": "2026-06",
+    "period": "상순",
+    "summary": "4.5",
+    "sum_of_daily_values": 4.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2026-06",
+    "period": "중순",
+    "summary": "85.0",
+    "sum_of_daily_values": 85.0,
+    "n_daily_null_or_x": 7
+   },
+   {
+    "month": "2026-06",
+    "period": "하순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2026-06",
+    "period": "월합계",
+    "summary": "89.5",
+    "sum_of_daily_values": 89.5,
+    "n_daily_null_or_x": 25
+   },
+   {
+    "month": "2026-07",
+    "period": "상순",
+    "summary": "null",
+    "sum_of_daily_values": 117.0,
+    "n_daily_null_or_x": 2
+   },
+   {
+    "month": "2026-07",
+    "period": "중순",
+    "summary": "194.5",
+    "sum_of_daily_values": 194.5,
+    "n_daily_null_or_x": 4
+   },
+   {
+    "month": "2026-07",
+    "period": "하순",
+    "summary": "49.5",
+    "sum_of_daily_values": 49.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2026-07",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 361.0,
+    "n_daily_null_or_x": 14
+   },
+   {
+    "month": "2026-08",
+    "period": "상순",
+    "summary": "1.5",
+    "sum_of_daily_values": 1.5,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2026-08",
+    "period": "중순",
+    "summary": "null",
+    "sum_of_daily_values": 44.0,
+    "n_daily_null_or_x": 5
+   },
+   {
+    "month": "2026-08",
+    "period": "하순",
+    "summary": "null",
+    "sum_of_daily_values": 85.5,
+    "n_daily_null_or_x": 6
+   },
+   {
+    "month": "2026-08",
+    "period": "월합계",
+    "summary": "null",
+    "sum_of_daily_values": 131.0,
+    "n_daily_null_or_x": 20
+   },
+   {
+    "month": "2026-09",
+    "period": "상순",
+    "summary": "22.5",
+    "sum_of_daily_values": 22.5,
+    "n_daily_null_or_x": 8
+   },
+   {
+    "month": "2026-09",
+    "period": "중순",
+    "summary": "0.0",
+    "sum_of_daily_values": 0,
+    "n_daily_null_or_x": 10
+   },
+   {
+    "month": "2026-09",
+    "period": "하순",
+    "summary": "9.5",
+    "sum_of_daily_values": 9.5,
+    "n_daily_null_or_x": 9
+   },
+   {
+    "month": "2026-09",
+    "period": "월합계",
+    "summary": "32.0",
+    "sum_of_daily_values": 32.0,
+    "n_daily_null_or_x": 27
+   }
+  ]
+ }
+}
