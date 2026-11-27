@@ -485,7 +485,6 @@ class _CafeHomeState extends State<CafeHome> {
 
       _loadInventoryData(storeId);
       _loadSetRecommendationData(storeId);
-      _loadReviewAnalysis();
     } catch (error) {
       if (!mounted) return;
 
@@ -604,12 +603,11 @@ class _CafeHomeState extends State<CafeHome> {
       useSafeArea: true,
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x990B1728),
-      builder: (context) =>
-          ChatbotSheet(
-            onNavigate: (destination) => _changeTab(destination),
-            storeId: _storeId,
-            token: widget.token,
-          ),
+      builder: (context) => ChatbotSheet(
+        onNavigate: (destination) => _changeTab(destination),
+        storeId: _storeId,
+        token: widget.token,
+      ),
     );
   }
 
@@ -759,11 +757,14 @@ class _CafeHomeState extends State<CafeHome> {
     final forecast = data?['today_predicted_sales'];
     final change = data?['sales_change_percent'];
 
-    final salesForCondition = metrics['sales'] ?? data?['yesterday_sales'];
-    final rawSalesChange = metrics['sales_change_percent'] ?? data?['sales_change_percent'];
-    final salesChangeForCondition = rawSalesChange is num ? rawSalesChange.toDouble() : null;
-    final reviewForCondition = reviewRating is num ? reviewRating.toDouble() : null;
-    final hasDailySales = salesForCondition is num && salesForCondition > 0 && daily['status'] != 'INSUFFICIENT_DATA';
+    final salesChangeForCondition = metrics['sales_change_percent'] is num
+        ? (metrics['sales_change_percent'] as num).toDouble()
+        : null;
+    final reviewForCondition = reviewRating is num
+        ? (reviewRating as num).toDouble()
+        : null;
+    final hasDailySales =
+        metrics['sales'] != null && daily['status'] != 'INSUFFICIENT_DATA';
 
     final conditionBad =
         hasDailySales &&
@@ -785,12 +786,12 @@ class _CafeHomeState extends State<CafeHome> {
         : const Color(0xFF287FF0);
 
     final conditionTitle = !hasDailySales
-        ? '최근 가게 컨디션은 진단 불가예요.'
+        ? '오늘의 가게 컨디션은 진단 불가예요.'
         : conditionBad
-        ? '최근 가게 컨디션은 나쁨이에요.'
+        ? '오늘의 가게 컨디션은 나쁨이에요.'
         : conditionCaution
-        ? '최근 가게 컨디션은 주의예요.'
-        : '최근 가게 컨디션은 좋음이에요!';
+        ? '오늘의 가게 컨디션은 주의예요.'
+        : '오늘의 가게 컨디션은 좋음이에요!';
 
     final conditionDescription = !hasDailySales
         ? '운영 데이터를 더 모으면 진단할 수 있어요.'
@@ -916,7 +917,7 @@ class _CafeHomeState extends State<CafeHome> {
                 ),
                 const SizedBox(height: 22),
                 const Text(
-                  '최근 가게 컨디션은',
+                  '오늘의 가게 컨디션은',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -925,7 +926,7 @@ class _CafeHomeState extends State<CafeHome> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  conditionTitle.replaceFirst('최근 가게 컨디션은 ', ''),
+                  conditionTitle.replaceFirst('오늘의 가게 컨디션은 ', ''),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 25,
@@ -946,13 +947,18 @@ class _CafeHomeState extends State<CafeHome> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => const ReportScreen(),
-                        ),
-                      );
-                    },
+                    onPressed: _storeId == null
+                        ? null
+                        : () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => ReportScreen(
+                                  storeId: _storeId!,
+                                  businessService: _businessService,
+                                ),
+                              ),
+                            );
+                          },
                     icon: const Icon(
                       Icons.arrow_forward,
                       color: Colors.white,
@@ -2449,14 +2455,28 @@ class _CafeHomeState extends State<CafeHome> {
 
     int stockPriority(dynamic raw) {
       if (raw is! Map) return 4;
-      final status = (raw['stock_status'] ?? raw['status'] ?? '').toString().trim().toLowerCase();
-      final expiry = (raw['expiry_status'] ?? '').toString().trim().toLowerCase();
-      if (status == 'danger' || status == 'critical' || expiry == 'expired') return 0;
-      if (status == 'low' || status == 'warning' || expiry == 'expiring') return 1;
-      if (status == 'ok' || status == 'normal' || status == '정상') return 2;
+      final status = (raw['stock_status'] ?? raw['status'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      final expiry = (raw['expiry_status'] ?? '')
+          .toString()
+          .trim()
+          .toLowerCase();
+      if (status == 'danger' ||
+          status == 'critical' ||
+          status.contains('위험') ||
+          expiry == 'expired')
+        return 0;
+      if (status == 'low' ||
+          status == 'warning' ||
+          status.contains('부족') ||
+          expiry == 'expiring')
+        return 1;
       final days = double.tryParse(raw['days_left']?.toString() ?? '');
       if (days != null && days <= 1) return 0;
       if (days != null && days <= 3) return 1;
+      if (status == 'ok' || status == 'normal' || status == '정상') return 2;
       return 3;
     }
 
@@ -2495,6 +2515,97 @@ class _CafeHomeState extends State<CafeHome> {
           style: TextStyle(fontSize: 12, color: muted),
         ),
         const SizedBox(height: 18),
+        if (_isInventoryLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_inventoryError != null)
+          Text(
+            '재고 데이터를 불러오지 못했어요: $_inventoryError',
+            style: const TextStyle(fontSize: 12, color: muted),
+          )
+        else if (inventory.isEmpty)
+          const Text(
+            '등록된 재고 데이터가 없습니다.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
+        else
+          ...inventory.map((raw) {
+            final item = Map<String, dynamic>.from(raw as Map);
+            final name = item['ingredient_name']?.toString() ?? '재료';
+            final quantity = item['quantity']?.toString() ?? '-';
+            final unit = item['unit']?.toString() ?? '';
+            final days = item['days_left']?.toString() ?? '-';
+            final status = (item['stock_status'] ?? item['status'] ?? '')
+                .toString()
+                .trim()
+                .toLowerCase();
+            final priority = stockPriority(item);
+            final statusLabel = priority == 0
+                ? '재고 위험'
+                : priority == 1
+                ? '재고 부족'
+                : priority == 2
+                ? '정상'
+                : status.isEmpty
+                ? '상태 확인'
+                : status;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 9),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: line),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: ink,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '현재 재고 $quantity$unit',
+                          style: const TextStyle(fontSize: 12, color: muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        statusLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: priority <= 1 ? Colors.red : blue,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '소진 예상 ${days}일',
+                        style: const TextStyle(fontSize: 11, color: muted),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        const SizedBox(height: 22),
         const Text(
           'AI 발주 추천',
           style: TextStyle(
@@ -2564,93 +2675,6 @@ class _CafeHomeState extends State<CafeHome> {
               ),
             );
           }),
-        const SizedBox(height: 14),
-        if (_isInventoryLoading)
-          const Center(
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: CircularProgressIndicator(),
-            ),
-          )
-        else if (_inventoryError != null)
-          Text(
-            '재고 데이터를 불러오지 못했어요: $_inventoryError',
-            style: const TextStyle(fontSize: 12, color: muted),
-          )
-        else if (inventory.isEmpty)
-          const Text(
-            '등록된 재고 데이터가 없습니다.',
-            style: TextStyle(fontSize: 12, color: muted),
-          )
-        else
-          ...inventory.map((raw) {
-            final item = Map<String, dynamic>.from(raw as Map);
-            final name = item['ingredient_name']?.toString() ?? '재료';
-            final quantity = item['quantity']?.toString() ?? '-';
-            final unit = item['unit']?.toString() ?? '';
-            final days = item['days_left']?.toString() ?? '-';
-            final status = item['stock_status']?.toString() ?? '';
-            final statusLabel = status == 'danger'
-                ? '재고 위험'
-                : status == 'low'
-                ? '재고 부족'
-                : status == 'ok'
-                ? '정상'
-                : status;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 9),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: line),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: ink,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '현재 재고 $quantity$unit',
-                          style: const TextStyle(fontSize: 12, color: muted),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        statusLabel,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: status == 'danger' || status == 'low'
-                              ? Colors.red
-                              : blue,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        '소진 예상 ${days}일',
-                        style: const TextStyle(fontSize: 11, color: muted),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          }),
       ],
     );
   }
@@ -2674,6 +2698,19 @@ class _CafeHomeState extends State<CafeHome> {
   }
 
   Widget setRecommendationPage() {
+    String formatPrice(dynamic raw) {
+      final text = (raw ?? '').toString().replaceAll(',', '').trim();
+      if (text.isEmpty || text == '-') return '-';
+      final number = num.tryParse(text);
+      if (number == null) return text;
+      return number
+          .toStringAsFixed(0)
+          .replaceAllMapped(
+            RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+            (match) => '${match[1]},',
+          );
+    }
+
     final sets = (_setRecommendationData?['sets'] as List?) ?? [];
 
     return Column(
@@ -2732,8 +2769,8 @@ class _CafeHomeState extends State<CafeHome> {
                 .join(' + ');
             final support = item['support']?.toString() ?? '-';
             final confidence = item['confidence']?.toString() ?? '-';
-            final price = item['total_price']?.toString() ?? '-';
-            final setPrice = item['set_price']?.toString() ?? '-';
+            final price = formatPrice(item['total_price']);
+            final setPrice = formatPrice(item['set_price']);
             final together = item['orders_together']?.toString() ?? '-';
 
             return Container(
@@ -3086,8 +3123,93 @@ class _CafeHomeState extends State<CafeHome> {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 }
 
-class ReportScreen extends StatelessWidget {
-  const ReportScreen({super.key});
+class ReportScreen extends StatefulWidget {
+  final int storeId;
+  final BusinessDataService businessService;
+
+  const ReportScreen({
+    super.key,
+    required this.storeId,
+    required this.businessService,
+  });
+
+  @override
+  State<ReportScreen> createState() => _ReportScreenState();
+}
+
+class _ReportScreenState extends State<ReportScreen> {
+  bool _isLoading = true;
+  String? _error;
+  DateTime? _reportDate;
+  int? _sales;
+  int? _orders;
+  int? _averageTicket;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReportData();
+  }
+
+  Future<void> _loadReportData() async {
+    try {
+      final data = await widget.businessService.getSales(
+        widget.storeId,
+        granularity: 'day',
+      );
+
+      final series = data['series'];
+      Map<String, dynamic>? latest;
+
+      if (series is List && series.isNotEmpty) {
+        latest = Map<String, dynamic>.from(series.last as Map);
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        if (latest != null) {
+          _reportDate = DateTime.tryParse(
+            latest['period_start']?.toString() ?? '',
+          );
+          _sales = int.tryParse(latest['sales']?.toString() ?? '');
+          _orders = int.tryParse(latest['order_count']?.toString() ?? '');
+          _averageTicket = int.tryParse(
+            latest['average_ticket']?.toString() ?? '',
+          );
+        }
+        _isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _error = error.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _won(int? value) {
+    if (value == null) return '—';
+    final digits = value.abs().toString();
+    final formatted = digits.replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+      (match) => '${match[1]},',
+    );
+    return '${value < 0 ? '-' : ''}₩$formatted';
+  }
+
+  String get _dateLabel {
+    if (_isLoading) return '실제 매출 데이터 불러오는 중';
+    if (_error != null) return '매출 데이터를 불러오지 못했습니다';
+    if (_reportDate == null) return '등록된 매출 기록이 없습니다';
+
+    const weekdays = ['월요일', '화요일', '수요일', '목요일', '금요일', '토요일', '일요일'];
+    final d = _reportDate!;
+    return '${d.year}년 ${d.month}월 ${d.day}일 ${weekdays[d.weekday - 1]} 매출 기록';
+  }
+
+  String get _loadingValue => _isLoading ? '불러오는 중' : '—';
 
   @override
   Widget build(BuildContext context) {
@@ -3131,9 +3253,9 @@ class ReportScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '2026년 11월 1일 일요일',
-                      style: TextStyle(color: muted, fontSize: 12),
+                    Text(
+                      _dateLabel,
+                      style: const TextStyle(color: muted, fontSize: 12),
                     ),
                     const SizedBox(height: 20),
                     Container(
@@ -3147,38 +3269,110 @@ class ReportScreen extends StatelessWidget {
                         ),
                         borderRadius: BorderRadius.circular(24),
                       ),
-                      child: const Column(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'AI DAILY REPORT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.18),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  'AI DAILY REPORT',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              const Text(
+                                '\uC11C\uC6B8 \u00B7 \uAC15\uC218\uD655\uB960 0%',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                          SizedBox(height: 25),
-                          Text(
-                            '최근 가게 컨디션은',
-                            style: TextStyle(color: Colors.white, fontSize: 18),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            '좋음이에요!',
+                          const SizedBox(height: 18),
+                          const Text(
+                            '\uC624\uB298 \uB0A0\uC528 \u00B7 \uCD5C\uC800 -2\u00B0C / \uCD5C\uACE0 4\u00B0C',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 29,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          SizedBox(height: 18),
-                          Text(
-                            '매출이 평소보다 좋은 흐름이에요.\n재고와 피크타임을 확인해 운영 효율을 높여 보세요.',
-                            style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.white70,
                               fontSize: 13,
-                              height: 1.7,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            '\uB9D1\uACE0 \uC0B4\uC9DD \uC300\uC300\uD574\uC694! \u2600\uFE0F',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '\u2728 \uC624\uB298 \uC798 \uB098\uAC08 \uCD94\uCC9C \uBA54\uB274',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 6,
+                                  runSpacing: 6,
+                                  children: [
+                                    for (final m in [
+                                      '\u2615 \uB530\uB73B\uD55C \uC544\uBA54\uB9AC\uCE74\uB178',
+                                      '\uD83E\uDD5B \uCE74\uD398\uB77C\uB5BC',
+                                      '\uD83C\uDF6F \uBC14\uB2D0\uB77C\uB77C\uB5BC',
+                                    ])
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          m,
+                                          style: const TextStyle(
+                                            color: Color(0xFF1E5EC2),
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -3194,44 +3388,59 @@ class ReportScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 15),
-                    const Row(
+                    if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          '매출 데이터 조회 오류: $_error',
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                    Row(
                       children: [
                         Expanded(
                           child: _ReportMetric(
                             icon: Icons.payments_rounded,
-                            label: '오늘 매출',
-                            value: '₩428,500',
-                            caption: '+12.8%',
+                            label: '매출액',
+                            value: _isLoading ? _loadingValue : _won(_sales),
+                            caption: '최근 매출 기록',
                           ),
                         ),
-                        SizedBox(width: 10),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: _ReportMetric(
                             icon: Icons.shopping_bag_rounded,
                             label: '주문 건수',
-                            value: '68건',
-                            caption: '+8.2%',
+                            value: _isLoading
+                                ? _loadingValue
+                                : (_orders == null ? '—' : '$_orders건'),
+                            caption: '실제 주문 기록',
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
-                    const Row(
+                    Row(
                       children: [
                         Expanded(
                           child: _ReportMetric(
                             icon: Icons.receipt_long_rounded,
                             label: '평균 주문 금액',
-                            value: '₩6,301',
+                            value: _isLoading
+                                ? _loadingValue
+                                : _won(_averageTicket),
                           ),
                         ),
-                        SizedBox(width: 10),
-                        Expanded(
+                        const SizedBox(width: 10),
+                        const Expanded(
                           child: _ReportMetric(
                             icon: Icons.flag_rounded,
                             label: '목표 달성률',
-                            value: '71.4%',
-                            caption: '목표 ₩600,000',
+                            value: '—',
+                            caption: '목표 금액 미등록',
                           ),
                         ),
                       ],
@@ -3435,8 +3644,7 @@ class ChatbotSheet extends StatefulWidget {
 class _ChatbotSheetState extends State<ChatbotSheet> {
   late final BusinessDataService _dataService;
 
-  final TextEditingController _questionController =
-      TextEditingController();
+  final TextEditingController _questionController = TextEditingController();
 
   String? selectedCategory;
   String? selectedQuestion;
@@ -3493,18 +3701,17 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
   }
 
   // 서버의 실제 FAQ 답변 가져오기
-  Future<Map<String, dynamic>> _loadFaqAnswer(
-    String questionId,
-  ) async {
-    return await _dataService.getFaqAnswer(
-      questionId,
-      storeId: widget.storeId,
-    );
+  Future<Map<String, dynamic>> _loadFaqAnswer(String questionId) async {
+    return await _dataService.getFaqAnswer(questionId, storeId: widget.storeId);
   }
 
   // 기존 자유 질문 기능 유지
   Future<Map<String, dynamic>> _loadFreeformAnswer(String question) async {
-    final answer = await _dataService.askChatbot(question);
+    final answer = await _dataService.askChatbot(
+      question,
+      storeId: widget.storeId,
+    );
+
     return {'answer': answer};
   }
 
@@ -3580,9 +3787,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
       height: height * 0.84,
       decoration: const BoxDecoration(
         color: Color(0xFFF6F9FE),
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(25),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -3600,9 +3805,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
             padding: const EdgeInsets.fromLTRB(16, 12, 12, 13),
             decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: line),
-              ),
+              border: Border(bottom: BorderSide(color: line)),
             ),
             child: Row(
               children: [
@@ -3611,10 +3814,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                   height: 35,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF4A96FF),
-                        Color(0xFF2676E8),
-                      ],
+                      colors: [Color(0xFF4A96FF), Color(0xFF2676E8)],
                     ),
                     borderRadius: BorderRadius.circular(11),
                   ),
@@ -3640,10 +3840,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                       SizedBox(height: 3),
                       Text(
                         '매장 운영에 필요한 정보를 빠르게 확인해 보세요.',
-                        style: TextStyle(
-                          color: muted,
-                          fontSize: 9,
-                        ),
+                        style: TextStyle(color: muted, fontSize: 9),
                       ),
                     ],
                   ),
@@ -3677,9 +3874,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     if (_faqLoading) {
       return const Padding(
         padding: EdgeInsets.all(24),
-        child: Center(
-          child: CircularProgressIndicator(strokeWidth: 2),
-        ),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
@@ -3688,11 +3883,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
         children: [
           Text(
             '질문 목록을 불러오지 못했습니다.\n$_faqError',
-            style: const TextStyle(
-              color: muted,
-              fontSize: 11,
-              height: 1.6,
-            ),
+            style: const TextStyle(color: muted, fontSize: 11, height: 1.6),
           ),
           TextButton(
             onPressed: _loadFaqCategories,
@@ -3727,9 +3918,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                 alignment: Alignment.centerLeft,
                 backgroundColor: Colors.white,
                 foregroundColor: ink,
-                side: const BorderSide(
-                  color: Color(0xFFDDE7F5),
-                ),
+                side: const BorderSide(color: Color(0xFFDDE7F5)),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -3740,11 +3929,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
               ),
               child: Row(
                 children: [
-                  Icon(
-                    _categoryIcon(name),
-                    color: blue,
-                    size: 19,
-                  ),
+                  Icon(_categoryIcon(name), color: blue, size: 19),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -3776,9 +3961,9 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
 
     final questionItems = rawQuestions is List
         ? rawQuestions
-            .whereType<Map>()
-            .map((item) => Map<String, dynamic>.from(item))
-            .toList()
+              .whereType<Map>()
+              .map((item) => Map<String, dynamic>.from(item))
+              .toList()
         : <Map<String, dynamic>>[];
 
     if (questionItems.isEmpty) {
@@ -3793,8 +3978,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
 
     return Column(
       children: questionItems.map((question) {
-        final questionText =
-            question['question']?.toString() ?? '';
+        final questionText = question['question']?.toString() ?? '';
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 8),
@@ -3844,10 +4028,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _bubble(
-          '안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.',
-          isBot: true,
-        ),
+        _bubble('안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.', isBot: true),
         const SizedBox(height: 18),
 
         if (selectedCategory == null) ...[
@@ -3879,10 +4060,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                     selectedCategory = null;
                   });
                 },
-                child: const Text(
-                  '카테고리 변경',
-                  style: TextStyle(fontSize: 10),
-                ),
+                child: const Text('카테고리 변경', style: TextStyle(fontSize: 10)),
               ),
             ],
           ),
@@ -3954,24 +4132,17 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _bubble(
-          '안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.',
-          isBot: true,
-        ),
+        _bubble('안녕하세요! 매출, 메뉴, 재고 등 궁금한 내용을 선택해 주세요.', isBot: true),
         const SizedBox(height: 14),
         Align(
           alignment: Alignment.centerRight,
           child: Container(
             constraints: const BoxConstraints(maxWidth: 300),
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 11,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
               color: blue,
-              borderRadius: BorderRadius.circular(16).copyWith(
-                bottomRight: const Radius.circular(5),
-              ),
+              borderRadius: BorderRadius.circular(16)
+                  .copyWith(bottomRight: const Radius.circular(5)),
             ),
             child: Text(
               question,
@@ -4012,14 +4183,11 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                 child: FutureBuilder<Map<String, dynamic>>(
                   future: _answerFuture,
                   builder: (context, snapshot) {
-                    if (snapshot.connectionState ==
-                        ConnectionState.waiting) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Padding(
                         padding: EdgeInsets.all(8),
                         child: Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         ),
                       );
                     }
@@ -4037,18 +4205,15 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
 
                     final result = snapshot.data ?? {};
                     final answer =
-                        result['answer']?.toString() ??
-                        '답변을 받지 못했습니다.';
+                        result['answer']?.toString() ?? '답변을 받지 못했습니다.';
 
                     final rawDestination = result['destination'];
                     final destination = rawDestination is int
                         ? rawDestination
-                        : int.tryParse(
-                            rawDestination?.toString() ?? '',
-                          );
+                        : int.tryParse(rawDestination?.toString() ?? '');
 
-                    final destinationName =
-                        result['destination_name']?.toString();
+                    final destinationName = result['destination_name']
+                        ?.toString();
 
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4123,10 +4288,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                   foregroundColor: muted,
                   shape: const StadiumBorder(),
                 ),
-                child: const Text(
-                  '다른 질문 보기',
-                  style: TextStyle(fontSize: 10),
-                ),
+                child: const Text('다른 질문 보기', style: TextStyle(fontSize: 10)),
               ),
               OutlinedButton(
                 onPressed: () {
@@ -4143,10 +4305,7 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
                   foregroundColor: muted,
                   shape: const StadiumBorder(),
                 ),
-                child: const Text(
-                  '처음으로',
-                  style: TextStyle(fontSize: 10),
-                ),
+                child: const Text('처음으로', style: TextStyle(fontSize: 10)),
               ),
             ],
           ),
@@ -4156,32 +4315,23 @@ class _ChatbotSheetState extends State<ChatbotSheet> {
   }
 
   Widget _bubble(String text, {required bool isBot}) => Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 310),
-          padding: const EdgeInsets.symmetric(
-            horizontal: 13,
-            vertical: 12,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: line),
-            borderRadius: BorderRadius.circular(15).copyWith(
-              bottomLeft: const Radius.circular(5),
-            ),
-          ),
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: muted,
-              fontSize: 11,
-              height: 1.6,
-            ),
-          ),
-        ),
-      );
+    alignment: Alignment.centerLeft,
+    child: Container(
+      constraints: const BoxConstraints(maxWidth: 310),
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: line),
+        borderRadius: BorderRadius.circular(15)
+            .copyWith(bottomLeft: const Radius.circular(5)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: muted, fontSize: 11, height: 1.6),
+      ),
+    ),
+  );
 }
-
 
 class LegendLinePainter extends CustomPainter {
   final Color color;
