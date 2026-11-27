@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -82,24 +83,31 @@ class AuthService {
         )
         .timeout(_timeout);
 
-    if (response.statusCode != 204) {
+    if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception(_errorMessage(response));
     }
   }
 
   String _errorMessage(http.Response response) {
     try {
-      final data = jsonDecode(response.body);
-
-      if (data is Map) {
-        return data.entries
-            .map((entry) => '${entry.key}: ${entry.value}')
-            .join('\n');
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        if (decoded['detail'] != null) {
+          return decoded['detail'].toString();
+        }
+        if (decoded['message'] != null) {
+          return decoded['message'].toString();
+        }
+        for (final entry in decoded.entries) {
+          if (entry.value is List && (entry.value as List).isNotEmpty) {
+            return '${entry.key}: ${(entry.value as List).first}';
+          }
+          if (entry.value != null) {
+            return '${entry.key}: ${entry.value}';
+          }
+        }
       }
-
-      return data.toString();
-    } catch (_) {
-      return '서버 오류가 발생했습니다. (${response.statusCode})';
-    }
+    } catch (_) {}
+    return '요청 처리에 실패했습니다. (${response.statusCode})';
   }
 }

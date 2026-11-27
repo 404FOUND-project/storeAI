@@ -1,297 +1,35 @@
-﻿import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
 
-import 'core/network/auth_service.dart';
+import 'app.dart';
 import 'core/network/business_data_service.dart';
-import 'features/auth/login_screen.dart';
+import 'screens/ai_analysis_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/mypage_screen.dart';
+import 'screens/notification_screen.dart';
+import 'screens/recommendation_screen.dart';
+import 'screens/sales_screen.dart';
+import 'widgets/chatbot_sheet.dart';
 
-void main() => runApp(const CafeOnApp());
-
-const blue = Color(0xFF3182F6);
-const ink = Color(0xFF1B2B45);
-const muted = Color(0xFF697386);
-const line = Color(0xFFE8EBF0);
-const bg = Color(0xFFF4F7FB);
-const green = Color(0xFF15956F);
-
-class CafeOnApp extends StatefulWidget {
-  const CafeOnApp({super.key});
-
-  @override
-  State<CafeOnApp> createState() => _CafeOnAppState();
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const StoreAiApp());
 }
 
-class _CafeOnAppState extends State<CafeOnApp> {
-  Map<String, dynamic>? _user;
-  String? _token;
-  bool _isCheckingLogin = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkLogin();
-  }
-
-  // 앱 실행 시 저장된 토큰 확인
-  Future<void> _checkLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedToken = prefs.getString('auth_token');
-
-    if (savedToken != null) {
-      try {
-        final user = await AuthService().getMe(savedToken);
-
-        if (!mounted) return;
-
-        setState(() {
-          _token = savedToken;
-          _user = user;
-        });
-      } catch (_) {
-        await prefs.remove('auth_token');
-      }
-    }
-
-    if (!mounted) return;
-
-    setState(() {
-      _isCheckingLogin = false;
-    });
-  }
-
-  // 로그인 성공 처리
-  Future<void> _handleLoginSuccess(Map<String, dynamic> result) async {
-    final token = result['token'];
-    final user = result['user'];
-
-    if (token is! String || user is! Map) {
-      throw Exception('로그인 응답 형식이 올바르지 않습니다.');
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('auth_token', token);
-
-    if (!mounted) return;
-
-    setState(() {
-      _token = token;
-      _user = Map<String, dynamic>.from(user);
-    });
-  }
-
-  // 로그아웃 처리
-  Future<void> _handleLogout() async {
-    final token = _token;
-
-    if (token != null) {
-      try {
-        await AuthService().logout(token);
-      } catch (_) {
-        // 서버 연결에 실패해도 앱에서는 로그아웃 처리
-      }
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-
-    if (!mounted) return;
-
-    setState(() {
-      _user = null;
-      _token = null;
-    });
-  }
+class StoreAiApp extends StatelessWidget {
+  const StoreAiApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: '카페온',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF1E232A),
-        colorScheme: ColorScheme.fromSeed(seedColor: blue),
-      ),
-      home: _isCheckingLogin
-          ? const Scaffold(body: Center(child: CircularProgressIndicator()))
-          : _user == null || _token == null
-          ? LoginPhoneFrameScreen(
-              child: LoginScreen(onLoginSuccess: _handleLoginSuccess),
-            )
-          : PhoneFrameScreen(
-              user: _user!,
-              token: _token!,
-              onLogout: _handleLogout,
-            ),
-    );
-  }
-}
-
-class PhoneFrameScreen extends StatelessWidget {
-  final Map<String, dynamic> user;
-  final String token;
-  final Future<void> Function() onLogout;
-
-  const PhoneFrameScreen({
-    super.key,
-    required this.user,
-    required this.token,
-    required this.onLogout,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF181C24),
-      body: Center(
-        child: Container(
-          width: 390,
-          height: 800,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(color: const Color(0xFF3A4252), width: 10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Stack(
-              children: [
-                Navigator(
-                  onGenerateRoute: (settings) => MaterialPageRoute<void>(
-                    settings: settings,
-                    builder: (_) =>
-                        CafeHome(user: user, token: token, onLogout: onLogout),
-                  ),
-                ),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 30,
-                  child: IgnorePointer(
-                    child: Center(
-                      child: Container(
-                        width: 110,
-                        height: 22,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(14),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF111418),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class LoginPhoneFrameScreen extends StatelessWidget {
-  final Widget child;
-
-  const LoginPhoneFrameScreen({super.key, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF181C24),
-      body: Center(
-        child: Container(
-          width: 390,
-          height: 800,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(40),
-            border: Border.all(color: const Color(0xFF3A4252), width: 10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 30,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Stack(
-              children: [
-                Positioned.fill(child: child),
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: 30,
-                  child: IgnorePointer(
-                    child: Center(
-                      child: Container(
-                        width: 110,
-                        height: 22,
-                        decoration: const BoxDecoration(
-                          color: Colors.black,
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(14),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFF111418),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return const AppRoot();
   }
 }
 
 class CafeHome extends StatefulWidget {
-  final Map<String, dynamic> user;
   final String token;
-  final Future<void> Function() onLogout;
+  final VoidCallback onLogout;
 
   const CafeHome({
     super.key,
-    required this.user,
     required this.token,
     required this.onLogout,
   });
@@ -342,7 +80,6 @@ class _CafeHomeState extends State<CafeHome> {
     Icons.person_outline_rounded,
   ];
 
-  // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
   Offset chatbotOffset = const Offset(20, 80);
 
   @override
@@ -353,6 +90,11 @@ class _CafeHomeState extends State<CafeHome> {
   }
 
   Future<void> _loadBusinessData() async {
+    setState(() {
+      _isBusinessLoading = true;
+      _businessError = null;
+    });
+
     try {
       final stores = await _businessService.getStores();
 
@@ -373,6 +115,11 @@ class _CafeHomeState extends State<CafeHome> {
         _isBusinessLoading = false;
         _businessError = null;
       });
+
+      await Future.wait([
+        _loadSalesData(),
+        _loadSavedForecast(),
+      ]);
     } catch (error) {
       if (!mounted) return;
 
@@ -393,7 +140,7 @@ class _CafeHomeState extends State<CafeHome> {
 
     try {
       final results = await Future.wait([
-        _businessService.getSales(_storeId!, granularity: 'day'),
+        _businessService.getSales(_storeId!, granularity: _salesGranularity),
         _businessService.getPatterns(_storeId!),
       ]);
 
@@ -401,7 +148,9 @@ class _CafeHomeState extends State<CafeHome> {
 
       setState(() {
         _salesData = results[0];
-        _dailySalesData = results[0];
+        if (_salesGranularity == 'day') {
+          _dailySalesData = results[0];
+        }
         _patternsData = results[1];
         _hoveredWeekIndex = null;
         _isSalesLoading = false;
@@ -441,3 +190,165 @@ class _CafeHomeState extends State<CafeHome> {
       });
     }
   }
+
+  void _openChatbot() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ChatbotSheet(
+        token: widget.token,
+        storeId: _storeId,
+      ),
+    );
+  }
+
+  Widget _buildCurrentTab() {
+    if (_isBusinessLoading && _homeData == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_businessError != null && _homeData == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _businessError!,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadBusinessData,
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    switch (tab) {
+      case 0:
+        return HomeScreen(
+          storeId: _storeId,
+          storeName: _storeName,
+          homeData: _homeData,
+          onRefresh: _loadBusinessData,
+        );
+      case 1:
+        return SalesScreen(
+          storeId: _storeId,
+          periodIndex: _salesPeriodIndex,
+          isLoading: _isSalesLoading,
+          error: _salesError,
+          salesData: _salesData,
+          patternsData: _patternsData,
+          dailySalesData: _dailySalesData,
+          hoveredWeekIndex: _hoveredWeekIndex,
+          onPeriodChanged: (index) {
+            setState(() {
+              _salesPeriodIndex = index;
+            });
+            _loadSalesData();
+          },
+          onHoverWeek: (index) {
+            setState(() {
+              _hoveredWeekIndex = index;
+            });
+          },
+        );
+      case 2:
+        return AiAnalysisScreen(
+          storeId: _storeId,
+          forecastData: _forecastData,
+          isForecastLoading: _isForecastLoading,
+          forecastError: _forecastError,
+          reviewData: _reviewData,
+          isReviewLoading: _isReviewLoading,
+          reviewError: _reviewError,
+          onRefreshForecast: _loadSavedForecast,
+        );
+      case 3:
+        return RecommendationScreen(
+          storeId: _storeId,
+        );
+      case 4:
+      default:
+        return MyPageScreen(
+          token: widget.token,
+          storeId: _storeId,
+          storeName: _storeName,
+          onLogout: widget.onLogout,
+        );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        children: [
+          SafeArea(child: _buildCurrentTab()),
+          if (showNotifications)
+            NotificationScreen(
+              readIds: readNotifications,
+              allRead: notificationsRead,
+              onMarkAllRead: () {
+                setState(() {
+                  notificationsRead = true;
+                });
+              },
+              onToggleRead: (id) {
+                setState(() {
+                  if (!readNotifications.add(id)) {
+                    readNotifications.remove(id);
+                  }
+                });
+              },
+              onClose: () {
+                setState(() {
+                  showNotifications = false;
+                });
+              },
+            ),
+          Positioned(
+            right: chatbotOffset.dx,
+            bottom: chatbotOffset.dy,
+            child: GestureDetector(
+              onPanUpdate: (details) {
+                setState(() {
+                  chatbotOffset = Offset(
+                    (chatbotOffset.dx - details.delta.dx).clamp(8.0, 320.0),
+                    (chatbotOffset.dy - details.delta.dy).clamp(8.0, 640.0),
+                  );
+                });
+              },
+              child: FloatingActionButton(
+                onPressed: _openChatbot,
+                child: const Icon(Icons.smart_toy_rounded),
+              ),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: tab,
+        onDestinationSelected: (index) {
+          setState(() {
+            tab = index;
+          });
+        },
+        destinations: List.generate(
+          labels.length,
+          (index) => NavigationDestination(
+            icon: Icon(icons[index]),
+            label: labels[index],
+          ),
+        ),
+      ),
+    );
+  }
+}
