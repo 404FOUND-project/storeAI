@@ -1,16 +1,59 @@
-﻿import os
+﻿
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
 from openai import OpenAI
 from django.http import JsonResponse
-from rest_framework.decorators import api_view
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+
+from store.models import Store
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key) if api_key else None
+
+
+def get_user_store(request, requested_store_id=None):
+    """로그인한 사용자가 소유한 매장만 반환한다."""
+    stores = Store.objects.filter(owner=request.user).order_by("id")
+
+    if requested_store_id not in (None, ""):
+        try:
+            store_id = int(requested_store_id)
+        except (TypeError, ValueError):
+            return None, JsonResponse(
+                {"error": "올바르지 않은 매장 ID입니다."},
+                status=400,
+                json_dumps_params={"ensure_ascii": False},
+            )
+
+        store = stores.filter(id=store_id).first()
+        if store is None:
+            return None, JsonResponse(
+                {"error": "해당 매장을 조회할 권한이 없거나 매장이 존재하지 않습니다."},
+                status=403,
+                json_dumps_params={"ensure_ascii": False},
+            )
+        return store, None
+
+    store = stores.first()
+    if store is None:
+        return None, JsonResponse(
+            {"error": "등록된 매장이 없습니다. 먼저 매장을 등록해 주세요."},
+            status=404,
+            json_dumps_params={"ensure_ascii": False},
+        )
+
+    return store, None
 
 
 @api_view(["POST"])
@@ -65,19 +108,46 @@ def chatbot(request):
 
 
 def faq_api(request):
-    """GET /api/chatbot/faq/ : 카테고리별 선택형 질문 목록 (+ 이동할 화면)"""
+    """GET /api/chatbot/faq/ : 카테고리별 선택형 질문 목록"""
     from .faq import faq_list
-    return JsonResponse({"categories": faq_list()}, json_dumps_params={"ensure_ascii": False})
+
+    return JsonResponse(
+        {"categories": faq_list()},
+        json_dumps_params={"ensure_ascii": False},
+    )
 
 
+@api_view(["GET"])
+@authentication_classes([TokenAuthentication])
+@permission_classes([IsAuthenticated])
 def faq_answer_api(request):
-    """GET /api/chatbot/faq/answer/?id=menu_top&store_id=1 : 선택한 질문의 답변과 이동할 화면"""
+    """로그인 사용자의 소유 매장에 대한 FAQ 답변"""
+    store, error_response = get_user_store(
+        request,
+        request.query_params.get("store_id"),
+    )
+
+    if error_response:
+        return error_response
+
     from .faq import answer_question
-    try:
-        store_id = int(request.GET.get("store_id", 0)) or None
-    except ValueError:
-        store_id = None
-    result = answer_question(request.GET.get("id", ""), store_id)
+
+    result = answer_question(
+        request.query_params.get("id", ""),
+        store.id,
+    )
+
     if result is None:
-        return JsonResponse({"error": "알 수 없는 질문입니다."}, status=404)
-    return JsonResponse(result, json_dumps_params={"ensure_ascii": False})
+        return JsonResponse(
+            {"error": "알 수 없는 질문입니다."},
+            status=404,
+            json_dumps_params={"ensure_ascii": False},
+        )
+
+    result["store_id"] = store.id
+    result["store_name"] = store.name
+
+    return JsonResponse(
+        result,
+        json_dumps_params={"ensure_ascii": False},
+    )

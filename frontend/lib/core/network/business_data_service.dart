@@ -27,7 +27,7 @@ class BusinessDataService {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
-        'API 요청 실패 (${response.statusCode}): ${response.body}',
+        'API 요청 실패 (${response.statusCode}): ${utf8.decode(response.bodyBytes)}',
       );
     }
 
@@ -123,4 +123,42 @@ class BusinessDataService {
     );
     return Map<String, dynamic>.from(data);
   }
+
+  // 서버에서 챗봇 FAQ 카테고리와 질문 목록 조회
+  Future<Map<String, dynamic>> getFaq() async {
+    final data = await get('/api/chatbot/faq/');
+    return Map<String, dynamic>.from(data);
+  }
+
+  // 선택한 FAQ 질문의 실제 답변 조회
+  Future<Map<String, dynamic>> getFaqAnswer(
+    String questionId, {
+    int? storeId,
+  }) async {
+    final encodedId = Uri.encodeQueryComponent(questionId);
+
+    final storeQuery =
+        storeId == null ? '' : '&store_id=$storeId';
+
+    final data = await get(
+      '/api/chatbot/faq/answer/?id=$encodedId$storeQuery',
+    );
+
+    return Map<String, dynamic>.from(data);
+  }
+
+  Future<String> askChatbot(String question) async {
+    final uri = Uri.parse('${ApiConstants.baseUrl}/api/chatbot/');
+    final response = await http.post(uri, headers: {
+      'Authorization': 'Token $token',
+      'Content-Type': 'application/json',
+    }, body: jsonEncode({'question': question})).timeout(_timeout);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw Exception('챗봇 요청 실패 (${response.statusCode}): ${utf8.decode(response.bodyBytes)}');
+    }
+    final result = jsonDecode(utf8.decode(response.bodyBytes));
+    if (result is! Map) throw Exception('챗봇 응답 형식이 올바르지 않습니다.');
+    return result['answer']?.toString() ?? '답변을 받지 못했습니다.';
+  }
+
 }
