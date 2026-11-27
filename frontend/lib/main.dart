@@ -303,6 +303,7 @@ class CafeHome extends StatefulWidget {
 
 class _CafeHomeState extends State<CafeHome> {
   int tab = 0;
+  int _aiAnalysisSection = 0;
   bool showNotifications = false;
   bool notificationsRead = false;
   final Set<int> readNotifications = {};
@@ -327,6 +328,15 @@ class _CafeHomeState extends State<CafeHome> {
   Map<String, dynamic>? _reviewData;
   bool _isReviewLoading = false;
   String? _reviewError;
+
+  Map<String, dynamic>? _inventoryData;
+  Map<String, dynamic>? _reorderData;
+  bool _isInventoryLoading = false;
+  String? _inventoryError;
+
+  Map<String, dynamic>? _setRecommendationData;
+  bool _isSetRecommendationLoading = false;
+  String? _setRecommendationError;
 
   String get _salesGranularity {
     if (_salesPeriodIndex == 0) return 'day';
@@ -395,6 +405,62 @@ class _CafeHomeState extends State<CafeHome> {
     _loadBusinessData();
   }
 
+  Future<void> _loadInventoryData(int storeId) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isInventoryLoading = true;
+      _inventoryError = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        _businessService.getInventory(storeId),
+        _businessService.getReorderRecommendation(storeId),
+      ]);
+
+      if (!mounted) return;
+
+      setState(() {
+        _inventoryData = results[0];
+        _reorderData = results[1];
+        _isInventoryLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _inventoryError = error.toString();
+        _isInventoryLoading = false;
+      });
+    }
+  }
+
+  Future<void> _loadSetRecommendationData(int storeId) async {
+    if (!mounted) return;
+
+    setState(() {
+      _isSetRecommendationLoading = true;
+      _setRecommendationError = null;
+    });
+
+    try {
+      final result = await _businessService.getSetMenuRecommendation(storeId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _setRecommendationData = result;
+        _isSetRecommendationLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _setRecommendationError = error.toString();
+        _isSetRecommendationLoading = false;
+      });
+    }
+  }
+
   Future<void> _loadBusinessData() async {
     try {
       final stores = await _businessService.getStores();
@@ -416,6 +482,9 @@ class _CafeHomeState extends State<CafeHome> {
         _isBusinessLoading = false;
         _businessError = null;
       });
+
+      _loadInventoryData(storeId);
+      _loadSetRecommendationData(storeId);
     } catch (error) {
       if (!mounted) return;
 
@@ -518,12 +587,12 @@ class _CafeHomeState extends State<CafeHome> {
   // 챗봇 아이콘 위치 초기값 (오른쪽, 아래쪽 기준)
   Offset chatbotOffset = const Offset(20, 80);
 
-  final labels = ['홈', '매출 분석', 'AI 분석', '세트 추천', '마이'];
+  final labels = ['홈', '매출 분석', 'AI 분석', '재고 및 발주', '마이'];
   final icons = [
     Icons.home_rounded,
     Icons.bar_chart_rounded,
     Icons.auto_awesome_rounded,
-    Icons.storefront_rounded,
+    Icons.inventory_2_rounded,
     Icons.person_outline_rounded,
   ];
 
@@ -1576,7 +1645,7 @@ class _CafeHomeState extends State<CafeHome> {
   Widget otherPage() {
     if (tab == 1) return salesPage();
     if (tab == 2) return aiAnalysisPage();
-    if (tab == 3) return setRecommendationPage();
+    if (tab == 3) return inventoryPage();
     return myPage();
   }
 
@@ -1996,6 +2065,62 @@ class _CafeHomeState extends State<CafeHome> {
   }
 
   Widget aiAnalysisPage() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F7FB),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              _aiAnalysisTabButton('AI 리뷰 분석', 0),
+              _aiAnalysisTabButton('세트메뉴 추천', 1),
+            ],
+          ),
+        ),
+        if (_aiAnalysisSection == 0)
+          aiReviewAnalysisContent()
+        else
+          setRecommendationPage(),
+      ],
+    );
+  }
+
+  Widget _aiAnalysisTabButton(String label, int index) {
+    final selected = _aiAnalysisSection == index;
+
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _aiAnalysisSection = index;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 6),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: selected ? blue : muted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget aiReviewAnalysisContent() {
     final rawMenus = _reviewData?['menus'];
     final menus = rawMenus is List
         ? rawMenus
@@ -2312,6 +2437,218 @@ class _CafeHomeState extends State<CafeHome> {
     );
   }
 
+  Widget inventoryPage() {
+    final inventory = List<dynamic>.from(
+      (_inventoryData?['results'] as List?) ?? [],
+    );
+    final reorder = List<dynamic>.from(
+      (_reorderData?['results'] as List?) ?? [],
+    );
+
+    int stockPriority(dynamic raw) {
+      if (raw is! Map) return 3;
+      final status = raw['stock_status']?.toString();
+      if (status == 'danger') return 0;
+      if (status == 'low') return 1;
+      if (status == 'ok') return 2;
+      return 3;
+    }
+
+    double daysLeft(dynamic raw) {
+      if (raw is! Map) return double.infinity;
+      return double.tryParse(raw['days_left']?.toString() ?? '') ??
+          double.infinity;
+    }
+
+    inventory.sort((a, b) {
+      final priority = stockPriority(a).compareTo(stockPriority(b));
+      if (priority != 0) return priority;
+      return daysLeft(a).compareTo(daysLeft(b));
+    });
+
+    reorder.sort((a, b) {
+      final priority = stockPriority(a).compareTo(stockPriority(b));
+      if (priority != 0) return priority;
+      return daysLeft(a).compareTo(daysLeft(b));
+    });
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        const Text(
+          '재고 및 발주 관리',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          '재료별 재고와 예상 소진 시점을 확인해요',
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 18),
+        const Text(
+          'AI 발주 추천',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          '앞으로 필요한 재료 발주량을 확인해요',
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 12),
+        if (_inventoryError != null)
+          const Text(
+            '발주 추천 데이터를 확인할 수 없습니다.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
+        else if (reorder.isEmpty)
+          const Text(
+            '현재 추천할 발주 항목이 없습니다.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
+        else
+          ...reorder.map((raw) {
+            final item = Map<String, dynamic>.from(raw as Map);
+            final name = item['ingredient_name']?.toString() ?? '재료';
+            final amount = item['recommended_order_qty']?.toString() ?? '-';
+            final unit = item['unit']?.toString() ?? '';
+            final note = item['note']?.toString() ?? '';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 9),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F7FB),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: ink,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '추천 발주량 $amount$unit',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: blue,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (note.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      note,
+                      style: const TextStyle(fontSize: 11, color: muted),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }),
+        const SizedBox(height: 14),
+        if (_isInventoryLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_inventoryError != null)
+          Text(
+            '재고 데이터를 불러오지 못했어요: $_inventoryError',
+            style: const TextStyle(fontSize: 12, color: muted),
+          )
+        else if (inventory.isEmpty)
+          const Text(
+            '등록된 재고 데이터가 없습니다.',
+            style: TextStyle(fontSize: 12, color: muted),
+          )
+        else
+          ...inventory.map((raw) {
+            final item = Map<String, dynamic>.from(raw as Map);
+            final name = item['ingredient_name']?.toString() ?? '재료';
+            final quantity = item['quantity']?.toString() ?? '-';
+            final unit = item['unit']?.toString() ?? '';
+            final days = item['days_left']?.toString() ?? '-';
+            final status = item['stock_status']?.toString() ?? '';
+            final statusLabel = status == 'danger'
+                ? '재고 위험'
+                : status == 'low'
+                ? '재고 부족'
+                : status == 'ok'
+                ? '정상'
+                : status;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 9),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: line),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: ink,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          '현재 재고 $quantity$unit',
+                          style: const TextStyle(fontSize: 12, color: muted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        statusLabel,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: status == 'danger' || status == 'low'
+                              ? Colors.red
+                              : blue,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        '소진 예상 ${days}일',
+                        style: const TextStyle(fontSize: 11, color: muted),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
+    );
+  }
+
   Widget _metricCell(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2330,62 +2667,132 @@ class _CafeHomeState extends State<CafeHome> {
     );
   }
 
-  Widget setRecommendationPage() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      const Text(
-        '세트메뉴 추천',
-        style: TextStyle(fontSize: 25, fontWeight: FontWeight.w800, color: ink),
-      ),
-      const SizedBox(height: 5),
-      const Text(
-        '실제 주문 조합에서 잘 맞는 메뉴를 찾아요',
-        style: TextStyle(fontSize: 12, color: muted),
-      ),
-      const SizedBox(height: 18),
-      section('시간대별 추천', null, null),
-      const SizedBox(height: 10),
-      Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: ['전체', '아침', '점심', '오후']
-            .map(
-              (e) => Chip(
-                label: Text(e),
-                backgroundColor: e == '전체' ? blue : Colors.white,
-                labelStyle: TextStyle(color: e == '전체' ? Colors.white : ink),
+  Widget setRecommendationPage() {
+    final sets = (_setRecommendationData?['sets'] as List?) ?? [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '세트메뉴 추천',
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            color: ink,
+          ),
+        ),
+        const SizedBox(height: 5),
+        const Text(
+          '실제 주문 조합을 분석해 함께 판매하기 좋은 메뉴를 추천해요',
+          style: TextStyle(fontSize: 12, color: muted),
+        ),
+        const SizedBox(height: 18),
+        if (_isSetRecommendationLoading)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(),
+            ),
+          )
+        else if (_setRecommendationError != null)
+          Text(
+            '추천 데이터를 불러오지 못했어요: $_setRecommendationError',
+            style: const TextStyle(fontSize: 12, color: muted),
+          )
+        else if (sets.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: line),
+            ),
+            child: const Text(
+              '아직 추천할 세트 조합이 없습니다.\n주문 데이터가 쌓이면 함께 주문된 메뉴를 분석해 추천해 드려요.',
+              style: TextStyle(fontSize: 13, color: muted, height: 1.6),
+            ),
+          )
+        else
+          ...sets.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = Map<String, dynamic>.from(entry.value as Map);
+            final menus = (item['menus'] as List?) ?? [];
+            final names = menus
+                .map((menu) {
+                  return menu is Map ? (menu['name']?.toString() ?? '') : '';
+                })
+                .where((name) => name.isNotEmpty)
+                .join(' + ');
+            final support = item['support']?.toString() ?? '-';
+            final confidence = item['confidence']?.toString() ?? '-';
+            final price = item['total_price']?.toString() ?? '-';
+            final setPrice = item['set_price']?.toString() ?? '-';
+            final together = item['orders_together']?.toString() ?? '-';
+
+            return Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: line),
               ),
-            )
-            .toList(),
-      ),
-      const SizedBox(height: 14),
-      _recommendCard(
-        '아메리카노 + 버터 크루아상',
-        '함께 주문 1위',
-        '38%',
-        '두 메뉴 중 하나를 주문한 고객의 38%가 함께 선택했어요.',
-        '7,900원 제안',
-      ),
-      const SizedBox(height: 14),
-      section('다른 추천 조합', null, null),
-      const SizedBox(height: 10),
-      _recommendCard(
-        '카페라떼 + 버터 쿠키',
-        '오후 인기 조합',
-        '31%',
-        '오후 시간대에 함께 선택되는 조합이에요.',
-        '추천 조합',
-      ),
-      const SizedBox(height: 10),
-      _recommendCard(
-        '아메리카노 + 샌드위치',
-        '점심 추천 조합',
-        '27%',
-        '간단한 식사 메뉴와 음료를 함께 제안해 보세요.',
-        '추천 조합',
-      ),
-    ],
-  );
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '추천 조합 ${index + 1}',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: blue,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    names.isEmpty ? '메뉴 정보 없음' : names,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: ink,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _metricCell('함께 주문', '$together건'),
+                      _metricCell('연관도', '$support%'),
+                      _metricCell('신뢰도', '$confidence%'),
+                    ],
+                  ),
+                  const Divider(height: 22),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '기존 합계 ${price}원',
+                        style: const TextStyle(fontSize: 12, color: muted),
+                      ),
+                      Text(
+                        '세트 제안 ${setPrice}원',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: blue,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+      ],
+    );
+  }
 
   Widget myPage() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,

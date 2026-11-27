@@ -1,4 +1,4 @@
-
+﻿
 """
 Django settings for config project.
 """
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # backend/.env 파일 불러오기
-load_dotenv(BASE_DIR.parent / ".env")
+load_dotenv(BASE_DIR / '.env')
 
 
 # Security
@@ -153,3 +153,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 # 개인 테스트용: .env에 USE_LOCAL_DB=1 이면 공유 DB 대신 내 PC의 SQLite 파일 사용
 if os.environ.get("USE_LOCAL_DB") == "1":
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "local_dummy.sqlite3"}}
+
+
