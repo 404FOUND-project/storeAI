@@ -1,4 +1,4 @@
-
+﻿
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from store.models import Store, Menu
@@ -79,15 +79,15 @@ class Sales(models.Model):
         related_name="sales",
     )
 
-    # 실제 판매가 발생한 시간
+    # ?ㅼ젣 ?먮ℓ媛 諛쒖깮???쒓컙
     sold_at = models.DateTimeField()
 
-    # 주문 전체 금액
+    # 二쇰Ц ?꾩껜 湲덉븸
     total_amount = models.PositiveBigIntegerField()
 
     create_at = models.DateTimeField(auto_now_add=True)
 
-    # 외부 원본(POS/더미 CSV)의 주문 ID. 직접 입력한 주문은 NULL.
+    # ?몃? ?먮낯(POS/?붾? CSV)??二쇰Ц ID. 吏곸젒 ?낅젰??二쇰Ц? NULL.
     source_order_id = models.CharField(
         max_length=32,
         null=True,
@@ -96,8 +96,8 @@ class Sales(models.Model):
 
     class Meta:
         constraints = [
-            # 매장별 유일: 원본 주문번호는 POS(매장) 단위로 부여되므로
-            # (store, source_order_id)로 제한.
+            # 留ㅼ옣蹂??좎씪: ?먮낯 二쇰Ц踰덊샇??POS(留ㅼ옣) ?⑥쐞濡?遺?щ릺誘濡?
+            # (store, source_order_id)濡??쒗븳.
             models.UniqueConstraint(
                 fields=("store", "source_order_id"),
                 name="sales_store_source_order_id_uniq",
@@ -132,10 +132,10 @@ class SalesItem(models.Model):
         related_name="sales_items",
     )
 
-    # 해당 메뉴 주문 수량
+    # ?대떦 硫붾돱 二쇰Ц ?섎웾
     quantity = models.PositiveIntegerField()
 
-    # 구매 당시 메뉴 가격
+    # 援щℓ ?뱀떆 硫붾돱 媛寃?
     unit_price = models.PositiveIntegerField()
 
     serving_temperature = models.CharField(
@@ -209,7 +209,7 @@ class SalesItem(models.Model):
 
 
 class SalesForecast(models.Model):
-    """A의 메뉴별 판매 예측 결과 (발주 추천이 읽음). 같은 base_date의 여러 target_date를 한 번에 저장."""
+    """A??硫붾돱蹂??먮ℓ ?덉륫 寃곌낵 (諛쒖＜ 異붿쿇???쎌쓬). 媛숈? base_date???щ윭 target_date瑜???踰덉뿉 ???"""
 
     menu = models.ForeignKey(
         Menu,
