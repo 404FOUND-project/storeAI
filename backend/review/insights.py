@@ -33,7 +33,7 @@ def answer(qid, store_id):
                     .values_list("category", flat=True))
         if not c:
             return "부정 리뷰가 없어요."
-        return "부정 리뷰에서 많이 나온 불만은 " + ", ".join(f"{CAT[k]}({v}건)" for k, v in c.most_common(3)) + " 순이에요." + NOTE
+        return "부정 리뷰에서 많이 나온 불만은 " + ", ".join(f"{CAT[k]}({v}건)" for k, v in c.most_common(3)) + " 순이에요."
     st = [s for s in _stats(store_id).values() if s["n"] >= MIN_REVIEWS]
     if not st:
         return f"메뉴별 리뷰가 {MIN_REVIEWS}건 이상 쌓이지 않아 분석 데이터가 부족해요."
@@ -46,7 +46,7 @@ def answer(qid, store_id):
             c[r.menu.name] += 1
         if not c:
             return "맛에 대한 부정 리뷰가 없어요."
-        return "맛 관련 부정 리뷰가 많은 메뉴는 " + ", ".join(f"{k}({v}건)" for k, v in c.most_common(3)) + "예요." + NOTE
+        return "맛 관련 부정 리뷰가 많은 메뉴는 " + ", ".join(f"{k}({v}건)" for k, v in c.most_common(3)) + "예요."
     sales = _sales(store_id)
     ids = {mid: s for mid, s in _stats(store_id).items() if s["n"] >= MIN_REVIEWS}
     qtys = sorted(sales.get(m, 0) for m in ids)
@@ -55,12 +55,12 @@ def answer(qid, store_id):
         hit = [s["name"] + f"(판매 {sales.get(m, 0):,}개, 부정 {s['neg']}/{s['n']})" for m, s in ids.items()
                if sales.get(m, 0) >= mid_q and s["neg"] / s["n"] >= 0.4]
         return ("판매량은 높은데 부정 리뷰 비율이 높은 메뉴: " + ", ".join(hit[:3]) + ". 품질 점검을 검토해 보세요." if hit
-                else "판매량은 높은데 부정 리뷰가 많은 메뉴는 없어요.") + NOTE
+                else "판매량은 높은데 부정 리뷰가 많은 메뉴는 없어요.")
     if qid == "review_promo":
         hit = [s["name"] + f"(판매 {sales.get(m, 0):,}개, 긍정 {s['pos']}/{s['n']})" for m, s in ids.items()
                if sales.get(m, 0) < mid_q and s["pos"] / s["n"] >= 0.5]
         return ("판매량은 낮지만 긍정 반응이 좋은 메뉴: " + ", ".join(hit[:3]) + ". 홍보 강화를 검토해 보세요." if hit
-                else "판매량이 낮으면서 긍정 반응이 높은 메뉴는 없어요.") + NOTE
+                else "판매량이 낮으면서 긍정 반응이 높은 메뉴는 없어요.")
     return None
 
 
