@@ -1,13 +1,14 @@
 """선택형 챗봇: 사전 정의 질문·답변 + 관련 화면 이동 정보.
 
-화면 번호(destination)는 Flutter 하단 탭 순서: 0 홈, 1 매출 분석, 2 AI 분석, 3 세트 추천, 4 마이
+화면 번호(destination)는 Flutter 하단 탭 순서: 0 홈, 1 매출 분석, 2 AI 분석, 3 재고 및 발주, 4 마이
 """
+from difflib import SequenceMatcher
+import re
 from datetime import timedelta
 
 from django.db import connection
 from django.utils import timezone
 
-DEMO = "(시연용 더미 데이터 기준) "
 
 # (카테고리, 이동 화면 번호, 이동 화면 이름, [(질문 id, 질문, 정적 답변 또는 None=서버 계산)])
 _FAQ = [
@@ -24,13 +25,13 @@ _FAQ = [
         ("pred_basis", "매출 예측은 어떤 데이터를 기반으로 하나요?", "과거 POS 매출, 주문 건수, 요일, 날씨, 공휴일 같은 변수를 활용해요."),
         ("pred_promo", "매출을 높이려면 언제 프로모션을 해야 하나요?", "매출이 낮은 시간대에 세트 메뉴나 디저트 추가 할인 같은 부담 적은 프로모션을 시험해 보세요. 전후의 주문 수와 객단가를 비교하는 것이 좋아요."),
     ]),
-    ("메뉴 분석", 3, "세트 추천", [
+    ("메뉴 분석", 2, "AI 분석", [
         ("menu_top", "가장 많이 팔린 메뉴는 무엇인가요?", None),
         ("menu_together", "함께 주문되는 메뉴는 무엇인가요?", None),
         ("menu_new", "새롭게 추가하면 좋을 메뉴가 있나요?", "메뉴별 판매량과 원가 마진, 고객 반응을 함께 확인해 새 메뉴 도입 여부를 판단해 보세요."),
         ("menu_low", "판매가 저조한 메뉴를 알려주세요.", None),
     ]),
-    ("재고 관리", 4, "마이", [
+    ("재고 관리", 3, "재고 및 발주", [
         ("stock_check", "재고 확인이 필요한 메뉴가 있나요?", None),
         ("stock_tomorrow", "내일 준비할 원재료를 추천해 주세요.", "발주 추천 화면에서 권장 발주량을 확인할 수 있어요. 예상 주문량 연동은 준비 중이에요."),
         ("stock_alert", "재고 부족을 미리 알 수 있나요?", "가능해요. 재고 수량과 일평균 사용량으로 남은 일수를 계산해 부족·위험 상태를 표시해요."),
@@ -130,16 +131,90 @@ def _dynamic(qid, store_id):
 
 
 def answer_question(qid, store_id=None):
-    """질문 id -> {"answer", "destination", "destination_name"}. 모르는 id면 None."""
+    """질문 id -> 답변과 이동 화면 정보를 반환한다."""
     item = _BY_ID.get(qid)
+
     if not item:
         return None
+
     dest, dest_name, static = item
-    answer = static
-    if answer is None and store_id:
-        answer = _dynamic(qid, store_id)
-        if answer:
-            answer = DEMO + answer
-    if answer is None:
-        answer = "이 질문은 매장 정보(store_id)가 있어야 데이터로 답할 수 있어요."
-    return {"answer": answer, "destination": dest, "destination_name": dest_name}
+
+    # 매장 ID가 있으면 실제 데이터 조회를 우선한다.
+    if store_id:
+        dynamic_answer = _dynamic(qid, store_id)
+
+        if dynamic_answer is not None:
+            answer = dynamic_answer
+        elif static is not None:
+            answer = static
+        else:
+            answer = "아직 이 질문에 대한 매장 데이터 조회 기능이 연결되지 않았어요."
+    else:
+        answer = static or "매장 정보가 있어야 답변할 수 있어요."
+
+    return {
+        "answer": answer,
+        "destination": dest,
+        "destination_name": dest_name,
+    }
+
+
+
+def answer_freeform(question, store_id=None):
+    """Match a free-form message to the closest existing FAQ without an API key."""
+    normalized = re.sub(r"[^0-9a-z가-힣]", "", question.lower())
+    if len(normalized) < 4:
+        return None
+
+    aliases = {
+        "sales_month": ("이번달매출", "이달매출", "매출얼마", "매출현황", "월매출"),
+        "sales_compare": ("지난달매출", "전월매출", "매출비교", "매출증감", "매출변화"),
+        "sales_bestday": ("최고매출일", "매출높았던날", "매출가장높은날"),
+        "sales_hour": ("시간대별매출", "시간별매출", "피크타임", "매출시간대"),
+        "sales_goal": ("매출목표", "목표달성", "목표매출"),
+        "pred_tomorrow": ("내일매출", "내일예상매출", "내일얼마"),
+        "pred_weekday": ("이번주매출", "매출높은요일", "매출많은요일"),
+        "pred_basis": ("예측기준", "예측데이터", "예측모델"),
+        "pred_promo": ("프로모션", "할인언제", "매출올리려면"),
+        "menu_top": ("인기메뉴", "베스트메뉴", "가장많이팔린메뉴"),
+        "menu_together": ("함께주문", "같이팔리는메뉴", "메뉴조합"),
+        "menu_new": ("신메뉴", "새메뉴", "추가할메뉴", "메뉴추천"),
+        "menu_low": ("안팔리는메뉴", "판매저조", "저조한메뉴"),
+        "stock_check": ("재고확인", "재고점검", "유통기한"),
+        "stock_tomorrow": ("내일준비", "발주추천", "원재료추천"),
+        "stock_alert": ("재고부족", "부족알림", "재고알림"),
+        "stock_proper": ("적정재고", "재고수량"),
+        "area_where": ("유동인구", "주변고객", "사람많은곳"),
+        "area_trait": ("상권특징", "주변상권"),
+        "area_rival": ("경쟁카페", "경쟁매장"),
+        "area_menu": ("상권추천메뉴", "상권에맞는메뉴"),
+        "review_worst": ("불만리뷰", "불만족리뷰", "불만사항"),
+        "review_best": ("좋은리뷰", "긍정리뷰", "호평메뉴"),
+        "review_taste": ("맛평가", "맛불만", "맛관련리뷰"),
+        "review_sales_gap": ("리뷰안좋은메뉴", "리뷰가나쁜메뉴"),
+        "review_promo": ("리뷰로메뉴추천", "리뷰기반추천"),
+    }
+
+    for question_id, phrases in aliases.items():
+        if any(phrase in normalized for phrase in phrases):
+            return answer_question(question_id, store_id)
+
+    def bigrams(value):
+        return {value[index:index + 2] for index in range(len(value) - 1)}
+
+    query_grams = bigrams(normalized)
+    best_id = None
+    best_score = 0.0
+    for category in _FAQ:
+        for question_id, faq_question, _ in category[3]:
+            candidate = re.sub(r"[^0-9a-z가-힣]", "", faq_question.lower())
+            candidate_grams = bigrams(candidate)
+            overlap = len(query_grams & candidate_grams) / max(len(query_grams), 1)
+            similarity = SequenceMatcher(None, normalized, candidate).ratio()
+            score = max(overlap * 0.82, similarity)
+            if score > best_score:
+                best_id, best_score = question_id, score
+
+    if best_id is None or best_score < 0.30:
+        return None
+    return answer_question(best_id, store_id)

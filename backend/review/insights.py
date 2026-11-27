@@ -39,7 +39,7 @@ def answer(qid, store_id):
         return f"메뉴별 리뷰가 {MIN_REVIEWS}건 이상 쌓이지 않아 분석 데이터가 부족해요."
     if qid == "review_best":
         top = sorted(st, key=lambda s: (s["pos"] / s["n"], s["n"]), reverse=True)[:3]
-        return "긍정 리뷰 비율이 높은 메뉴는 " + ", ".join(f"{s['name']}({s['pos']}/{s['n']}건)" for s in top) + "예요." + NOTE
+        return "긍정 리뷰 비율이 높은 메뉴는 " + ", ".join(f"{s['name']}({s['pos']}/{s['n']}건)" for s in top) + "예요."
     if qid == "review_taste":
         c = Counter()
         for r in Review.objects.filter(store_id=store_id, sentiment="negative", category="TASTE", menu__isnull=False).select_related("menu"):
